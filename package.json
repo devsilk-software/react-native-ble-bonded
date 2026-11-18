@@ -56,7 +56,12 @@
     "bluetooth",
     "bluetooth-low-energy",
     "nitro",
-    "expo"
+    "expo",
+    "reconnect",
+    "background",
+    "pairing",
+    "ios",
+    "android"
   ],
   "repository": {
     "type": "git",

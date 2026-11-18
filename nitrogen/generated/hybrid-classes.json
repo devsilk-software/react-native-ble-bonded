@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "classes": {
+    "BluetoothState": {
+      "android": {
+        "implementation": {
+          "className": "HybridBluetoothState"
+        },
+        "language": "kotlin"
+      },
+      "apple": {
+        "implementation": {
+          "className": "HybridBluetoothState"
+        },
+        "language": "swift"
+      }
+    }
+  }
+}

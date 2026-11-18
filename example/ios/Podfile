@@ -1,0 +1,6 @@
+# Not used for building: this app uses Swift Package Manager (`yarn spm`), because Nitro v1 builds only
+# through SPM. React Native's CLI still finds the iOS project through this file, so it stays.
+platform :ios, '16.0'
+
+target 'BondedExample' do
+end

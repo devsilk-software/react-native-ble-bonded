@@ -1,0 +1,130 @@
+{
+  "name": "react-native-ble-bonded",
+  "version": "0.0.1",
+  "description": "Bluetooth Low Energy for React Native: reliable connections and reconnection in the background.",
+  "main": "lib/index",
+  "module": "lib/index",
+  "types": "lib/index.d.ts",
+  "react-native": "lib/index",
+  "source": "src/index",
+  "imports": {
+    "#nitro/*": "./nitrogen/generated/shared/javascript/*.cjs"
+  },
+  "files": [
+    "src",
+    "react-native.config.js",
+    "lib",
+    "nitrogen",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "android/fix-prefab.gradle",
+    "android/CMakeLists.txt",
+    "android/src",
+    "cpp",
+    "app.plugin.js",
+    "nitro.json",
+    "README.md",
+    "Package.swift",
+    "*.podspec",
+    "ios/controllers/**/*.swift",
+    "ios/BondedFeatures/Package.swift",
+    "ios/BondedFeatures/shared/**/*.swift",
+    "ios/BondedFeatures/features/**/*.swift",
+    "ios/BondedFeatures/infrastructure/**/*.swift",
+    "ios/BondedFeatures/compositionRoot/**/*.swift",
+    "android/BondedFeatures/src/main",
+    "!src/**/__tests__",
+    "!lib/**/__tests__"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "clean": "rm -rf android/build node_modules/**/android/build lib tsconfig.tsbuildinfo",
+    "lint": "eslint src",
+    "lint-ci": "eslint src --max-warnings 0",
+    "typescript": "tsc",
+    "specs": "nitrogen --logLevel=\"debug\" && tsc --noEmit false",
+    "test": "jest",
+    "test:ios": "swift test --package-path ios/BondedFeatures",
+    "test:android": "cd android/BondedFeatures && ./gradlew test",
+    "check:behaviours": "node scripts/check-behaviours.mjs",
+    "build": "tsc",
+    "prepack": "tsc"
+  },
+  "keywords": [
+    "react-native",
+    "ble",
+    "bluetooth",
+    "bluetooth-low-energy",
+    "nitro",
+    "expo",
+    "reconnect",
+    "background",
+    "pairing",
+    "ios",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devsilk-software/react-native-ble-bonded.git"
+  },
+  "author": "Devsilk (Albert Liberski)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devsilk-software/react-native-ble-bonded/issues"
+  },
+  "homepage": "https://github.com/devsilk-software/react-native-ble-bonded#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@babel/core": "7.28.5",
+    "@babel/preset-env": "7.28.5",
+    "@babel/preset-typescript": "7.28.5",
+    "@eslint/js": "9.39.1",
+    "@types/babel__core": "^7",
+    "@types/jest": "30.0.0",
+    "@types/react": "^19.3.0",
+    "babel-jest": "30.2.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "4.4.4",
+    "eslint-plugin-boundaries": "5.3.1",
+    "eslint-plugin-prettier": "^5.5.5",
+    "jest": "30.2.0",
+    "nitro-core": "1.0.0-alpha.nightly.136.gdb81de61bd32",
+    "nitrogen": "1.0.0-alpha.nightly.136.gdb81de61bd32",
+    "prettier": "^3.8.3",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-nitro-modules": "1.0.0-alpha.nightly.136.gdb81de61bd32",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "8.47.0"
+  },
+  "peerDependencies": {
+    "nitro-core": "1.0.0-alpha.nightly.136.gdb81de61bd32",
+    "react": "*",
+    "react-native": ">=0.88.0",
+    "react-native-nitro-modules": "1.0.0-alpha.nightly.136.gdb81de61bd32"
+  },
+  "prettier": {
+    "printWidth": 140,
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false,
+    "semi": false,
+    "jsxSingleQuote": true,
+    "proseWrap": "always"
+  },
+  "swiftpmConfig": {
+    "name": "NitroBleBonded",
+    "dependencies": [
+      "react-native-nitro-modules"
+    ]
+  },
+  "packageManager": "yarn@4.18.1",
+  "workspaces": [
+    "example"
+  ]
+}

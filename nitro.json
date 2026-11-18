@@ -1,0 +1,13 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "environment": "react-native",
+  "cxxNamespace": ["blebonded"],
+  "apple": {
+    "moduleName": "NitroBleBonded"
+  },
+  "android": {
+    "namespace": ["blebonded"],
+    "cxxLibName": "NitroBleBonded"
+  },
+  "ignorePaths": ["**/node_modules"]
+}

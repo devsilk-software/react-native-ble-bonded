@@ -1,0 +1,131 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:9.3.1"
+  }
+}
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
+apply plugin: "com.android.library"
+apply plugin: 'org.jetbrains.kotlin.android'
+apply from: '../nitrogen/generated/android/NitroBleBonded+autolinking.gradle'
+apply from: "./fix-prefab.gradle"
+
+apply plugin: "com.facebook.react"
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["NitroBleBonded_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["NitroBleBonded_" + name]).toInteger()
+}
+
+android {
+  namespace "com.margelo.nitro.blebonded"
+
+  ndkVersion getExtOrDefault("ndkVersion")
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+        arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        abiFilters (*reactNativeArchitectures())
+
+        buildTypes {
+          debug {
+            cppFlags "-O1 -g"
+          }
+          release {
+            cppFlags "-O2"
+          }
+        }
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = [
+            "META-INF",
+            "META-INF/**",
+            "**/libc++_shared.so",
+            "**/libNitroModules.so",
+            "**/libfbjni.so",
+            "**/libjsi.so",
+            "**/libfolly_json.so",
+            "**/libfolly_runtime.so",
+            "**/libglog.so",
+            "**/libhermes.so",
+            "**/libhermes-executor-debug.so",
+            "**/libhermes_executor.so",
+            "**/libreactnative.so",
+            "**/libreactnativejni.so",
+            "**/libturbomodulejsijni.so",
+            "**/libreact_nativemodule_core.so",
+            "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    prefab true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    disable "GradleCompatible"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+
+  // React Native's autolinking includes one Gradle project per package, so the features library, which has a
+  // build and tests of its own (BondedFeatures/build.gradle), is compiled into this module.
+  sourceSets {
+    main {
+      java.srcDirs += ["${project.buildDir}/generated/source/codegen/java", "BondedFeatures/src/main/java"]
+    }
+  }
+}
+
+repositories {
+  mavenCentral()
+  google()
+}
+
+
+dependencies {
+  // The React Native Gradle plugin supplies the version.
+  implementation "com.facebook.react:react-android"
+
+  // The features use coroutines; keep the version on BondedFeatures/build.gradle.
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2"
+
+  // Add a dependency on NitroModules
+  implementation project(":react-native-nitro-modules")
+}

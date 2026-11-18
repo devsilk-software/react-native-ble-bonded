@@ -5,7 +5,7 @@ background, and after the system relaunches your app.
 
 > **Status: in development, not ready for use.**
 
-Maintained by Albert Liberski ([Devsilk](https://devsilk.com/)), formerly the maintainer of
+Maintained by [Albert Liberski](https://github.com/aliberski) ([Devsilk](https://devsilk.com/)), a former maintainer of
 react-native-ble-plx.
 
 ## Requirements

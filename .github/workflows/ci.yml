@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [master]
@@ -63,12 +64,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: corepack enable
       - run: yarn install --immutable
-      - run: npx expo prebuild --platform android --clean --no-install
-        working-directory: example
-        env:
-          CI: 1
-      - run: ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" --console=plain
+      - run: ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 --console=plain
         working-directory: example/android
 
-  # The iOS example app isn't built yet: Nitro v1 builds only through Swift Package Manager, and Expo apps use
-  # CocoaPods until margelo/nitro#2054 lands. Add an `ios-example` job here when it does.
+  # Builds through Swift Package Manager (Nitro v1 has no CocoaPods support). macOS minutes are expensive while
+  # the repository is private, so this runs on pushes to master and on demand, not on pull requests.
+  ios-example:
+    name: iOS example app builds
+    runs-on: macos-latest
+    if: github.event_name != 'pull_request'
+    needs: [typescript, ios-features]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: yarn install --immutable
+      - run: yarn spm --yes
+        working-directory: example
+      - run: >
+          xcodebuild build -project BondedExample.xcodeproj -scheme BondedExample -configuration Debug
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+        working-directory: example/ios

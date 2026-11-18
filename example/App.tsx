@@ -1,9 +1,8 @@
-import { StatusBar } from 'expo-status-bar'
 import { useCallback, useEffect, useState } from 'react'
-import { Button, StyleSheet, Text, View } from 'react-native'
+import { Button, StatusBar, StyleSheet, Text, View } from 'react-native'
 import { ble, type BluetoothAdapterState } from 'react-native-ble-bonded'
 
-// The device-test app (decision 10): every feature gets a screen here as it lands, for the manual checklist.
+// The device-test app: every feature gets a screen here as it lands, for the manual checklist.
 export default function App() {
   const [state, setState] = useState<BluetoothAdapterState | 'loading'>('loading')
   const [error, setError] = useState<string>()
@@ -23,13 +22,13 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       <Text style={styles.label}>Bluetooth</Text>
       <Text style={styles.value} testID="bluetooth-state">
         {state}
       </Text>
       {error != null && <Text style={styles.error}>{error}</Text>}
       <Button title="Refresh" onPress={refresh} />
-      <StatusBar style="auto" />
     </View>
   )
 }

@@ -33,18 +33,17 @@ yarn test:android       # Kotlin tests, on the JVM
 yarn check:behaviours   # every behaviour tested on both platforms
 ```
 
-The example app in `example/` is the device-test app:
+The example app in `example/` is the device-test app, a bare React Native app:
 
 ```sh
 yarn build              # compile src into lib, which the example app's Metro loads
 cd example
-yarn prebuild
-yarn android
+yarn spm --yes          # once after cloning: sets up Swift Package Manager for iOS
+yarn ios                # or: yarn android
 ```
 
-iOS: Nitro v1 builds only through Swift Package Manager until its CocoaPods support lands
-(margelo/nitro#2054), and Expo apps still use CocoaPods, so the example app doesn't build for iOS yet. A bare
-React Native app set up with `npx react-native spm` builds and runs Bonded on iOS.
+On iOS, Nitro v1 builds only through Swift Package Manager, so the example uses React Native's SPM support
+instead of CocoaPods. An Expo example follows once Nitro v1 builds through CocoaPods (margelo/nitro#2054).
 
 Read [`docs/architecture.md`](docs/architecture.md) before adding a feature. The decisions behind the
 design are in [`docs/decisions.md`](docs/decisions.md).

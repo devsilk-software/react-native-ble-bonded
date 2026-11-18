@@ -8,7 +8,7 @@ export * from '#nitro/BluetoothState'
  * - `unknown`: not known yet (iOS reports this until Core Bluetooth has started).
  * - `resetting`: the system is restarting Bluetooth.
  * - `unsupported`: the phone has no Bluetooth Low Energy.
- * - `unauthorized`: the user hasn't granted the app Bluetooth permission.
+ * - `unauthorized`: the app may not use Bluetooth yet (permission not granted, or not requested on iOS).
  * - `poweredOff`: Bluetooth is switched off.
  * - `poweredOn`: Bluetooth is on and ready.
  */
@@ -23,6 +23,15 @@ export type BluetoothAdapterState = 'unknown' | 'resetting' | 'unsupported' | 'u
   implementation: { className: 'HybridBluetoothState' },
 })
 export declare class BluetoothState extends HybridObject {
-  /** The radio's current state. */
+  /** The radio's current state. Never shows the iOS permission prompt. */
   static getState(): Promise<BluetoothAdapterState>
+
+  /**
+   * Calls `onChange` with the current state, then with every change; repeats are suppressed.
+   * Returns an ID for `removeStateListener`.
+   */
+  static addStateListener(onChange: (state: BluetoothAdapterState) => void): number
+
+  /** Stops the listener `addStateListener` returned this ID for. */
+  static removeStateListener(id: number): void
 }

@@ -32,9 +32,28 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
+  double HybridBluetoothStateSpecSwift::addStateListener(const Callback<void(::NitroBleBonded::BluetoothAdapterState)>& onChange) {
+    auto __result = ([&](const void* onChange) {
+      return ::NitroBleBonded::HybridBluetoothStateSpec_cxx::addStateListener(onChange);
+    })(std::addressof(onChange));
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
+  void HybridBluetoothStateSpecSwift::removeStateListener(double id) {
+    auto __result = ::NitroBleBonded::HybridBluetoothStateSpec_cxx::removeStateListener(id);
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+  }
+
   const std::shared_ptr<const HybridClass>& HybridBluetoothStateSpecSwift::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("getState", &HybridBluetoothStateSpecSwift::getState);
+      clazz.registerStaticHybridMethod("addStateListener", &HybridBluetoothStateSpecSwift::addStateListener);
+      clazz.registerStaticHybridMethod("removeStateListener", &HybridBluetoothStateSpecSwift::removeStateListener);
     });
     return hybridClass;
   }

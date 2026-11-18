@@ -11,6 +11,18 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 
 - reports the radio's current state
 - maps every platform state to an adapter state
+- reports the current state first, then each change
+- suppresses repeated states
+
+## permissions
+
+- reports the permission status without asking
+- reports the status the user chose after asking
+- maps every platform authorization to a permission status
+- reports the current status first, then each change
+- suppresses repeated statuses
+- reports blocked only after the app has asked before — Android only
+- asks for scan and connect permissions from Android 12, location before — Android only
 
 ## architecture
 

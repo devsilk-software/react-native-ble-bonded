@@ -14,7 +14,11 @@ target_include_directories(NitroBleBonded PRIVATE
 target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/NitroBleBondedOnLoad.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JBluetoothAdapterState.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JBluetoothPermission.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_BluetoothAdapterState.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_BluetoothPermission.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridBluetoothStateSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridPermissionsSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/NitroBleBondedCxxModule.cpp"
 )
 

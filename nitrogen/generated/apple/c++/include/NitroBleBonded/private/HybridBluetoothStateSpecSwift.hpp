@@ -59,6 +59,8 @@ namespace margelo::nitro::blebonded {
     // Methods
     // Static methods
     static Promise<::NitroBleBonded::BluetoothAdapterState> getState();
+    static double addStateListener(const Callback<void(::NitroBleBonded::BluetoothAdapterState)>& onChange);
+    static void removeStateListener(double id);
 
   protected:
     const std::shared_ptr<const HybridClass>& getHybridClass() override {

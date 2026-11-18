@@ -30,4 +30,7 @@
 #include <NitroBleBonded/private/HybridBluetoothStateSpec_cxx-Swift.hpp>
 #include <NitroBleBonded/private/BluetoothAdapterState-Swift.hpp>
 #include <NitroModules/Promise.hpp>
+#include <NitroModules/Callback.hpp>
 #include <NitroModules/Result.hpp>
+#include <NitroBleBonded/private/HybridPermissionsSpec_cxx-Swift.hpp>
+#include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>

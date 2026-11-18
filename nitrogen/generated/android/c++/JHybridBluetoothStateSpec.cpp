@@ -9,6 +9,10 @@
 #include <NitroBleBonded/private/JBluetoothAdapterState.hpp>
 #include <NitroModules/JNIConverter+Promise.hpp>
 #include <NitroModules/JSIConverter+JTypedPromise.hpp>
+#include <NitroModules/JNIConverter+Primitives.hpp>
+#include <NitroModules/JSIConverter+JNIPrimitives.hpp>
+#include <NitroBleBonded/private/JCallback_void_BluetoothAdapterState.hpp>
+#include <NitroModules/JNIConverter+Callback.hpp>
 
 namespace margelo::nitro::blebonded {
 
@@ -20,9 +24,22 @@ namespace margelo::nitro::blebonded {
     return __result;
   }
 
+  jdouble JHybridBluetoothStateSpec::addStateListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_BluetoothAdapterState::JavaPart>>& onChange) {
+    static const auto __method = JHybridBluetoothStateSpec::JavaPart::javaClassStatic()->getStaticMethod<jdouble(jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_BluetoothAdapterState::JavaPart>> /* onChange */)>("addStateListener_cxx");
+    auto __result = __method(JHybridBluetoothStateSpec::JavaPart::javaClassStatic(), onChange);
+    return __result;
+  }
+
+  void JHybridBluetoothStateSpec::removeStateListener(jdouble id) {
+    static const auto __method = JHybridBluetoothStateSpec::JavaPart::javaClassStatic()->getStaticMethod<void(jdouble /* id */)>("removeStateListener_cxx");
+    __method(JHybridBluetoothStateSpec::JavaPart::javaClassStatic(), id);
+  }
+
   const std::shared_ptr<const HybridClass>& JHybridBluetoothStateSpec::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("getState", &JHybridBluetoothStateSpec::getState);
+      clazz.registerStaticHybridMethod("addStateListener", &JHybridBluetoothStateSpec::addStateListener);
+      clazz.registerStaticHybridMethod("removeStateListener", &JHybridBluetoothStateSpec::removeStateListener);
     });
     return hybridClass;
   }

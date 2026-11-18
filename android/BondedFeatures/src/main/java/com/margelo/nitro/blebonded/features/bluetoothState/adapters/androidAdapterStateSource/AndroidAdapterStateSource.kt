@@ -4,15 +4,26 @@ import android.bluetooth.BluetoothAdapter
 import com.margelo.nitro.blebonded.features.bluetoothState.application.interfaces.AdapterStateSource
 import com.margelo.nitro.blebonded.features.bluetoothState.domain.AdapterState
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothRadio
+import com.margelo.nitro.blebonded.infrastructure.lifecycle.AppForeground
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 
 /** Answers [AdapterStateSource] with Android's Bluetooth adapter, through the shared Bluetooth client. */
-class AndroidAdapterStateSource(private val radio: BluetoothRadio) : AdapterStateSource {
-  override suspend fun currentState(): AdapterState =
-    adapterState(
-      hasLowEnergy = radio.hasLowEnergy(),
-      mayConnect = radio.mayConnect(),
-      radioState = radio.radioState(),
-    )
+class AndroidAdapterStateSource(
+  private val radio: BluetoothRadio,
+  private val foreground: AppForeground,
+) : AdapterStateSource {
+  override suspend fun currentState(): AdapterState = readState()
+
+  /**
+   * The radio's broadcasts, plus a check each time the app returns to the foreground: the user may have granted
+   * the connect permission in Settings, which ends `UNAUTHORIZED` without any broadcast.
+   */
+  override fun stateChanges(): Flow<AdapterState> = merge(radio.radioStateChanges(), foreground.resumes()).map { readState() }
+
+  private fun readState(): AdapterState =
+    adapterState(hasLowEnergy = radio.hasLowEnergy(), mayConnect = radio.mayConnect(), radioState = radio.radioState())
 
   companion object {
     /**

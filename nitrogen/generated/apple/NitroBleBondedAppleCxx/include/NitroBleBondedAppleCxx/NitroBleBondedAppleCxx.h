@@ -12,11 +12,18 @@ namespace NitroBleBonded { class HybridBluetoothStateSpec_cxx; }
 // Forward declaration of `BluetoothAdapterState` to properly resolve imports.
 namespace NitroBleBonded { class BluetoothAdapterState; }
 #include <NitroModules/Promise.hpp>
+#include <NitroModules/Callback.hpp>
 #include <NitroModules/Result.hpp>
+// Forward declaration of `HybridPermissionsSpec_cxx` to properly resolve imports.
+namespace NitroBleBonded { class HybridPermissionsSpec_cxx; }
+// Forward declaration of `BluetoothPermission` to properly resolve imports.
+namespace NitroBleBonded { class BluetoothPermission; }
 #include <NitroModules/HybridObject.hpp>
 // Forward declaration of `HybridBluetoothStateSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridBluetoothStateSpecSwift; }
 #include <NitroModules/NitroDefines.hpp>
+// Forward declaration of `HybridPermissionsSpecSwift` to properly resolve imports.
+namespace margelo::nitro::blebonded { class HybridPermissionsSpecSwift; }
 
 namespace margelo::nitro::blebonded::swift_bridge {
   using std__shared_ptr_margelo__nitro__blebonded__HybridBluetoothStateSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridBluetoothStateSpecSwift>;
@@ -32,7 +39,32 @@ namespace margelo::nitro::blebonded::swift_bridge {
   void listenRejected_Promise___NitroBleBonded__BluetoothAdapterState(const Promise___NitroBleBonded__BluetoothAdapterState& promise, std::function<void(const std::exception_ptr&)> listener);
   void resolve_Promise___NitroBleBonded__BluetoothAdapterState(const Promise___NitroBleBonded__BluetoothAdapterState& promise, const void* NON_NULL value);
   void listen_Promise___NitroBleBonded__BluetoothAdapterState(const Promise___NitroBleBonded__BluetoothAdapterState& promise, std::function<void(const void* NON_NULL)> listener);
+  using Promise_void = Promise<void>;
   // Distinct specializations prevent duplicate Swift metadata across module headers.
   struct ResultTag {};
   using Result_void = Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>;
+  using Callback_void___NitroBleBonded__BluetoothAdapterState = Callback<void(::NitroBleBonded::BluetoothAdapterState)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__BluetoothAdapterState(const Callback_void___NitroBleBonded__BluetoothAdapterState& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void___NitroBleBonded__BluetoothAdapterState(const Callback_void___NitroBleBonded__BluetoothAdapterState& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void___NitroBleBonded__BluetoothAdapterState(const Callback_void___NitroBleBonded__BluetoothAdapterState& callback, const void* NON_NULL param0);
+  Callback_void___NitroBleBonded__BluetoothAdapterState create_Callback_void___NitroBleBonded__BluetoothAdapterState(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
+  using Result_double = Result<double, margelo::nitro::blebonded::swift_bridge::ResultTag>;
+  using std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
+  using std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
+  inline std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_& value) {
+    return value;
+  }
+  std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(void* NON_NULL pointer);
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(const std::shared_ptr<HybridObject>& value);
+  using Promise___NitroBleBonded__BluetoothPermission = Promise<::NitroBleBonded::BluetoothPermission>;
+  Promise___NitroBleBonded__BluetoothPermission create_Promise___NitroBleBonded__BluetoothPermission();
+  void reject_Promise___NitroBleBonded__BluetoothPermission(const Promise___NitroBleBonded__BluetoothPermission& promise, std::exception_ptr error);
+  void listenRejected_Promise___NitroBleBonded__BluetoothPermission(const Promise___NitroBleBonded__BluetoothPermission& promise, std::function<void(const std::exception_ptr&)> listener);
+  void resolve_Promise___NitroBleBonded__BluetoothPermission(const Promise___NitroBleBonded__BluetoothPermission& promise, const void* NON_NULL value);
+  void listen_Promise___NitroBleBonded__BluetoothPermission(const Promise___NitroBleBonded__BluetoothPermission& promise, std::function<void(const void* NON_NULL)> listener);
+  using Callback_void___NitroBleBonded__BluetoothPermission = Callback<void(::NitroBleBonded::BluetoothPermission)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__BluetoothPermission(const Callback_void___NitroBleBonded__BluetoothPermission& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void___NitroBleBonded__BluetoothPermission(const Callback_void___NitroBleBonded__BluetoothPermission& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void___NitroBleBonded__BluetoothPermission(const Callback_void___NitroBleBonded__BluetoothPermission& callback, const void* NON_NULL param0);
+  Callback_void___NitroBleBonded__BluetoothPermission create_Callback_void___NitroBleBonded__BluetoothPermission(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
 } // namespace margelo::nitro::blebonded::swift_bridge

@@ -71,14 +71,15 @@ jobs:
   # the repository is private, so this runs on pushes to master and on demand, not on pull requests.
   ios-example:
     name: iOS example app builds
-    runs-on: macos-latest
+    # Nitro v1 needs Swift tools 6.4 (Xcode 27); GitHub's Xcode 27 image is in public preview.
+    runs-on: xcode-27
     if: github.event_name != 'pull_request'
     needs: [typescript, ios-features]
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '27.2'
       - uses: actions/setup-node@v4
         with:
           node-version: 22

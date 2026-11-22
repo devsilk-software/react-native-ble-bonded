@@ -1,6 +1,7 @@
 package com.margelo.nitro.blebonded.infrastructure.lifecycle
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.Application
 import android.content.Context
 import android.os.Bundle
@@ -14,6 +15,13 @@ import kotlinx.coroutines.flow.callbackFlow
  */
 class AppForeground(context: Context) {
   private val application = context.applicationContext as Application
+
+  /** Whether the app's process is in the foreground right now, as the system ranks it. */
+  fun isInForeground(): Boolean {
+    val state = ActivityManager.RunningAppProcessInfo()
+    ActivityManager.getMyMemoryState(state)
+    return state.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+  }
 
   /** One value each time an activity resumes, from now on. */
   fun resumes(): Flow<Unit> =

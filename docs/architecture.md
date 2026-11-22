@@ -28,24 +28,26 @@ ios/
     │   ├── domain/                     # states, rules, values; base library only
     │   ├── application/
     │   │   ├── interfaces/             # what a use case needs from outside, in Bonded's words
+    │   │   ├── services/               # state several use cases share, such as a recorder
     │   │   └── useCases/{useCase}/     # one folder per use case
     │   └── adapters/{thing}/           # implements an interface with a technology
     ├── infrastructure/bluetooth/       # the one Bluetooth client every feature's adapters share
+    ├── infrastructure/app/             # the app's foreground and background state
     ├── compositionRoot/                # builds adapters and use cases; the controllers' entry point
     └── Tests/                          # mirrors the folders above; fakes in mocks/, rules in architecture/
 android/
 ├── src/main/java/com/margelo/nitro/blebonded/Hybrid{Feature}.kt   # controllers
 └── BondedFeatures/                     # Android library with its own Gradle build, for tests and checks
     └── src/main/java/com/margelo/nitro/blebonded/
-        ├── shared/domain/  features/{feature}/…  infrastructure/bluetooth/  compositionRoot/
+        ├── shared/domain/  features/{feature}/…  infrastructure/{bluetooth,lifecycle}/  compositionRoot/
 ```
 
 The Nitro module compiles `android/BondedFeatures/src/main/java` into itself, because React Native's
 autolinking includes one Gradle project per package. On iOS the module's `Package.swift` depends on the
 `BondedFeatures` package.
 
-Features: `bluetoothState` and `permissions` (done), then `scanning`, `connection`, `gatt`, `bonding`,
-`background` and `diagnostics`. A feature's folders appear with its first use case.
+Features: `bluetoothState`, `permissions` and `diagnostics` (done), then `scanning`, `connection`, `gatt`,
+`bonding` and `background`. A feature's folders appear with its first use case.
 
 ## The dependency rule
 

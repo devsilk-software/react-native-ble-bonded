@@ -15,6 +15,20 @@
         "language": "swift"
       }
     },
+    "Diagnostics": {
+      "android": {
+        "implementation": {
+          "className": "HybridDiagnostics"
+        },
+        "language": "kotlin"
+      },
+      "apple": {
+        "implementation": {
+          "className": "HybridDiagnostics"
+        },
+        "language": "swift"
+      }
+    },
     "Permissions": {
       "android": {
         "implementation": {

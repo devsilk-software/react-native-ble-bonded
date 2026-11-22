@@ -16,3 +16,15 @@ enum class AdapterState {
   POWERED_OFF,
   POWERED_ON,
 }
+
+/** The state's public name, as JavaScript sees it. */
+val AdapterState.publicName: String
+  get() =
+    when (this) {
+      AdapterState.UNKNOWN -> "unknown"
+      AdapterState.RESETTING -> "resetting"
+      AdapterState.UNSUPPORTED -> "unsupported"
+      AdapterState.UNAUTHORIZED -> "unauthorized"
+      AdapterState.POWERED_OFF -> "poweredOff"
+      AdapterState.POWERED_ON -> "poweredOn"
+    }

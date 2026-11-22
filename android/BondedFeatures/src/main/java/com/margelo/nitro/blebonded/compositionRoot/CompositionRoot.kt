@@ -4,17 +4,34 @@ import android.content.Context
 import com.margelo.nitro.blebonded.features.bluetoothState.adapters.androidAdapterStateSource.AndroidAdapterStateSource
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.getAdapterState.GetAdapterState
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.observeAdapterState.ObserveAdapterState
+import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.publishAdapterStateEvents.PublishAdapterStateEvents
+import com.margelo.nitro.blebonded.features.diagnostics.adapters.fileDiagnosticsStore.FileDiagnosticsStore
+import com.margelo.nitro.blebonded.features.diagnostics.adapters.systemDiagnosticsEnvironment.SystemDiagnosticsEnvironment
+import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
+import com.margelo.nitro.blebonded.features.diagnostics.application.useCases.clearDiagnostics.ClearDiagnostics
+import com.margelo.nitro.blebonded.features.diagnostics.application.useCases.configureDiagnostics.ConfigureDiagnostics
+import com.margelo.nitro.blebonded.features.diagnostics.application.useCases.getDiagnostics.GetDiagnostics
+import com.margelo.nitro.blebonded.features.diagnostics.application.useCases.observeDiagnostics.ObserveDiagnostics
 import com.margelo.nitro.blebonded.features.permissions.adapters.androidPermissionSource.AndroidPermissionSource
 import com.margelo.nitro.blebonded.features.permissions.application.useCases.getPermissionStatus.GetPermissionStatus
 import com.margelo.nitro.blebonded.features.permissions.application.useCases.observePermission.ObservePermission
+import com.margelo.nitro.blebonded.features.permissions.application.useCases.publishPermissionEvents.PublishPermissionEvents
 import com.margelo.nitro.blebonded.features.permissions.application.useCases.requestPermission.RequestPermission
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothRadio
 import com.margelo.nitro.blebonded.infrastructure.lifecycle.AppForeground
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionPrompt
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionStore
+import com.margelo.nitro.blebonded.shared.domain.EventBus
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
- * Creates the shared Bluetooth client and the adapters, and builds each use case with them. The Nitro
+ * Creates the shared Bluetooth client, the event bus and the adapters, and builds each use case with them. The Nitro
  * controllers get their use cases from here, passing the application context and the permission dialog,
  * which only the Nitro module can show, on first use.
  */
@@ -30,6 +47,37 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   val getPermissionStatus = GetPermissionStatus(permissionSource)
   val requestPermission = RequestPermission(permissionSource)
   val observePermission = ObservePermission(permissionSource)
+
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+  private val bus = EventBus()
+  private val recorder =
+    DiagnosticsRecorder(bus, FileDiagnosticsStore(context), SystemDiagnosticsEnvironment(foreground), scope)
+  private val configure = ConfigureDiagnostics(recorder)
+  val getDiagnostics = GetDiagnostics(recorder)
+  val clearDiagnostics = ClearDiagnostics(recorder)
+  val observeDiagnostics = ObserveDiagnostics(recorder)
+
+  private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
+  private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)
+  private val publishersLock = Mutex()
+  private var publishers: List<Job> = emptyList()
+
+  /**
+   * Turns diagnostics on or off. While on, Bonded observes the features natively, even without a JavaScript
+   * listener, so the record is complete; while off, nothing observes for diagnostics.
+   */
+  suspend fun configureDiagnostics(enabled: Boolean?, capacity: Int?) {
+    configure(enabled, capacity)
+    if (enabled == null) return
+    publishersLock.withLock {
+      if (enabled && publishers.isEmpty()) {
+        publishers = listOf(scope.launch { publishAdapterStateEvents() }, scope.launch { publishPermissionEvents() })
+      } else if (!enabled) {
+        publishers.forEach { it.cancel() }
+        publishers = emptyList()
+      }
+    }
+  }
 
   companion object {
     @Volatile private var instance: CompositionRoot? = null

@@ -32,5 +32,15 @@
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Callback.hpp>
 #include <NitroModules/Result.hpp>
+#include <NitroBleBonded/private/HybridDiagnosticsSpec_cxx-Swift.hpp>
+#include <NitroBleBonded/private/DiagnosticEventType-Swift.hpp>
+#include <NitroBleBonded/private/DiagnosticAppState-Swift.hpp>
+#include <NitroModules/NitroModules-Swift-Cxx-Umbrella.hpp>
+#include <NitroModules/JSIConverter+SwiftString.hpp>
+#include <NitroModules/JSIConverter+SwiftOptional.hpp>
+#include <NitroBleBonded/private/DiagnosticEvent-Swift.hpp>
+#include <NitroModules/JSIConverter+SwiftArray.hpp>
+#include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_-Swift.hpp>
+#include <NitroBleBonded/private/DiagnosticsConfig-Swift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpec_cxx-Swift.hpp>
 #include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>

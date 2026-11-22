@@ -59,17 +59,18 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
 
   private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
   private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)
-  private val publishersLock = Mutex()
+  private val transitions = Mutex()
   private var publishers: List<Job> = emptyList()
 
   /**
    * Turns diagnostics on or off. While on, Bonded observes the features natively, even without a JavaScript
-   * listener, so the record is complete; while off, nothing observes for diagnostics.
+   * listener, so the record is complete; while off, nothing observes for diagnostics. Calls are applied one
+   * after another, so the recorder and the publishers always end in the same state.
    */
-  suspend fun configureDiagnostics(enabled: Boolean?, capacity: Int?) {
-    configure(enabled, capacity)
-    if (enabled == null) return
-    publishersLock.withLock {
+  suspend fun configureDiagnostics(enabled: Boolean?, capacity: Int?) =
+    transitions.withLock {
+      configure(enabled, capacity)
+      if (enabled == null) return@withLock
       if (enabled && publishers.isEmpty()) {
         publishers = listOf(scope.launch { publishAdapterStateEvents() }, scope.launch { publishPermissionEvents() })
       } else if (!enabled) {
@@ -77,7 +78,6 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
         publishers = emptyList()
       }
     }
-  }
 
   companion object {
     @Volatile private var instance: CompositionRoot? = null

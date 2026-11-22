@@ -33,6 +33,7 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - saves the recorded events so they survive the app being killed
 - restores the events saved before a relaunch
 - deletes the stored events when cleared or turned off
+- delivers every event recorded after a listener is added
 
 ## architecture
 

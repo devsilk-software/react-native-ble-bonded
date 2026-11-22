@@ -37,17 +37,10 @@ export default function App() {
 // Diagnostics are off by default; this section turns them on for testing and shows what Bonded recorded.
 function Diagnostics() {
   const [isEnabled, setIsEnabled] = useState(false)
-  const [generation, setGeneration] = useState(0)
 
   const toggle = async () => {
     await ble.configure({ diagnostics: { enabled: !isEnabled } })
     setIsEnabled(!isEnabled)
-    setGeneration((value) => value + 1)
-  }
-
-  const clear = async () => {
-    await ble.clearDiagnostics()
-    setGeneration((value) => value + 1)
   }
 
   return (
@@ -55,9 +48,9 @@ function Diagnostics() {
       <View style={styles.row}>
         <Text style={styles.label}>Diagnostics {isEnabled ? 'on' : 'off'}</Text>
         <Button title={isEnabled ? 'Turn off' : 'Turn on'} onPress={toggle} testID="diagnostics-toggle" />
-        <Button title="Clear" onPress={clear} disabled={!isEnabled} />
+        <Button title="Clear" onPress={() => ble.clearDiagnostics()} disabled={!isEnabled} />
       </View>
-      <EventList key={generation} />
+      <EventList />
     </View>
   )
 }

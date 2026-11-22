@@ -10,10 +10,15 @@ import com.margelo.nitro.blebonded.shared.domain.EventBus
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 private fun recorder(
   store: FakeDiagnosticsStore = FakeDiagnosticsStore(),
@@ -75,6 +80,23 @@ class DiagnosticsTest : BehaviorSpec({
         recorder.configure(enabled = true, capacity = null)
         publish(listOf("unknown", "poweredOff", "poweredOn").map(::state), bus, recorder, count = 3)
         recorder.events(1002).map { it.detail } shouldBe listOf("poweredOff", "poweredOn")
+      }
+    }
+
+    `when`("a listener is added") {
+      then("delivers every event recorded after a listener is added") {
+        val (recorder, bus) = recorder()
+        recorder.configure(enabled = true, capacity = null)
+        val received = CompletableDeferred<DiagnosticEvent>()
+        val listener =
+          CoroutineScope(Dispatchers.Default).launch(start = CoroutineStart.UNDISPATCHED) {
+            received.complete(recorder.liveEvents().first())
+          }
+
+        publish(listOf(state("poweredOn")), bus, recorder, count = 1)
+
+        withTimeout(1_000) { received.await() }.detail shouldBe "poweredOn"
+        listener.cancel()
       }
     }
 

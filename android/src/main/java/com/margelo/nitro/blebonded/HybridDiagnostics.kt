@@ -21,8 +21,8 @@ class HybridDiagnostics : HybridDiagnosticsSpec() {
 
     override fun clear(): Promise<Unit> = Promise.async { root().clearDiagnostics() }
 
-    override fun addListener(onEvent: Callback<(event: DiagnosticEvent) -> Unit>): Double =
-      listeners.add(root().observeDiagnostics()) { event -> onEvent(event.toSpec()) }
+    override fun addListener(onEvent: Callback<(event: DiagnosticEvent) -> Unit>): Promise<Double> =
+      Promise.async { listeners.add(root().observeDiagnostics()) { event -> onEvent(event.toSpec()) } }
 
     override fun removeListener(id: Double) = listeners.remove(id)
 

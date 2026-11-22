@@ -14,6 +14,7 @@ public final class CompositionRoot: Sendable {
 
   private let configure: ConfigureDiagnostics
   private let publishers: EventPublishers
+  private let transitions = Transitions()
 
   private init() {
     let central = BluetoothCentral()
@@ -46,11 +47,32 @@ public final class CompositionRoot: Sendable {
 
   /// Turns diagnostics on or off. While on, Bonded observes the features natively, even without a JavaScript
   /// listener, so the record is complete; while off, nothing observes for diagnostics.
+  /// Calls are applied one after another, in the order they arrive, so the recorder and the publishers always
+  /// end in the same state.
   public func configureDiagnostics(enabled: Bool?, capacity: Int?) async {
-    await configure(enabled: enabled, capacity: capacity)
-    if let enabled {
-      await publishers.setRunning(enabled)
+    let configure = self.configure
+    let publishers = self.publishers
+    await transitions.run {
+      await configure(enabled: enabled, capacity: capacity)
+      if let enabled {
+        await publishers.setRunning(enabled)
+      }
     }
+  }
+}
+
+/// Runs operations one after another, each to completion, in the order they were asked for.
+private actor Transitions {
+  private var last: Task<Void, Never>?
+
+  func run(_ operation: @escaping @Sendable () async -> Void) async {
+    let previous = last
+    let task = Task {
+      await previous?.value
+      await operation()
+    }
+    last = task
+    await task.value
   }
 }
 

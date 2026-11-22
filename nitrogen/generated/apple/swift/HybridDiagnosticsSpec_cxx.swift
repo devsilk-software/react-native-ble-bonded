@@ -161,12 +161,13 @@ public final class HybridDiagnosticsSpec_cxx {
     }
   }
 
-  public class func addListener(onEvent: UnsafeRawPointer) -> bridge.Result_double {
+  public class func addListener(onEvent: UnsafeRawPointer, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
     do {
       let value = try HybridDiagnostics.addListener(onEvent: onEvent.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void___NitroBleBonded__DiagnosticEvent.self))
-      return bridge.Result_double.withValue(value)
+      __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_double.self, repeating: value.toCpp(), count: 1)
+      return bridge.Result_void.withValue()
     } catch {
-      return bridge.Result_double.withError(error.toCpp())
+      return bridge.Result_void.withError(error.toCpp())
     }
   }
 

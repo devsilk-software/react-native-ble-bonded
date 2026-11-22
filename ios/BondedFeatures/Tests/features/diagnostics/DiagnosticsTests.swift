@@ -108,4 +108,16 @@ struct DiagnosticsTests {
 
     #expect(await store.saved.map(\.detail) == ["poweredOn"])
   }
+
+  @Test("delivers every event recorded after a listener is added")
+  func deliversEveryEventRecordedAfterAListenerIsAdded() async {
+    let (recorder, bus) = recorder()
+    await recorder.configure(enabled: true, capacity: nil)
+    let live = await recorder.liveEvents()
+
+    await publish([DomainEvent(kind: .stateChanged, detail: "poweredOn")], on: bus, until: recorder, count: 1)
+
+    var iterator = live.makeAsyncIterator()
+    #expect(await iterator.next()?.detail == "poweredOn")
+  }
 }

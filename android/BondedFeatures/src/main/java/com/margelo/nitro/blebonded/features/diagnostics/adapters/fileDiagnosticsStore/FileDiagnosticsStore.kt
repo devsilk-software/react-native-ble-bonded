@@ -1,6 +1,7 @@
 package com.margelo.nitro.blebonded.features.diagnostics.adapters.fileDiagnosticsStore
 
 import android.content.Context
+import android.util.Log
 import com.margelo.nitro.blebonded.features.diagnostics.application.interfaces.DiagnosticsStore
 import com.margelo.nitro.blebonded.features.diagnostics.domain.DiagnosticEvent
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 
 /** Answers [DiagnosticsStore] with a JSON file in the app's private files folder. */
 class FileDiagnosticsStore(context: Context) : DiagnosticsStore {
@@ -22,19 +24,26 @@ class FileDiagnosticsStore(context: Context) : DiagnosticsStore {
       }.getOrDefault(emptyList())
     }
 
+  /** A failed write, such as on a full disk, is logged and skipped: diagnostics must never crash the app. */
   override suspend fun save(events: List<DiagnosticEvent>) {
     withContext(Dispatchers.IO) {
-      file.parentFile?.mkdirs()
-      val array = JSONArray()
-      events.forEach { array.put(encode(it)) }
-      val temporary = File(file.parentFile, "${file.name}.tmp")
-      temporary.writeText(array.toString())
-      temporary.renameTo(file)
+      try {
+        file.parentFile?.mkdirs()
+        val array = JSONArray()
+        events.forEach { array.put(encode(it)) }
+        val temporary = File(file.parentFile, "${file.name}.tmp")
+        temporary.writeText(array.toString())
+        if (!temporary.renameTo(file)) throw IOException("Could not replace ${file.name}")
+      } catch (error: IOException) {
+        Log.w(TAG, "Could not save the diagnostic events", error)
+      }
     }
   }
 
   override suspend fun delete() {
-    withContext(Dispatchers.IO) { file.delete() }
+    withContext(Dispatchers.IO) {
+      if (file.exists() && !file.delete()) Log.w(TAG, "Could not delete the diagnostic events")
+    }
   }
 
   private fun encode(event: DiagnosticEvent): JSONObject =
@@ -57,4 +66,8 @@ class FileDiagnosticsStore(context: Context) : DiagnosticsStore {
       platformCode = if (json.has("platformCode")) json.getInt("platformCode") else null,
       detail = json.optString("detail").ifEmpty { null },
     )
+
+  private companion object {
+    const val TAG = "Bonded"
+  }
 }

@@ -8,6 +8,7 @@ import {
   type DiagnosticEventType,
   type DiagnosticsConfig,
 } from '../specs/Diagnostics.nitro'
+import { maxCapacity, notifyDiagnosticsReset, subscribeToDiagnostics } from './diagnostics'
 
 export type { BluetoothAdapterState, BluetoothPermission, DiagnosticAppState, DiagnosticEvent, DiagnosticEventType, DiagnosticsConfig }
 
@@ -73,21 +74,32 @@ export const ble = {
 
   /** Changes Bonded's settings. Turning diagnostics off also deletes the recorded events. */
   async configure(config: BleConfig): Promise<void> {
-    const capacity = config.diagnostics?.capacity
-    if (capacity != null && !(Number.isInteger(capacity) && capacity > 0)) {
-      throw new RangeError(`diagnostics.capacity must be a positive whole number, got ${capacity}`)
+    const diagnostics = config.diagnostics
+    if (diagnostics == null) return
+    const capacity = diagnostics.capacity
+    if (capacity != null && !(Number.isInteger(capacity) && capacity > 0 && capacity <= maxCapacity)) {
+      throw new RangeError(`diagnostics.capacity must be a whole number from 1 to ${maxCapacity}, got ${capacity}`)
     }
-    if (config.diagnostics != null) await Diagnostics.configure(config.diagnostics)
+    await Diagnostics.configure(diagnostics)
+    if (diagnostics.enabled != null) notifyDiagnosticsReset()
   },
 
-  /** The recorded events, oldest first; only those at or after `since` (milliseconds since the epoch) when given. */
-  getDiagnostics(options: { since?: number } = {}): Promise<DiagnosticEvent[]> {
-    return Diagnostics.getEvents(options.since)
+  /**
+   * The recorded events, oldest first; only those at or after `since` (milliseconds since the epoch, rounded up
+   * to a whole millisecond) when given.
+   */
+  async getDiagnostics(options: { since?: number } = {}): Promise<DiagnosticEvent[]> {
+    const since = options.since == null ? undefined : Math.ceil(options.since)
+    if (since != null && !Number.isSafeInteger(since)) {
+      throw new RangeError(`since must be a time in milliseconds, got ${options.since}`)
+    }
+    return Diagnostics.getEvents(since)
   },
 
   /** Deletes the recorded events, in memory and in storage. */
-  clearDiagnostics(): Promise<void> {
-    return Diagnostics.clear()
+  async clearDiagnostics(): Promise<void> {
+    await Diagnostics.clear()
+    notifyDiagnosticsReset()
   },
 
   /**
@@ -95,8 +107,7 @@ export const ble = {
    * `getDiagnostics()` has the events so far. In components, prefer `useDiagnosticEvents()`.
    */
   onDiagnosticEvent(onEvent: (event: DiagnosticEvent) => void): Subscription {
-    const id = Diagnostics.addListener(onEvent)
-    return subscription(() => Diagnostics.removeListener(id))
+    return subscribeToDiagnostics(onEvent).subscription
   },
 
   /** Opens the app's system settings, where a `blocked` permission can be granted. */

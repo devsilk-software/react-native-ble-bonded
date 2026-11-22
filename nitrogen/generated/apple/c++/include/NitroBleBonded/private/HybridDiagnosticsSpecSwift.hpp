@@ -61,7 +61,7 @@ namespace margelo::nitro::blebonded {
     static Promise<void> configure(const ::NitroBleBonded::DiagnosticsConfig& config);
     static Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_> getEvents(const swift::Optional<double>& since);
     static Promise<void> clear();
-    static double addListener(const Callback<void(const ::NitroBleBonded::DiagnosticEvent&)>& onEvent);
+    static Promise<double> addListener(const Callback<void(const ::NitroBleBonded::DiagnosticEvent&)>& onEvent);
     static void removeListener(double id);
 
   protected:

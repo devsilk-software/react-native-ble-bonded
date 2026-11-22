@@ -51,8 +51,11 @@ export declare class Diagnostics extends HybridObject {
   /** Deletes the stored events. */
   static clear(): Promise<void>
 
-  /** Calls `onEvent` with every new event while JavaScript runs. Returns an ID for `removeListener`. */
-  static addListener(onEvent: (event: DiagnosticEvent) => void): number
+  /**
+   * Calls `onEvent` with every new event while JavaScript runs. Resolves with an ID for `removeListener` once the
+   * listener is registered, so no event recorded after that is missed.
+   */
+  static addListener(onEvent: (event: DiagnosticEvent) => void): Promise<number>
 
   /** Stops the listener `addListener` returned this ID for. */
   static removeListener(id: number): void

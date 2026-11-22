@@ -25,7 +25,7 @@ public protocol HybridDiagnosticsSpec_protocol: HybridDiagnosticsSpec_base, Hybr
   static func configure(config: DiagnosticsConfig) throws -> any Promise<Void>
   static func getEvents(since: Double?) throws -> any Promise<[DiagnosticEvent]>
   static func clear() throws -> any Promise<Void>
-  static func addListener(onEvent: any Callback<(/* event */ DiagnosticEvent), Void>) throws -> Double
+  static func addListener(onEvent: any Callback<(/* event */ DiagnosticEvent), Void>) throws -> any Promise<Double>
   static func removeListener(id: Double) throws -> Void
 }
 

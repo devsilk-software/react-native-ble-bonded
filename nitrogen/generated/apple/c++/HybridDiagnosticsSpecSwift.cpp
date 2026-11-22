@@ -52,9 +52,11 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
-  double HybridDiagnosticsSpecSwift::addListener(const Callback<void(const ::NitroBleBonded::DiagnosticEvent&)>& onEvent) {
+  Promise<double> HybridDiagnosticsSpecSwift::addListener(const Callback<void(const ::NitroBleBonded::DiagnosticEvent&)>& onEvent) {
     auto __result = ([&](const void* onEvent) {
-      return ::NitroBleBonded::HybridDiagnosticsSpec_cxx::addListener(onEvent);
+      return withCxxResult<Promise<double>>([&](void* __outResult) {
+        return ::NitroBleBonded::HybridDiagnosticsSpec_cxx::addListener(onEvent, __outResult);
+      });
     })(std::addressof(onEvent));
     if (__result.hasError()) [[unlikely]] {
       std::rethrow_exception(__result.error());

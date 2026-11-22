@@ -28,6 +28,12 @@ class DiagnosticsRecorder(
   private val saveDelayMs: Long = 2_000,
 ) {
   private val mutex = Mutex()
+
+  /**
+   * Held through every storage operation, snapshot included, so saves and deletes reach the store in the order
+   * they were asked for, and a save taken before a clear can't write after it.
+   */
+  private val storage = Mutex()
   private val live = MutableSharedFlow<DiagnosticEvent>(extraBufferCapacity = 64)
   private var log = EventLog()
   private var hasLoaded = false
@@ -52,12 +58,14 @@ class DiagnosticsRecorder(
   suspend fun events(since: Long?): List<DiagnosticEvent> = mutex.withLock { log.events(since) }
 
   suspend fun clear() {
-    mutex.withLock {
-      log.clear()
-      pendingSave?.cancel()
-      pendingSave = null
+    storage.withLock {
+      mutex.withLock {
+        log.clear()
+        pendingSave?.cancel()
+        pendingSave = null
+      }
+      store.delete()
     }
-    store.delete()
   }
 
   /** Every event recorded from now on. */
@@ -71,17 +79,19 @@ class DiagnosticsRecorder(
 
   /** Saves without cancelling the pending save, which may be the coroutine calling this. */
   private suspend fun savePending() {
-    val events =
-      mutex.withLock {
-        pendingSave = null
-        if (!isEnabled) return
-        log.events
-      }
-    store.save(events)
+    storage.withLock {
+      val events =
+        mutex.withLock {
+          pendingSave = null
+          if (!isEnabled) return
+          log.events
+        }
+      store.save(events)
+    }
   }
 
   private suspend fun start() {
-    val stored = if (hasLoaded) emptyList() else store.load()
+    val stored = if (hasLoaded) emptyList() else storage.withLock { store.load() }
     mutex.withLock {
       isEnabled = true
       if (!hasLoaded) {

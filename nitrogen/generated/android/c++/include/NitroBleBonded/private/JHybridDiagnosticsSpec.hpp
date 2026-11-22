@@ -81,7 +81,7 @@ namespace margelo::nitro::blebonded {
     static jni::local_ref<JTypedPromise<void>> configure(const jni::local_ref<JDiagnosticsConfig>& config);
     static jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JDiagnosticEvent>>>> getEvents(const jni::local_ref<JOptional<jni::JDouble>>& since);
     static jni::local_ref<JTypedPromise<void>> clear();
-    static jdouble addListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::JavaPart>>& onEvent);
+    static jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> addListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::JavaPart>>& onEvent);
     static void removeListener(jdouble id);
 
   protected:

@@ -24,9 +24,12 @@ final class HybridDiagnostics: HybridDiagnosticsSpec {
     }
   }
 
-  static func addListener(onEvent: any Callback<(NitroBleBonded.DiagnosticEvent), Void>) throws -> Double {
-    listeners.add(CompositionRoot.shared.observeDiagnostics()) { event in
-      onEvent.callAndForget(NitroBleBonded.DiagnosticEvent(event))
+  static func addListener(onEvent: any Callback<(NitroBleBonded.DiagnosticEvent), Void>) throws -> any Promise<Double> {
+    Promise_double.async {
+      let events = await CompositionRoot.shared.observeDiagnostics()
+      return listeners.add(events) { event in
+        onEvent.callAndForget(NitroBleBonded.DiagnosticEvent(event))
+      }
     }
   }
 

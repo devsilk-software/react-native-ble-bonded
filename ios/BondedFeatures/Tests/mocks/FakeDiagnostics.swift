@@ -40,8 +40,6 @@ final class FakeDiagnosticsEnvironment: DiagnosticsEnvironment, Sendable {
 
 /// Publishes events and waits until the recorder has recorded them.
 func publish(_ events: [DomainEvent], on bus: EventBus, until recorder: DiagnosticsRecorder, count: Int) async {
-  // The recorder subscribes asynchronously; give it a moment before publishing.
-  try? await Task.sleep(for: .milliseconds(20))
   for event in events {
     await bus.publish(event)
   }

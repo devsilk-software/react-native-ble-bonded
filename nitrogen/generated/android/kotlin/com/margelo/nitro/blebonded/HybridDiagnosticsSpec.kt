@@ -69,7 +69,7 @@ abstract class HybridDiagnosticsSpec: HybridObject() {
 
     fun clear(): Promise<Unit>
 
-    fun addListener(onEvent: Callback<(event: DiagnosticEvent) -> Unit>): Double
+    fun addListener(onEvent: Callback<(event: DiagnosticEvent) -> Unit>): Promise<Double>
 
     fun removeListener(id: Double): Unit
   }
@@ -105,7 +105,7 @@ abstract class HybridDiagnosticsSpec: HybridObject() {
     @JvmStatic
     @DoNotStrip
     @Keep
-    private fun addListener_cxx(onEvent: Callback<(event: DiagnosticEvent) -> Unit>): Double {
+    private fun addListener_cxx(onEvent: Callback<(event: DiagnosticEvent) -> Unit>): Promise<Double> {
       return HybridDiagnostics.addListener(onEvent)
     }
 

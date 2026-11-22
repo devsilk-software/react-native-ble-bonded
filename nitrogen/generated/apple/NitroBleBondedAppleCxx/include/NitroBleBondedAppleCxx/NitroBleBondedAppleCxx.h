@@ -83,6 +83,7 @@ namespace margelo::nitro::blebonded::swift_bridge {
   void listenRejected_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_& promise, std::function<void(const std::exception_ptr&)> listener);
   void resolve_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_& promise, const void* NON_NULL value);
   void listen_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_& promise, std::function<void(const void* NON_NULL)> listener);
+  using Promise_double = Promise<double>;
   using Callback_void___NitroBleBonded__DiagnosticEvent = Callback<void(const ::NitroBleBonded::DiagnosticEvent&)>;
   Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__DiagnosticEvent(const Callback_void___NitroBleBonded__DiagnosticEvent& callback, const void* NON_NULL param0) noexcept;
   Promise<void> callAsync_Callback_void___NitroBleBonded__DiagnosticEvent(const Callback_void___NitroBleBonded__DiagnosticEvent& callback, const void* NON_NULL param0);

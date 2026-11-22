@@ -41,8 +41,8 @@ namespace margelo::nitro::blebonded {
     return __result;
   }
 
-  jdouble JHybridDiagnosticsSpec::addListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::JavaPart>>& onEvent) {
-    static const auto __method = JHybridDiagnosticsSpec::JavaPart::javaClassStatic()->getStaticMethod<jdouble(jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::JavaPart>> /* onEvent */)>("addListener_cxx");
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> JHybridDiagnosticsSpec::addListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::JavaPart>>& onEvent) {
+    static const auto __method = JHybridDiagnosticsSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>>(jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::JavaPart>> /* onEvent */)>("addListener_cxx");
     auto __result = __method(JHybridDiagnosticsSpec::JavaPart::javaClassStatic(), onEvent);
     return __result;
   }

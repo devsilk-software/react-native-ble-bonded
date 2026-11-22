@@ -12,6 +12,9 @@ public actor DiagnosticsRecorder {
   private var hasLoaded = false
   private var recording: Task<Void, Never>?
   private var pendingSave: Task<Void, Never>?
+  /// The last storage operation. Each new one waits for it, so saves and deletes reach the store in the order
+  /// they were asked for, and a save taken before a clear can't write after it.
+  private var storage: Task<Void, Never>?
   private var observers: [UUID: AsyncStream<DiagnosticEvent>.Continuation] = [:]
 
   public init(
@@ -50,17 +53,18 @@ public actor DiagnosticsRecorder {
     log.removeAll()
     pendingSave?.cancel()
     pendingSave = nil
-    await store.delete()
+    let store = self.store
+    await inOrder { await store.delete() }
   }
 
-  /// Every event recorded from now on.
-  public nonisolated func liveEvents() -> AsyncStream<DiagnosticEvent> {
+  /// Every event recorded from the moment this returns: the observer is registered before it does.
+  public func liveEvents() -> AsyncStream<DiagnosticEvent> {
     let (stream, continuation) = AsyncStream<DiagnosticEvent>.makeStream()
     let id = UUID()
     continuation.onTermination = { _ in
       Task { await self.removeObserver(id) }
     }
-    Task { await self.addObserver(id, continuation) }
+    observers[id] = continuation
     return stream
   }
 
@@ -75,10 +79,12 @@ public actor DiagnosticsRecorder {
   private func start() async {
     isRecording = true
     if !hasLoaded {
-      log = EventLog(capacity: log.capacity, events: await store.load() + log.events)
+      let store = self.store
+      let stored = await inOrder { await store.load() }
+      log = EventLog(capacity: log.capacity, events: stored + log.events)
       hasLoaded = true
     }
-    let events = bus.events()
+    let events = await bus.events()
     recording = Task { [weak self] in
       for await event in events {
         await self?.record(event)
@@ -97,10 +103,14 @@ public actor DiagnosticsRecorder {
 
   private func record(_ domainEvent: DomainEvent) async {
     guard isRecording, let kind = DiagnosticEvent.Kind(rawValue: domainEvent.kind.rawValue) else { return }
+    let at = environment.now()
+    let appActivity = await environment.appActivity()
+    // Diagnostics may have been turned off while the app's state was being read.
+    guard isRecording, !Task.isCancelled else { return }
     let event = DiagnosticEvent(
       kind: kind,
-      at: environment.now(),
-      appActivity: await environment.appActivity(),
+      at: at,
+      appActivity: appActivity,
       deviceId: domainEvent.deviceId?.rawValue,
       code: domainEvent.errorCode?.rawValue,
       platformCode: domainEvent.platformCode,
@@ -127,11 +137,20 @@ public actor DiagnosticsRecorder {
   private func savePending() async {
     pendingSave = nil
     guard isRecording else { return }
-    await store.save(log.events)
+    let store = self.store
+    let events = log.events
+    await inOrder { await store.save(events) }
   }
 
-  private func addObserver(_ id: UUID, _ continuation: AsyncStream<DiagnosticEvent>.Continuation) {
-    observers[id] = continuation
+  /// Runs `operation` after every storage operation asked for before it, and returns its result.
+  private func inOrder<Result: Sendable>(_ operation: @escaping @Sendable () async -> Result) async -> Result {
+    let previous = storage
+    let task = Task {
+      await previous?.value
+      return await operation()
+    }
+    storage = Task { _ = await task.value }
+    return await task.value
   }
 
   private func removeObserver(_ id: UUID) {

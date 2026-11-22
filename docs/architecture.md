@@ -32,7 +32,7 @@ ios/
     │   │   └── useCases/{useCase}/     # one folder per use case
     │   └── adapters/{thing}/           # implements an interface with a technology
     ├── infrastructure/bluetooth/       # the one Bluetooth client every feature's adapters share
-    ├── infrastructure/app/             # the app's foreground and background state
+    ├── infrastructure/lifecycle/       # the app's foreground and background state
     ├── compositionRoot/                # builds adapters and use cases; the controllers' entry point
     └── Tests/                          # mirrors the folders above; fakes in mocks/, rules in architecture/
 android/
@@ -46,7 +46,7 @@ The Nitro module compiles `android/BondedFeatures/src/main/java` into itself, be
 autolinking includes one Gradle project per package. On iOS the module's `Package.swift` depends on the
 `BondedFeatures` package.
 
-Features: `bluetoothState`, `permissions` and `diagnostics` (done), then `scanning`, `connection`, `gatt`,
+Features: `bluetoothState`, `permissions`, `diagnostics` and `scanning` (done), then `connection`, `gatt`,
 `bonding` and `background`. A feature's folders appear with its first use case.
 
 ## The dependency rule

@@ -18,6 +18,8 @@ class HybridBluetoothState : HybridBluetoothStateSpec() {
     override fun addStateListener(onChange: Callback<(state: BluetoothAdapterState) -> Unit>): Double =
       listeners.add(root().observeAdapterState()) { state -> onChange(state.toSpec()) }
 
+    override fun requestEnable(): Promise<BluetoothAdapterState> = Promise.async { root().requestBluetoothOn().toSpec() }
+
     override fun removeStateListener(id: Double) = listeners.remove(id)
 
     private fun AdapterState.toSpec(): BluetoothAdapterState =

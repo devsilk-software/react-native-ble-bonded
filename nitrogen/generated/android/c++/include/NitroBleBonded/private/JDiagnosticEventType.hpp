@@ -41,6 +41,16 @@ namespace margelo::nitro::blebonded {
           static const auto instance_PERMISSIONCHANGED = jni::make_global(clazz->getStaticFieldValue(field_PERMISSIONCHANGED));
           return instance_PERMISSIONCHANGED;
         }
+        case 2: {
+          static const auto field_SCANSTARTED = clazz->getStaticField<JDiagnosticEventType>("SCANSTARTED");
+          static const auto instance_SCANSTARTED = jni::make_global(clazz->getStaticFieldValue(field_SCANSTARTED));
+          return instance_SCANSTARTED;
+        }
+        case 3: {
+          static const auto field_SCANSTOPPED = clazz->getStaticField<JDiagnosticEventType>("SCANSTOPPED");
+          static const auto instance_SCANSTOPPED = jni::make_global(clazz->getStaticFieldValue(field_SCANSTOPPED));
+          return instance_SCANSTOPPED;
+        }
         default: [[unlikely]]
           throw std::invalid_argument("Invalid DiagnosticEventType value: " + std::to_string(value));
       }

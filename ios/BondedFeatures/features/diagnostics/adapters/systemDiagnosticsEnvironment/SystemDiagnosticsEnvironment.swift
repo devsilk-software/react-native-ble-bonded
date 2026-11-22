@@ -2,9 +2,9 @@ import Foundation
 
 /// Answers `DiagnosticsEnvironment` with the system clock and the app's foreground or background state.
 public struct SystemDiagnosticsEnvironment: DiagnosticsEnvironment {
-  private let activity: AppActivity
+  private let activity: AppLifecycle
 
-  public init(activity: AppActivity) {
+  public init(activity: AppLifecycle) {
     self.activity = activity
   }
 

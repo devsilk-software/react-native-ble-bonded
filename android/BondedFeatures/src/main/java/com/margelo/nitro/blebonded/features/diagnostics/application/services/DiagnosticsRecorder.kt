@@ -119,7 +119,7 @@ class DiagnosticsRecorder(
         at = environment.now(),
         appActivity = environment.appActivity(),
         deviceId = domainEvent.deviceId?.rawValue,
-        code = domainEvent.errorCode?.name,
+        code = domainEvent.errorCode?.publicName,
         platformCode = domainEvent.platformCode,
         detail = domainEvent.detail,
       )

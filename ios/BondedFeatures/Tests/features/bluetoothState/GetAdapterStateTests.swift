@@ -11,6 +11,13 @@ struct GetAdapterStateTests {
     #expect(await getAdapterState() == state)
   }
 
+  @Test("reports the state after asking to turn Bluetooth on")
+  func reportsTheStateAfterAskingToTurnBluetoothOn() async {
+    let request = RequestBluetoothOn(source: FakeAdapterStateSource(state: .poweredOff, afterEnableRequest: .poweredOn))
+
+    #expect(await request() == .poweredOn)
+  }
+
   @Test(
     "maps every platform state to an adapter state",
     arguments: [

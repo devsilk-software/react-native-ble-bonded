@@ -7,10 +7,10 @@ package com.margelo.nitro.blebonded.shared.domain
 data class DomainEvent(
   val kind: Kind,
   val deviceId: DeviceId? = null,
-  /** The new value or other short detail, in Bonded's public words (`poweredOff`, `blocked`). */
+  /** The new value or other short detail, in Bonded's public words (`poweredOff`, `blocked`, `timeout`). */
   val detail: String? = null,
   val errorCode: BleError.Code? = null,
   val platformCode: Int? = null,
 ) {
-  enum class Kind { STATE_CHANGED, PERMISSION_CHANGED }
+  enum class Kind { STATE_CHANGED, PERMISSION_CHANGED, SCAN_STARTED, SCAN_STOPPED }
 }

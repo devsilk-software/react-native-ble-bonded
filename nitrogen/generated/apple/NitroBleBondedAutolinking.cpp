@@ -11,6 +11,7 @@
 #include <NitroBleBonded/private/HybridBluetoothStateSpecSwift.hpp>
 #include <NitroBleBonded/private/HybridDiagnosticsSpecSwift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpecSwift.hpp>
+#include <NitroBleBonded/private/HybridScannerSpecSwift.hpp>
 
 namespace margelo::nitro::blebonded {
   void registerHybridClasses() {
@@ -20,5 +21,6 @@ namespace margelo::nitro::blebonded {
     HybridClassRegistry::registerHybridClass("blebonded.BluetoothState", HybridBluetoothStateSpecSwift::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Diagnostics", HybridDiagnosticsSpecSwift::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Permissions", HybridPermissionsSpecSwift::Class::get());
+    HybridClassRegistry::registerHybridClass("blebonded.Scanner", HybridScannerSpecSwift::Class::get());
   }
 } // namespace margelo::nitro::blebonded

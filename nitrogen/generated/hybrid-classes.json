@@ -42,6 +42,20 @@
         },
         "language": "swift"
       }
+    },
+    "Scanner": {
+      "android": {
+        "implementation": {
+          "className": "HybridScanner"
+        },
+        "language": "kotlin"
+      },
+      "apple": {
+        "implementation": {
+          "className": "HybridScanner"
+        },
+        "language": "swift"
+      }
     }
   }
 }

@@ -17,7 +17,9 @@ import com.facebook.proguard.annotations.DoNotStrip
 @Keep
 enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
   STATECHANGED(0),
-  PERMISSIONCHANGED(1);
+  PERMISSIONCHANGED(1),
+  SCANSTARTED(2),
+  SCANSTOPPED(3);
 
   /**
    * Get the String value this DiagnosticEventType represents.
@@ -27,6 +29,8 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
       when (this) {
         STATECHANGED -> "stateChanged"
         PERMISSIONCHANGED -> "permissionChanged"
+        SCANSTARTED -> "scanStarted"
+        SCANSTOPPED -> "scanStopped"
       }
 
   override fun toString(): String = stringValue
@@ -40,6 +44,8 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
       when (value) {
         "stateChanged" -> STATECHANGED
         "permissionChanged" -> PERMISSIONCHANGED
+        "scanStarted" -> SCANSTARTED
+        "scanStopped" -> SCANSTOPPED
         else -> null
       }
   }

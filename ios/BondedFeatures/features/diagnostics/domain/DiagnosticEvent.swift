@@ -3,6 +3,8 @@ public struct DiagnosticEvent: Sendable, Equatable, Codable {
   public enum Kind: String, Sendable, Codable, CaseIterable {
     case stateChanged
     case permissionChanged
+    case scanStarted
+    case scanStopped
   }
 
   /// Whether the app was in the foreground or the background when the event happened.

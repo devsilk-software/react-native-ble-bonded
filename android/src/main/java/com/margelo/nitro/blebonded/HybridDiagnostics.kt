@@ -32,6 +32,8 @@ class HybridDiagnostics : HybridDiagnosticsSpec() {
           when (kind) {
             RecordedEvent.Kind.STATE_CHANGED -> DiagnosticEventType.STATECHANGED
             RecordedEvent.Kind.PERMISSION_CHANGED -> DiagnosticEventType.PERMISSIONCHANGED
+            RecordedEvent.Kind.SCAN_STARTED -> DiagnosticEventType.SCANSTARTED
+            RecordedEvent.Kind.SCAN_STOPPED -> DiagnosticEventType.SCANSTOPPED
           },
         at = at.toDouble(),
         appState =

@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface AdapterStateSource {
   suspend fun currentState(): AdapterState
 
+  /** Asks the user to turn Bluetooth on where the platform allows it, and returns the resulting state. */
+  suspend fun requestEnable(): AdapterState
+
   /** Every state the system reports from now on, repeats included. */
   fun stateChanges(): Flow<AdapterState>
 }

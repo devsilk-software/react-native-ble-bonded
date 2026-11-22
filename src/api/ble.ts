@@ -8,9 +8,25 @@ import {
   type DiagnosticEventType,
   type DiagnosticsConfig,
 } from '../specs/Diagnostics.nitro'
+import { Scanner } from '../specs/Scanner.nitro'
+import { BleError, toBleError, type BleErrorCode } from './BleError'
 import { maxCapacity, notifyDiagnosticsReset, subscribeToDiagnostics } from './diagnostics'
+import {
+  fromNativeDevice,
+  fromNativeStop,
+  toNativeOptions,
+  type ManufacturerData,
+  type Scan,
+  type ScanNameFilter,
+  type ScannedDevice,
+  type ScanOptions,
+  type ScanStop,
+  type ScanStopReason,
+} from './scanning'
 
 export type { BluetoothAdapterState, BluetoothPermission, DiagnosticAppState, DiagnosticEvent, DiagnosticEventType, DiagnosticsConfig }
+export type { BleErrorCode, ManufacturerData, Scan, ScanNameFilter, ScannedDevice, ScanOptions, ScanStop, ScanStopReason }
+export { BleError }
 
 /** Bonded's settings. Every field is optional; omitted fields keep their current value. */
 export interface BleConfig {
@@ -70,6 +86,47 @@ export const ble = {
   onPermissionChange(onChange: (status: BluetoothPermission) => void): Subscription {
     const id = Permissions.addListener(onChange)
     return subscription(() => Permissions.removeListener(id))
+  },
+
+  /**
+   * Asks the user to turn Bluetooth on and resolves with the resulting state. Android shows the system dialog;
+   * iOS has no public way to, so there it resolves with the current state without showing anything.
+   */
+  requestBluetoothOn(): Promise<BluetoothAdapterState> {
+    return BluetoothState.requestEnable()
+  },
+
+  /**
+   * Starts scanning, replacing a running scan, and calls `onDevice` with each device found. Unless switched off,
+   * it first asks for permission when it can still be asked, and asks to turn Bluetooth on. Rejects with a
+   * `BleError` (`unauthorized`, `bluetoothOff`, `unsupported`) when it can't scan. Stops after 30 seconds unless
+   * `timeout` says otherwise. In components, prefer `useScan()`.
+   */
+  async startScan(options: ScanOptions, onDevice: (device: ScannedDevice) => void): Promise<Scan> {
+    const native = toNativeOptions(options)
+    if (options.autoRequestPermission !== false && (await Permissions.getStatus()) === 'denied') {
+      await Permissions.request()
+    }
+    if (options.autoEnableBluetooth !== false && (await BluetoothState.getState()) === 'poweredOff') {
+      await BluetoothState.requestEnable()
+    }
+    const filter = options.filter
+    let onStopped: (stop: ScanStop) => void = () => {}
+    const stopped = new Promise<ScanStop>((resolve) => (onStopped = resolve))
+    let id: number
+    try {
+      id = await Scanner.start(
+        native,
+        (device) => {
+          const scanned = fromNativeDevice(device)
+          if (filter == null || filter(scanned)) onDevice(scanned)
+        },
+        (stop) => onStopped(fromNativeStop(stop))
+      )
+    } catch (error) {
+      throw toBleError(error, 'scan')
+    }
+    return { stop: () => Scanner.stop(id), stopped }
   },
 
   /** Changes Bonded's settings. Turning diagnostics off also deletes the recorded events. */

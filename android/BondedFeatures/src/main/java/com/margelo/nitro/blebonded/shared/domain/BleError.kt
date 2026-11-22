@@ -26,5 +26,10 @@ class BleError(
     CANCELLED,
     UNSUPPORTED,
     UNKNOWN,
+    ;
+
+    /** The code's public name, as JavaScript and iOS write it (`bluetoothOff`). */
+    val publicName: String
+      get() = name.lowercase().split('_').mapIndexed { index, part -> if (index == 0) part else part.replaceFirstChar(Char::uppercase) }.joinToString("")
   }
 }

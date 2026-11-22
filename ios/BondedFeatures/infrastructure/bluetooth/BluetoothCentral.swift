@@ -23,6 +23,7 @@ public actor BluetoothCentral {
   private var stateObservers: [UUID: AsyncStream<CBManagerState>.Continuation] = [:]
   private var authorizationObservers: [UUID: AsyncStream<CBManagerAuthorization>.Continuation] = [:]
   private var foregroundObserver: (any NSObjectProtocol)?
+  private var discoveries: AsyncStream<Discovery>.Continuation?
 
   public init() {}
 
@@ -86,6 +87,30 @@ public actor BluetoothCentral {
     return stream
   }
 
+  // MARK: - Scanning
+
+  /// Starts scanning, replacing a running scan, and returns every discovery from now on. The stream finishes
+  /// when `stopScan()` is called or Bluetooth leaves the powered-on state, which stops Core Bluetooth's scan.
+  public func startScan(services: [CBUUID]?, allowDuplicates: Bool) async -> AsyncStream<Discovery> {
+    stopScan()
+    let (stream, continuation) = AsyncStream<Discovery>.makeStream()
+    guard await managerState() == .poweredOn, let manager else {
+      continuation.finish()
+      return stream
+    }
+    discoveries = continuation
+    manager.scanForPeripherals(withServices: services, options: [CBCentralManagerScanOptionAllowDuplicatesKey: allowDuplicates])
+    return stream
+  }
+
+  public func stopScan() {
+    if manager?.state == .poweredOn {
+      manager?.stopScan()
+    }
+    discoveries?.finish()
+    discoveries = nil
+  }
+
   // MARK: - Manager
 
   private func activate() {
@@ -114,8 +139,15 @@ public actor BluetoothCentral {
 
   private func handle(_ event: CentralEvent) {
     switch event {
+    case let .discovered(discovery):
+      discoveries?.yield(discovery)
     case let .stateChanged(newState):
       state = newState
+      if newState != .poweredOn {
+        // Core Bluetooth has stopped scanning by itself.
+        discoveries?.finish()
+        discoveries = nil
+      }
       hasReceivedState = true
       let waiters = stateWaiters
       stateWaiters.removeAll()
@@ -193,6 +225,39 @@ public actor BluetoothCentral {
 /// A Core Bluetooth callback, as delivered on Bonded's queue.
 enum CentralEvent: Sendable {
   case stateChanged(CBManagerState)
+  case discovered(Discovery)
+}
+
+/// One advertisement Core Bluetooth reported, copied out of its dictionary into values that can cross actors.
+public struct Discovery: Sendable {
+  public let identifier: UUID
+  public let peripheralName: String?
+  public let localName: String?
+  public let rssi: Int
+  public let serviceUuids: [String]
+  public let manufacturerData: Data?
+  public let serviceData: [String: Data]
+  public let txPowerLevel: Int?
+  public let isConnectable: Bool?
+  public let solicitedServiceUuids: [String]
+  public let overflowServiceUuids: [String]
+  public let receivedAt: Date
+
+  init(peripheral: CBPeripheral, advertisementData: [String: Any], rssi: NSNumber) {
+    identifier = peripheral.identifier
+    peripheralName = peripheral.name
+    localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+    self.rssi = rssi.intValue
+    serviceUuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []).map(\.uuidString)
+    manufacturerData = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data
+    serviceData = (advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data] ?? [:])
+      .reduce(into: [:]) { result, entry in result[entry.key.uuidString] = entry.value }
+    txPowerLevel = (advertisementData[CBAdvertisementDataTxPowerLevelKey] as? NSNumber)?.intValue
+    isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue
+    solicitedServiceUuids = (advertisementData[CBAdvertisementDataSolicitedServiceUUIDsKey] as? [CBUUID] ?? []).map(\.uuidString)
+    overflowServiceUuids = (advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? []).map(\.uuidString)
+    receivedAt = Date()
+  }
 }
 
 /// Receives Core Bluetooth's callbacks on Bonded's queue and forwards them, in order, to `BluetoothCentral`.
@@ -205,5 +270,14 @@ private final class CentralDelegate: NSObject, CBCentralManagerDelegate, Sendabl
 
   func centralManagerDidUpdateState(_ central: CBCentralManager) {
     events.yield(.stateChanged(central.state))
+  }
+
+  func centralManager(
+    _ central: CBCentralManager,
+    didDiscover peripheral: CBPeripheral,
+    advertisementData: [String: Any],
+    rssi RSSI: NSNumber
+  ) {
+    events.yield(.discovered(Discovery(peripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)))
   }
 }

@@ -75,6 +75,7 @@ namespace margelo::nitro::blebonded {
     // Constructor and static members
     static jni::local_ref<JTypedPromise<jni::local_ref<JBluetoothAdapterState>>> getState();
     static jdouble addStateListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_BluetoothAdapterState::JavaPart>>& onChange);
+    static jni::local_ref<JTypedPromise<jni::local_ref<JBluetoothAdapterState>>> requestEnable();
     static void removeStateListener(jdouble id);
 
   protected:

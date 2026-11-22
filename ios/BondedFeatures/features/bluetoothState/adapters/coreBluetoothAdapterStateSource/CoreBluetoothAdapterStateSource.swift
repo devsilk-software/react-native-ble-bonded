@@ -12,6 +12,19 @@ public struct CoreBluetoothAdapterStateSource: AdapterStateSource {
     Self.adapterState(from: await central.managerState())
   }
 
+  public func stateChanges() -> AsyncStream<AdapterState> {
+    let platformChanges = central.stateUpdates()
+    let (stream, continuation) = AsyncStream<AdapterState>.makeStream()
+    let task = Task {
+      for await state in platformChanges {
+        continuation.yield(Self.adapterState(from: state))
+      }
+      continuation.finish()
+    }
+    continuation.onTermination = { _ in task.cancel() }
+    return stream
+  }
+
   /// Core Bluetooth's state in Bonded's words.
   static func adapterState(from state: CBManagerState) -> AdapterState {
     switch state {

@@ -15,6 +15,10 @@
 #include <NitroBleBonded/private/JBluetoothAdapterState.hpp>
 #include <NitroModules/JNIConverter+Promise.hpp>
 #include <NitroModules/JSIConverter+JTypedPromise.hpp>
+#include <NitroModules/JNIConverter+Primitives.hpp>
+#include <NitroModules/JSIConverter+JNIPrimitives.hpp>
+#include <NitroBleBonded/private/JCallback_void_BluetoothAdapterState.hpp>
+#include <NitroModules/JNIConverter+Callback.hpp>
 #include <NitroBleBonded/private/JHybridBluetoothStateSpec.hpp>
 
 namespace margelo::nitro::blebonded {
@@ -70,6 +74,8 @@ namespace margelo::nitro::blebonded {
   public:
     // Constructor and static members
     static jni::local_ref<JTypedPromise<jni::local_ref<JBluetoothAdapterState>>> getState();
+    static jdouble addStateListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_BluetoothAdapterState::JavaPart>>& onChange);
+    static void removeStateListener(jdouble id);
 
   protected:
     const std::shared_ptr<const HybridClass>& getHybridClass() override {

@@ -1,24 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button, StatusBar, StyleSheet, Text, View } from 'react-native'
-import { ble, type BluetoothAdapterState } from 'react-native-ble-bonded'
+import { ble } from 'react-native-ble-bonded'
+import { useBluetoothPermission, useBluetoothState } from 'react-native-ble-bonded/hooks'
 
 // The device-test app: every feature gets a screen here as it lands, for the manual checklist.
 export default function App() {
-  const [state, setState] = useState<BluetoothAdapterState | 'loading'>('loading')
-  const [error, setError] = useState<string>()
+  const state = useBluetoothState()
+  const permission = useBluetoothPermission()
+  const [lastRequest, setLastRequest] = useState<string>()
 
-  const refresh = useCallback(async () => {
-    try {
-      setError(undefined)
-      setState(await ble.getState())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    }
-  }, [])
-
-  useEffect(() => {
-    refresh()
-  }, [refresh])
+  const request = async () => {
+    setLastRequest(`request returned ${await ble.requestPermissions()}`)
+  }
 
   return (
     <View style={styles.container}>
@@ -27,8 +20,13 @@ export default function App() {
       <Text style={styles.value} testID="bluetooth-state">
         {state}
       </Text>
-      {error != null && <Text style={styles.error}>{error}</Text>}
-      <Button title="Refresh" onPress={refresh} />
+      <Text style={styles.label}>Permission</Text>
+      <Text style={styles.value} testID="bluetooth-permission">
+        {permission ?? '…'}
+      </Text>
+      {lastRequest != null && <Text style={styles.note}>{lastRequest}</Text>}
+      {permission === 'denied' && <Button title="Request permission" onPress={request} />}
+      {permission === 'blocked' && <Button title="Open settings" onPress={() => ble.openSettings()} />}
     </View>
   )
 }
@@ -37,5 +35,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', gap: 12 },
   label: { fontSize: 14, color: '#5a6577' },
   value: { fontSize: 28, fontWeight: '600' },
-  error: { color: '#b3261e', paddingHorizontal: 24, textAlign: 'center' },
+  note: { fontSize: 13, color: '#5a6577' },
 })

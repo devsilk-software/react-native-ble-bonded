@@ -12,6 +12,7 @@ import com.facebook.jni.HybridData
 import com.facebook.proguard.annotations.DoNotStrip
 import dalvik.annotation.optimization.FastNative
 import com.margelo.nitro.core.Promise
+import com.margelo.nitro.core.Callback
 import com.margelo.nitro.blebonded.HybridBluetoothState
 import com.margelo.nitro.core.HybridObject
 
@@ -63,6 +64,10 @@ abstract class HybridBluetoothStateSpec: HybridObject() {
 
     // Static Methods
     fun getState(): Promise<BluetoothAdapterState>
+
+    fun addStateListener(onChange: Callback<(state: BluetoothAdapterState) -> Unit>): Double
+
+    fun removeStateListener(id: Double): Unit
   }
 
   protected companion object Bridge {
@@ -77,6 +82,20 @@ abstract class HybridBluetoothStateSpec: HybridObject() {
     @Keep
     private fun getState_cxx(): Promise<BluetoothAdapterState> {
       return HybridBluetoothState.getState()
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun addStateListener_cxx(onChange: Callback<(state: BluetoothAdapterState) -> Unit>): Double {
+      return HybridBluetoothState.addStateListener(onChange)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun removeStateListener_cxx(id: Double): Unit {
+      HybridBluetoothState.removeStateListener(id)
     }
   }
 }

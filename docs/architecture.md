@@ -44,8 +44,8 @@ The Nitro module compiles `android/BondedFeatures/src/main/java` into itself, be
 autolinking includes one Gradle project per package. On iOS the module's `Package.swift` depends on the
 `BondedFeatures` package.
 
-Features: `bluetoothState` (done), then `scanning`, `connection`, `gatt`, `bonding`, `background` and
-`diagnostics`. A feature's folders appear with its first use case.
+Features: `bluetoothState` and `permissions` (done), then `scanning`, `connection`, `gatt`, `bonding`,
+`background` and `diagnostics`. A feature's folders appear with its first use case.
 
 ## The dependency rule
 
@@ -53,7 +53,7 @@ Dependencies point inward only.
 
 | Layer | Holds | May import |
 |---|---|---|
-| `shared/domain` | the types every feature speaks | the base library only |
+| `shared/domain` | the types every feature speaks, and the listener rule (current value first, then changes, repeats suppressed) | the base library only; on Android also `kotlinx.coroutines` |
 | `domain` | states, rules, values | the base library, `shared/domain` |
 | `application` | use cases and the interfaces they need | `domain`, `shared/domain`; on Android also `kotlinx.coroutines` |
 | `adapters` | implementations of those interfaces | `application`, `domain`, `infrastructure`, the platform's Bluetooth framework |

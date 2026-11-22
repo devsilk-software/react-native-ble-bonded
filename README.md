@@ -18,9 +18,21 @@ react-native-ble-plx.
 
 ```ts
 import { ble } from 'react-native-ble-bonded'
+import { useBluetoothPermission, useBluetoothState } from 'react-native-ble-bonded/hooks'
 
-const state = await ble.getState() // 'poweredOn', 'poweredOff', 'unauthorized', …
+function BluetoothScreen() {
+  const state = useBluetoothState() // 'poweredOn', 'poweredOff', 'unauthorized', …
+  const permission = useBluetoothPermission() // 'granted', 'denied', 'blocked' or 'unavailable'
+
+  if (permission === 'denied') return <Button title="Allow Bluetooth" onPress={() => ble.requestPermissions()} />
+  if (permission === 'blocked') return <Button title="Open settings" onPress={() => ble.openSettings()} />
+  return <Text>{state}</Text>
+}
 ```
+
+Outside components, `ble.onStateChange(cb)` and `ble.onPermissionChange(cb)` report the current value at once,
+then every change, and return `{ remove() }`. On iOS the permission prompt appears only when you call
+`ble.requestPermissions()` (or, later, start scanning or connecting), so you can explain why first.
 
 ## Developing
 

@@ -23,6 +23,8 @@ public protocol HybridBluetoothStateSpec_protocol: HybridBluetoothStateSpec_base
 
   // Static Methods
   static func getState() throws -> any Promise<BluetoothAdapterState>
+  static func addStateListener(onChange: any Callback<(/* state */ BluetoothAdapterState), Void>) throws -> Double
+  static func removeStateListener(id: Double) throws -> Void
 }
 
 public extension HybridBluetoothStateSpec_protocol {

@@ -140,4 +140,22 @@ public final class HybridBluetoothStateSpec_cxx {
       return bridge.Result_void.withError(error.toCpp())
     }
   }
+
+  public class func addStateListener(onChange: UnsafeRawPointer) -> bridge.Result_double {
+    do {
+      let value = try HybridBluetoothState.addStateListener(onChange: onChange.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void___NitroBleBonded__BluetoothAdapterState.self))
+      return bridge.Result_double.withValue(value)
+    } catch {
+      return bridge.Result_double.withError(error.toCpp())
+    }
+  }
+
+  public class func removeStateListener(id: Double) -> bridge.Result_void {
+    do {
+      try HybridBluetoothState.removeStateListener(id: id)
+      return bridge.Result_void.withValue()
+    } catch {
+      return bridge.Result_void.withError(error.toCpp())
+    }
+  }
 }

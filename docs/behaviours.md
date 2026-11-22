@@ -24,6 +24,17 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - reports blocked only after the app has asked before — Android only
 - asks for scan and connect permissions from Android 12, location before — Android only
 
+## diagnostics
+
+- records nothing while diagnostics are off
+- records each published event with its time and the app's state
+- keeps only the newest events up to the capacity
+- returns the events at or after a given time
+- saves the recorded events so they survive the app being killed
+- restores the events saved before a relaunch
+- deletes the stored events when cleared or turned off
+- delivers every event recorded after a listener is added
+
 ## architecture
 
 - the rules see the production sources

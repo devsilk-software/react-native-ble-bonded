@@ -8,3 +8,15 @@ public enum PermissionStatus: Sendable, Equatable, CaseIterable {
   /// Not granted, and only the system settings can change that.
   case blocked
 }
+
+extension PermissionStatus {
+  /// The status's public name, as JavaScript sees it.
+  public var name: String {
+    switch self {
+    case .unavailable: "unavailable"
+    case .denied: "denied"
+    case .granted: "granted"
+    case .blocked: "blocked"
+    }
+  }
+}

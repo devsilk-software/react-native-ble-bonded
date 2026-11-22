@@ -11,3 +11,17 @@ public enum AdapterState: Sendable, Equatable, CaseIterable {
   case poweredOff
   case poweredOn
 }
+
+extension AdapterState {
+  /// The state's public name, as JavaScript sees it.
+  public var name: String {
+    switch self {
+    case .unknown: "unknown"
+    case .resetting: "resetting"
+    case .unsupported: "unsupported"
+    case .unauthorized: "unauthorized"
+    case .poweredOff: "poweredOff"
+    case .poweredOn: "poweredOn"
+    }
+  }
+}

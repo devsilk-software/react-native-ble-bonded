@@ -17,7 +17,13 @@ target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JBluetoothPermission.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_BluetoothAdapterState.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_BluetoothPermission.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_DiagnosticEvent.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticAppState.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticEvent.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticEventType.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticsConfig.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridBluetoothStateSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridDiagnosticsSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridPermissionsSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/NitroBleBondedCxxModule.cpp"
 )

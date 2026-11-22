@@ -1,6 +1,7 @@
 package com.margelo.nitro.blebonded
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -18,10 +19,13 @@ class ListenerRegistry {
   private val nextId = AtomicLong(1)
   private val jobs = ConcurrentHashMap<Double, Job>()
 
-  /** Starts collecting [flow] into [onValue] and returns the listener's ID. */
+  /**
+   * Starts collecting [flow] into [onValue] and returns the listener's ID. Collection starts before this returns,
+   * so a flow without replay delivers every value emitted after it.
+   */
   fun <T> add(flow: Flow<T>, onValue: (T) -> Unit): Double {
     val id = nextId.getAndIncrement().toDouble()
-    jobs[id] = scope.launch { flow.collect { onValue(it) } }
+    jobs[id] = scope.launch(start = CoroutineStart.UNDISPATCHED) { flow.collect { onValue(it) } }
     return id
   }
 

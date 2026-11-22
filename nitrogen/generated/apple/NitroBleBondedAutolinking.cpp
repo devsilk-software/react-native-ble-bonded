@@ -9,6 +9,7 @@
 #include <NitroModules/HybridClassRegistry.hpp>
 
 #include <NitroBleBonded/private/HybridBluetoothStateSpecSwift.hpp>
+#include <NitroBleBonded/private/HybridDiagnosticsSpecSwift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpecSwift.hpp>
 
 namespace margelo::nitro::blebonded {
@@ -17,6 +18,7 @@ namespace margelo::nitro::blebonded {
     using namespace margelo::nitro::blebonded;
 
     HybridClassRegistry::registerHybridClass("blebonded.BluetoothState", HybridBluetoothStateSpecSwift::Class::get());
+    HybridClassRegistry::registerHybridClass("blebonded.Diagnostics", HybridDiagnosticsSpecSwift::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Permissions", HybridPermissionsSpecSwift::Class::get());
   }
 } // namespace margelo::nitro::blebonded

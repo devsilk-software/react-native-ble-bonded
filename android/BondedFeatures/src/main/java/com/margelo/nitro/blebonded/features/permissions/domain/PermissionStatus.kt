@@ -12,3 +12,13 @@ enum class PermissionStatus {
   /** Not granted, and only the system settings can change that. */
   BLOCKED,
 }
+
+/** The status's public name, as JavaScript sees it. */
+val PermissionStatus.publicName: String
+  get() =
+    when (this) {
+      PermissionStatus.UNAVAILABLE -> "unavailable"
+      PermissionStatus.DENIED -> "denied"
+      PermissionStatus.GRANTED -> "granted"
+      PermissionStatus.BLOCKED -> "blocked"
+    }

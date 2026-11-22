@@ -28,8 +28,9 @@ class AndroidPermissionSource(
   override suspend fun request(): PermissionStatus {
     val permissions = requiredPermissions(sdkInt).map(::manifestName)
     if (radio.hasLowEnergy() && !permissions.all(store::isGranted)) {
-      store.markRequested(permissions)
-      prompt.request(permissions)
+      // Recorded only when the dialog was shown: without an activity nothing was asked, and recording it would
+      // later read as "don't ask again".
+      if (prompt.request(permissions)) store.markRequested(permissions)
     }
     return readStatus()
   }

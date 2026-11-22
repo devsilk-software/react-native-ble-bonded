@@ -21,8 +21,8 @@ object ReactPermissionPrompt : PermissionPrompt {
 
   override fun shouldShowRationale(permission: String): Boolean = activity?.shouldShowRequestPermissionRationale(permission) ?: false
 
-  override suspend fun request(permissions: List<String>) {
-    val activity = activity ?: return
+  override suspend fun request(permissions: List<String>): Boolean {
+    val activity = activity ?: return false
     withContext(Dispatchers.Main) {
       suspendCancellableCoroutine { continuation ->
         val requestCode = nextRequestCode.incrementAndGet()
@@ -32,6 +32,7 @@ object ReactPermissionPrompt : PermissionPrompt {
         }
       }
     }
+    return true
   }
 
   private const val REQUEST_CODE_BASE = 0xB0ED0

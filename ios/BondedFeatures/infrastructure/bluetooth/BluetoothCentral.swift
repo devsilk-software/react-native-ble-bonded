@@ -53,6 +53,10 @@ public actor BluetoothCentral {
       activateIfAuthorized()
       return authorization
     }
+    // Without Bluetooth Low Energy iOS may never prompt, and an existing manager won't report again.
+    if hasReceivedState, state == .unsupported {
+      return authorization
+    }
     activate()
     return await withCheckedContinuation { continuation in
       authorizationWaiters.append(continuation)

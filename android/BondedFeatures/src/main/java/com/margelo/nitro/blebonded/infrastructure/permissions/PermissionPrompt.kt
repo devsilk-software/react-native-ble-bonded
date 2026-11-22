@@ -11,6 +11,9 @@ interface PermissionPrompt {
    */
   fun shouldShowRationale(permission: String): Boolean
 
-  /** Shows the dialog for [permissions] and returns when the user has answered. */
-  suspend fun request(permissions: List<String>)
+  /**
+   * Shows the dialog for [permissions] and returns when the user has answered: true. Returns false at once when
+   * there is no activity to show it in, so nothing was asked.
+   */
+  suspend fun request(permissions: List<String>): Boolean
 }

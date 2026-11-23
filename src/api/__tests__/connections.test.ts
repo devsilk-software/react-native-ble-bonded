@@ -14,16 +14,19 @@ jest.mock('../../specs/Diagnostics.nitro', () => ({ Diagnostics: {} }))
 jest.mock('../../specs/Scanner.nitro', () => ({ Scanner: {} }))
 
 // The store's one native listener is registered once, when the module first needs it; keep its callback.
-let report: (change: NativeConnectionChange) => void = () => {}
+type Change = Omit<NativeConnectionChange, 'isRemembered'> & { isRemembered?: boolean }
+let report: (change: Change) => void = () => {}
 jest.mock('../../specs/Connection.nitro', () => ({
   Connection: {
     connect: jest.fn(),
     disconnect: jest.fn(),
     getServices: jest.fn(),
     addListener: jest.fn((onChange: (change: NativeConnectionChange) => void) => {
-      report = onChange
+      report = (change) => onChange({ isRemembered: false, ...change })
       return Promise.resolve(1)
     }),
+    forget: jest.fn(),
+    getConnections: jest.fn().mockResolvedValue([]),
     removeListener: jest.fn(),
     configureAndroid: jest.fn(),
   },
@@ -125,7 +128,10 @@ describe('Connections', () => {
     await ble.device('A').connect({ timeout: 0, android: { discoveryDelay: 0 } })
 
     expect(Permissions.request).toHaveBeenCalled()
-    expect(native.connect).toHaveBeenCalledWith('A', { timeoutMs: 0, android: expect.objectContaining({ discoveryDelayMs: 0 }) })
+    expect(native.connect).toHaveBeenCalledWith(
+      'A',
+      expect.objectContaining({ timeoutMs: 0, android: expect.objectContaining({ discoveryDelayMs: 0 }) })
+    )
   })
 
   it('connects with a 30 second timeout by default', async () => {
@@ -133,7 +139,7 @@ describe('Connections', () => {
 
     await ble.device('A').connect()
 
-    expect(native.connect).toHaveBeenCalledWith('A', { timeoutMs: 30_000, android: undefined })
+    expect(native.connect).toHaveBeenCalledWith('A', { timeoutMs: 30_000, remember: true, identity: undefined, android: undefined })
   })
 
   it('rejects with a BleError when the connection fails', async () => {

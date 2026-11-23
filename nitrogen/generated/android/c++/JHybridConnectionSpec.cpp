@@ -8,9 +8,10 @@
 #include <NitroBleBonded/private/JHybridConnectionSpec.hpp>
 #include <NitroModules/JNIConverter+Promise.hpp>
 #include <NitroModules/JSIConverter+JTypedPromise.hpp>
-#include <NitroBleBonded/private/JNativeService.hpp>
+#include <NitroBleBonded/private/JNativeConnectionChange.hpp>
 #include <NitroModules/JNIConverter+Array.hpp>
 #include <NitroModules/JSIConverter+JArrayClass.hpp>
+#include <NitroBleBonded/private/JNativeService.hpp>
 #include <NitroModules/JNIConverter+Primitives.hpp>
 #include <NitroModules/JSIConverter+JNIPrimitives.hpp>
 #include <NitroModules/JNIConverter+String.hpp>
@@ -18,7 +19,6 @@
 #include <NitroBleBonded/private/JNativeConnectOptions.hpp>
 #include <NitroBleBonded/private/JCallback_void_NativeConnectionChange.hpp>
 #include <NitroModules/JNIConverter+Callback.hpp>
-#include <NitroBleBonded/private/JNativeConnectionChange.hpp>
 #include <NitroBleBonded/private/JNativeAndroidConnectionOptions.hpp>
 
 namespace margelo::nitro::blebonded {
@@ -33,6 +33,18 @@ namespace margelo::nitro::blebonded {
 
   jni::local_ref<JTypedPromise<void>> JHybridConnectionSpec::disconnect(const jni::local_ref<jni::JString>& id) {
     static const auto __method = JHybridConnectionSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<void>>(jni::alias_ref<jni::JString> /* id */)>("disconnect_cxx");
+    auto __result = __method(JHybridConnectionSpec::JavaPart::javaClassStatic(), id);
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeConnectionChange>>>> JHybridConnectionSpec::getConnections() {
+    static const auto __method = JHybridConnectionSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeConnectionChange>>>>()>("getConnections_cxx");
+    auto __result = __method(JHybridConnectionSpec::JavaPart::javaClassStatic());
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<void>> JHybridConnectionSpec::forget(const jni::local_ref<jni::JString>& id) {
+    static const auto __method = JHybridConnectionSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<void>>(jni::alias_ref<jni::JString> /* id */)>("forget_cxx");
     auto __result = __method(JHybridConnectionSpec::JavaPart::javaClassStatic(), id);
     return __result;
   }
@@ -63,6 +75,8 @@ namespace margelo::nitro::blebonded {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("connect", &JHybridConnectionSpec::connect);
       clazz.registerStaticHybridMethod("disconnect", &JHybridConnectionSpec::disconnect);
+      clazz.registerStaticHybridMethod("getConnections", &JHybridConnectionSpec::getConnections);
+      clazz.registerStaticHybridMethod("forget", &JHybridConnectionSpec::forget);
       clazz.registerStaticHybridMethod("getServices", &JHybridConnectionSpec::getServices);
       clazz.registerStaticHybridMethod("addListener", &JHybridConnectionSpec::addListener);
       clazz.registerStaticHybridMethod("removeListener", &JHybridConnectionSpec::removeListener);

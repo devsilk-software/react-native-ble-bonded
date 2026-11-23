@@ -27,9 +27,19 @@ export interface NativeAndroidConnectionOptions {
   refreshServiceCache?: ServiceCacheRefresh
 }
 
+/** How a device was found, kept with a remembered device to find it again when its ID changes. */
+export interface NativeDeviceIdentity {
+  name?: string
+  services: string[]
+  companyId?: number
+}
+
 export interface NativeConnectOptions {
   /** Milliseconds; 0 to wait until the device appears. */
   timeoutMs: number
+  /** Remember the device once connected. */
+  remember: boolean
+  identity?: NativeDeviceIdentity
   android?: NativeAndroidConnectionOptions
 }
 
@@ -43,6 +53,11 @@ export interface NativeConnectionChange {
   errorCode?: string
   errorMessage?: string
   platformCode?: number
+  isRemembered: boolean
+  /** Set while the device is remembered. */
+  identity?: NativeDeviceIdentity
+  /** Milliseconds since the Unix epoch; set while the device is remembered. */
+  lastConnectedAt?: number
 }
 
 export interface NativeCharacteristic {
@@ -73,11 +88,18 @@ export declare class Connection extends HybridObject {
   /** Disconnects, or cancels a connection attempt; resolves once disconnected. */
   static disconnect(id: string): Promise<void>
 
+  /** Every known device's current connection, remembered devices included. */
+  static getConnections(): Promise<NativeConnectionChange[]>
+
+  /** Disconnects the device and forgets it; the system's pairing stays. */
+  static forget(id: string): Promise<void>
+
   /** The services discovered when the device connected. Rejects with `notConnected` while it isn't. */
   static getServices(id: string): Promise<NativeService[]>
 
   /**
-   * Calls `onChange` with every known device's current connection, then every change. Resolves with an ID for
+   * Calls `onChange` with every known device's current connection, remembered devices included, then every
+   * change. Resolves with an ID for
    * `removeListener` once registered.
    */
   static addListener(onChange: (change: NativeConnectionChange) => void): Promise<number>

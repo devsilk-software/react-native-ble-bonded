@@ -62,6 +62,12 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - refuses to read services while not connected
 - publishes connection attempts, retries, connections and disconnections
 - maps platform disconnect errors to reasons
+- remembers a device after it connects
+- remembers nothing when asked not to
+- reports remembered devices before they connect again
+- lists every known connection, remembered devices included
+- forgets a device and disconnects it
+- keeps the identity the device was found by
 - reads every characteristic's properties
 - plans the setup steps from the workarounds and the bond — Android only
 - applies a connection's own workarounds over the ones set for every connection — Android only

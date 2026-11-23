@@ -26,7 +26,14 @@ enum class DisconnectReason(val publicName: String) {
 data class Disconnect(val reason: DisconnectReason, val error: BleError? = null)
 
 /** A device's connection as listeners see it. */
-data class ConnectionChange(val id: DeviceId, val name: String?, val state: ConnectionState, val lastDisconnect: Disconnect?)
+data class ConnectionChange(
+  val id: DeviceId,
+  val name: String?,
+  val state: ConnectionState,
+  val lastDisconnect: Disconnect?,
+  /** Set while the device is remembered. */
+  val remembered: RememberedDevice? = null,
+)
 
 /** How to connect. */
 data class ConnectOptions(
@@ -34,6 +41,10 @@ data class ConnectOptions(
   val timeoutMs: Long? = 30_000,
   /** This connection's workarounds, over the ones set for every connection; null keeps those. */
   val android: AndroidConnectionOverrides = AndroidConnectionOverrides(),
+  /** Remember the device once connected, so it can connect again after a relaunch. */
+  val remember: Boolean = true,
+  /** How the device was found, kept with it to find it again when its ID changes. */
+  val identity: DeviceIdentity? = null,
 )
 
 /** When Android refreshes its cache of a device's services. */

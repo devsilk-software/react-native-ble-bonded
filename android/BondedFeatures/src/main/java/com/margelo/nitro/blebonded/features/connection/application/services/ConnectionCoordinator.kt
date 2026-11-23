@@ -2,12 +2,15 @@ package com.margelo.nitro.blebonded.features.connection.application.services
 
 import com.margelo.nitro.blebonded.features.connection.application.interfaces.ConnectionSource
 import com.margelo.nitro.blebonded.features.connection.application.interfaces.PlatformDisconnect
+import com.margelo.nitro.blebonded.features.connection.application.interfaces.RememberedDeviceStore
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOverrides
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectOptions
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionReadiness
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionChange
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionState
+import com.margelo.nitro.blebonded.features.connection.domain.DeviceIdentity
+import com.margelo.nitro.blebonded.features.connection.domain.RememberedDevice
 import com.margelo.nitro.blebonded.features.connection.domain.Disconnect
 import com.margelo.nitro.blebonded.features.connection.domain.DisconnectReason
 import com.margelo.nitro.blebonded.features.connection.domain.GattService
@@ -43,10 +46,17 @@ class ConnectionCoordinator(
   private val source: ConnectionSource,
   private val bus: EventBus,
   private val scope: CoroutineScope,
+  private val store: RememberedDeviceStore,
   private val retry: RetryPolicy = RetryPolicy(),
+  private val now: () -> Long = System::currentTimeMillis,
 ) {
   private val lock = Mutex()
   private val devices = HashMap<DeviceId, Entry>()
+  private val remembered = HashMap<DeviceId, RememberedDevice>()
+  private var hasLoaded = false
+
+  /** Held through each save, which writes the list as it is then, so saves never land out of order. */
+  private val saving = Mutex()
   private val changes = MutableSharedFlow<ConnectionChange>(extraBufferCapacity = 64)
   private var watching: Job? = null
 
@@ -75,7 +85,46 @@ class ConnectionCoordinator(
    * Connects and discovers the device's services; returns once it's ready. Returns at once when it's already
    * connected, and shares the running attempt when one is under way. Throws a [BleError].
    */
+  /** Disconnects the device and forgets it. The system's pairing stays. */
+  suspend fun forget(id: DeviceId) {
+    loadRemembered()
+    disconnect(id)
+    lock.withLock {
+      if (remembered.remove(id) == null) return
+      emit(id)
+    }
+    persist()
+  }
+
+  /** Every known device's current connection, remembered devices included. */
+  suspend fun connections(): List<ConnectionChange> {
+    loadRemembered()
+    return lock.withLock { (devices.keys + remembered.keys).sortedBy { it.rawValue }.map { snapshot(it) } }
+  }
+
+  /** Saves the remembered devices as they are once the previous save has finished. */
+  private suspend fun persist() {
+    saving.withLock { store.save(lock.withLock { remembered.values.toList() }) }
+  }
+
+  /** The remembered devices, most recently connected first. */
+  suspend fun rememberedDevices(): List<RememberedDevice> {
+    loadRemembered()
+    return lock.withLock { remembered.values.sortedByDescending { it.lastConnectedAt } }
+  }
+
+  private suspend fun loadRemembered() {
+    if (lock.withLock { hasLoaded }) return
+    val stored = store.load()
+    lock.withLock {
+      if (hasLoaded) return
+      hasLoaded = true
+      stored.forEach { remembered.putIfAbsent(it.id, it) }
+    }
+  }
+
   suspend fun connect(id: DeviceId, options: ConnectOptions = ConnectOptions()) {
+    loadRemembered()
     watchDisconnections()
     while (true) {
       val disconnecting = lock.withLock { devices[id]?.disconnecting } ?: break
@@ -146,9 +195,11 @@ class ConnectionCoordinator(
     }
 
   /** Every known device's current connection, then every change. */
+  /** Every known device's current connection, remembered devices included, then every change. */
   fun changes(): Flow<ConnectionChange> =
     changes.onSubscription {
-      val current = lock.withLock { devices.entries.sortedBy { it.key.rawValue }.map { (id, entry) -> snapshot(id, entry) } }
+      loadRemembered()
+      val current = lock.withLock { (devices.keys + remembered.keys).sortedBy { it.rawValue }.map { snapshot(it) } }
       current.forEach { emit(it) }
     }
 
@@ -167,19 +218,23 @@ class ConnectionCoordinator(
     try {
       val timeoutMs = options.timeoutMs
       val services = if (timeoutMs == null) work.await() else withTimeout(timeoutMs) { work.await() }
-      if (lock.withLock { devices.getValue(id).isCancelling }) {
-        // `disconnect()` came while the platform finished connecting; the failure path drops the link.
-        throw CancellationException("disconnected while connecting")
-      }
+      // One locked section from this check to `connected`: a `disconnect()` or `forget()` either comes before it,
+      // and the failure path drops the link, or after it, and finds the device connected.
       lock.withLock {
         val entry = devices.getValue(id)
+        if (entry.isCancelling) throw CancellationException("disconnected while connecting")
+        entry.name = source.name(id) ?: entry.name
+        if (options.remember) {
+          val known = remembered[id]?.identity ?: DeviceIdentity(name = entry.name)
+          remembered[id] = RememberedDevice(id, entry.name, known.updated(options.identity), now())
+        }
         entry.state = ConnectionState.CONNECTED
         entry.services = services
         entry.attempt = null
         entry.work = null
-        entry.name = source.name(id) ?: entry.name
         emit(id, entry)
       }
+      if (options.remember) persist()
       bus.publish(DomainEvent(DomainEvent.Kind.CONNECTED, id, detail = "in ${System.currentTimeMillis() - started} ms"))
       return services
     } catch (failure: Throwable) {
@@ -286,5 +341,17 @@ class ConnectionCoordinator(
     changes.tryEmit(snapshot(id, entry))
   }
 
-  private fun snapshot(id: DeviceId, entry: Entry) = ConnectionChange(id, entry.name, entry.state, entry.lastDisconnect)
+  private fun emit(id: DeviceId) {
+    changes.tryEmit(snapshot(id))
+  }
+
+  private fun snapshot(id: DeviceId): ConnectionChange =
+    devices[id]?.let { snapshot(id, it) }
+      ?: remembered[id]?.let { ConnectionChange(id, it.name, ConnectionState.DISCONNECTED, null, it) }
+      ?: ConnectionChange(id, null, ConnectionState.DISCONNECTED, null)
+
+  private fun snapshot(id: DeviceId, entry: Entry): ConnectionChange {
+    val saved = remembered[id]
+    return ConnectionChange(id, entry.name ?: saved?.name, entry.state, entry.lastDisconnect, saved)
+  }
 }

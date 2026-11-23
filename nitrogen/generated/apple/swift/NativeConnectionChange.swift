@@ -17,8 +17,11 @@ public struct NativeConnectionChange: Equatable, Hashable, Sendable {
   public let errorCode: String?
   public let errorMessage: String?
   public let platformCode: Double?
+  public let isRemembered: Bool
+  public let identity: NativeDeviceIdentity?
+  public let lastConnectedAt: Double?
 
-  public init(id: String, name: String?, state: ConnectionState, reason: DisconnectReason?, errorCode: String?, errorMessage: String?, platformCode: Double?) {
+  public init(id: String, name: String?, state: ConnectionState, reason: DisconnectReason?, errorCode: String?, errorMessage: String?, platformCode: Double?, isRemembered: Bool, identity: NativeDeviceIdentity?, lastConnectedAt: Double?) {
     self.id = id
     self.name = name
     self.state = state
@@ -26,11 +29,14 @@ public struct NativeConnectionChange: Equatable, Hashable, Sendable {
     self.errorCode = errorCode
     self.errorMessage = errorMessage
     self.platformCode = platformCode
+    self.isRemembered = isRemembered
+    self.identity = identity
+    self.lastConnectedAt = lastConnectedAt
   }
 
   @_spi(NitroCxx)
-  public static func init_cxx(_ id: String, _ name: String?, _ state: ConnectionState, _ reason: DisconnectReason?, _ errorCode: String?, _ errorMessage: String?, _ platformCode: Double?) -> Self {
-    return Self(id: id, name: name, state: state, reason: reason, errorCode: errorCode, errorMessage: errorMessage, platformCode: platformCode)
+  public static func init_cxx(_ id: String, _ name: String?, _ state: ConnectionState, _ reason: DisconnectReason?, _ errorCode: String?, _ errorMessage: String?, _ platformCode: Double?, _ isRemembered: Bool, _ identity: NativeDeviceIdentity?, _ lastConnectedAt: Double?) -> Self {
+    return Self(id: id, name: name, state: state, reason: reason, errorCode: errorCode, errorMessage: errorMessage, platformCode: platformCode, isRemembered: isRemembered, identity: identity, lastConnectedAt: lastConnectedAt)
   }
 
   @_spi(NitroCxx)
@@ -66,5 +72,20 @@ public struct NativeConnectionChange: Equatable, Hashable, Sendable {
   @_spi(NitroCxx)
   public borrowing func getPlatformCode_cxx() -> Double? {
     return self.platformCode
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getIsRemembered_cxx() -> Bool {
+    return self.isRemembered
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getIdentity_cxx() -> NativeDeviceIdentity? {
+    return self.identity
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getLastConnectedAt_cxx() -> Double? {
+    return self.lastConnectedAt
   }
 }

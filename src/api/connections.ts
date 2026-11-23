@@ -45,6 +45,8 @@ export interface AndroidConnectionOptions {
 export interface ConnectOptions extends PrepareOptions {
   /** Give up after this many milliseconds; `0` to wait until the device appears. Default 30,000. */
   timeout?: number
+  /** Remember the device once connected, so `ble.connect()` finds it after a relaunch. Default `true`. */
+  remember?: boolean
   /** This connection's Android workarounds, over those set with `ble.configure({ android })`. */
   android?: AndroidConnectionOptions
 }
@@ -67,15 +69,31 @@ export const defaultConnectTimeout = 30_000
 export interface DeviceConnection extends ConnectionChange {
   id: string
   name?: string
+  isRemembered: boolean
+  /** How the device was found; kept while it's remembered, to find it again when its ID changes. */
+  identity?: DeviceIdentity
+  /** Milliseconds since the Unix epoch; set while the device is remembered. */
+  lastConnectedAt?: number
+}
+
+/** How a device was found: its advertised name, services and manufacturer company ID. */
+export interface DeviceIdentity {
+  name?: string
+  services: string[]
+  companyId?: number
 }
 
 /** Calls each listener with every known device's current connection, then every change. */
 class ConnectionStore {
   private readonly devices = new Map<string, DeviceConnection>()
   private readonly names = new Map<string, string>()
+  /** What scans saw of each device, passed to `connect()` so a remembered device can be found again. */
+  private readonly identities = new Map<string, DeviceIdentity>()
   /** Devices known only by a name a scan saw, kept so reading one twice returns the same object. */
   private readonly named = new Map<string, DeviceConnection>()
   private readonly listeners = new Set<(connection: DeviceConnection) => void>()
+  /** Counts each device's `disconnect()` and `forget()` calls, so work in JavaScript can see it was cancelled. */
+  private readonly cancellations = new Map<string, number>()
   private registration: Promise<void> | undefined
   private list: DeviceConnection[] = []
 
@@ -85,7 +103,12 @@ class ConnectionStore {
    */
   start(): Promise<void> {
     this.registration ??= Connection.addListener((change) => this.apply(change)).then(
-      () => undefined,
+      // The listener's first reports can arrive after its registration resolves; the snapshot can't. A device the
+      // listener already reported is newer than the snapshot, so only the others are taken from it.
+      async () => {
+        const current = await Connection.getConnections()
+        current.filter((change) => !this.devices.has(change.id)).forEach((change) => this.apply(change))
+      },
       (error: unknown) => {
         this.registration = undefined
         throw error
@@ -118,12 +141,35 @@ class ConnectionStore {
   }
 
   /** A name a scan saw, so a handle shows it before the device has connected. */
+  /** What a scan saw of a device: its name, so a handle shows it before connecting, and its identity. */
+  rememberScan(id: string, scanned: { name?: string; serviceUuids: string[]; manufacturerData?: { companyId: number } }): void {
+    this.identities.set(id, {
+      name: scanned.name,
+      services: scanned.serviceUuids,
+      companyId: scanned.manufacturerData?.companyId,
+    })
+    if (scanned.name != null) this.rememberName(id, scanned.name)
+  }
+
+  cancel(id: string): void {
+    this.cancellations.set(id, this.cancelCount(id) + 1)
+  }
+
+  cancelCount(id: string): number {
+    return this.cancellations.get(id) ?? 0
+  }
+
+  /** The identity scans saw, if any. */
+  scannedIdentity(id: string): DeviceIdentity | undefined {
+    return this.identities.get(id)
+  }
+
   rememberName(id: string, name: string): void {
     if (this.names.get(id) === name) return
     this.names.set(id, name)
     const known = this.devices.get(id)
     if (known == null) {
-      this.named.set(id, { id, name, state: 'disconnected' })
+      this.named.set(id, { id, name, state: 'disconnected', isRemembered: false })
       this.listeners.forEach((listener) => listener(this.named.get(id)!))
     } else if (known.name == null) {
       this.set({ ...known, name })
@@ -136,6 +182,9 @@ class ConnectionStore {
       name: change.name ?? this.names.get(change.id),
       state: change.state,
       lastDisconnect: change.reason == null ? undefined : { reason: change.reason, error: errorOf(change) },
+      isRemembered: change.isRemembered,
+      identity: change.identity,
+      lastConnectedAt: change.lastConnectedAt,
     })
   }
 
@@ -192,6 +241,17 @@ export class Device {
     return connectionStore.get(this.id)?.lastDisconnect
   }
 
+  /** Whether Bonded remembers the device, so `ble.connect()` finds it after a relaunch. */
+  get isRemembered(): boolean {
+    return connectionStore.get(this.id)?.isRemembered ?? false
+  }
+
+  /** Disconnects the device and forgets it. The system's pairing stays. */
+  forget(): Promise<void> {
+    connectionStore.cancel(this.id)
+    return Connection.forget(this.id)
+  }
+
   /**
    * Connects and discovers the device's services; resolves once it's ready. Waits for the device to advertise,
    * so no scan is needed for a device seen before. Resolves at once when already connected and shares a running
@@ -207,14 +267,16 @@ export class Device {
     await connectionStore.start()
     await prepare(options)
     try {
-      await Connection.connect(this.id, { timeoutMs: Math.round(timeout), android })
+      const identity = connectionStore.scannedIdentity(this.id)
+      await Connection.connect(this.id, { timeoutMs: Math.round(timeout), remember: options.remember !== false, identity, android })
     } catch (error) {
       throw toBleError(error, 'connect')
     }
   }
 
-  /** Disconnects, or cancels a connection attempt; resolves once disconnected. */
+  /** Disconnects, or cancels a connection attempt, also one `ble.connect()` is still finding; resolves once disconnected. */
   disconnect(): Promise<void> {
+    connectionStore.cancel(this.id)
     return Connection.disconnect(this.id)
   }
 

@@ -8,7 +8,10 @@ import com.margelo.nitro.blebonded.features.connection.domain.CharacteristicProp
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectMode
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectOptions
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionReadiness
+import com.margelo.nitro.blebonded.features.connection.domain.ConnectionChange
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionState
+import com.margelo.nitro.blebonded.features.connection.domain.DeviceIdentity
+import com.margelo.nitro.blebonded.features.connection.domain.RememberedDevice
 import com.margelo.nitro.blebonded.features.connection.domain.Disconnect
 import com.margelo.nitro.blebonded.features.connection.domain.DisconnectReason
 import com.margelo.nitro.blebonded.features.connection.domain.RetryPolicy
@@ -17,6 +20,7 @@ import com.margelo.nitro.blebonded.features.connection.domain.SetupStep
 import com.margelo.nitro.blebonded.features.connection.domain.disconnectReason
 import com.margelo.nitro.blebonded.features.connection.domain.setupSteps
 import com.margelo.nitro.blebonded.mocks.ConnectionRecorder
+import com.margelo.nitro.blebonded.mocks.FakeRememberedDeviceStore
 import com.margelo.nitro.blebonded.mocks.FakeConnectionSource
 import com.margelo.nitro.blebonded.mocks.eventually
 import com.margelo.nitro.blebonded.mocks.heartRateService
@@ -40,8 +44,11 @@ import kotlinx.coroutines.withTimeout
 
 private val device = DeviceId("A")
 
-private fun coordinator(source: FakeConnectionSource, bus: EventBus = EventBus()) =
-  ConnectionCoordinator(source, bus, CoroutineScope(SupervisorJob() + Dispatchers.Default), RetryPolicy(directAttempts = 2))
+private fun coordinator(
+  source: FakeConnectionSource,
+  bus: EventBus = EventBus(),
+  store: FakeRememberedDeviceStore = FakeRememberedDeviceStore(),
+) = ConnectionCoordinator(source, bus, CoroutineScope(SupervisorJob() + Dispatchers.Default), store, RetryPolicy(directAttempts = 2)) { 5_000 }
 
 private fun background() = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -244,6 +251,71 @@ class ConnectionTest : BehaviorSpec({
   given("a device that isn't connected") {
     then("refuses to read services while not connected") {
       shouldThrow<BleError> { coordinator(FakeConnectionSource()).services(device) }.code shouldBe BleError.Code.NOT_CONNECTED
+    }
+  }
+
+  given("a device the app connects to") {
+    then("remembers a device after it connects") {
+      val store = FakeRememberedDeviceStore()
+      coordinator(FakeConnectionSource(outcomes = listOf(Result.success(emptyList()))), store = store).connect(device)
+      store.saved.map { it.id } shouldBe listOf(device)
+      store.saved.first().name shouldBe "Thermo-1"
+      store.saved.first().lastConnectedAt shouldBe 5_000
+    }
+
+    then("remembers nothing when asked not to") {
+      val store = FakeRememberedDeviceStore()
+      val coordinator = coordinator(FakeConnectionSource(outcomes = listOf(Result.success(emptyList()))), store = store)
+      coordinator.connect(device, ConnectOptions(remember = false))
+      store.saved shouldBe emptyList()
+      coordinator.rememberedDevices() shouldBe emptyList()
+    }
+
+    then("forgets a device and disconnects it") {
+      val source = FakeConnectionSource(outcomes = listOf(Result.success(emptyList())))
+      val store = FakeRememberedDeviceStore()
+      val coordinator = coordinator(source, store = store)
+      val recorder = ConnectionRecorder(coordinator.changes())
+      coordinator.connect(device)
+      coordinator.forget(device)
+      eventually { recorder.changes.lastOrNull()?.remembered == null && recorder.states.last() == ConnectionState.DISCONNECTED }
+      source.disconnectCount.get() shouldBe 1
+      store.saved shouldBe emptyList()
+      recorder.changes.last().remembered shouldBe null
+    }
+
+    then("keeps the identity the device was found by") {
+      val store = FakeRememberedDeviceStore()
+      val coordinator =
+        coordinator(FakeConnectionSource(outcomes = listOf(Result.success(emptyList()), Result.success(emptyList()))), store = store)
+      val found = DeviceIdentity("Thermo-1", listOf("0000180d-0000-1000-8000-00805f9b34fb"), 0x0059)
+      coordinator.connect(device, ConnectOptions(identity = found))
+      coordinator.disconnect(device)
+      coordinator.connect(device)
+      store.saved.first().identity shouldBe found
+    }
+  }
+
+  given("a connected device and one remembered before") {
+    then("lists every known connection, remembered devices included") {
+      val earlier = RememberedDevice(DeviceId("B"), "Thermo-2", DeviceIdentity("Thermo-2"), 1_000)
+      val coordinator =
+        coordinator(FakeConnectionSource(outcomes = listOf(Result.success(emptyList()))), store = FakeRememberedDeviceStore(listOf(earlier)))
+      coordinator.connect(device, ConnectOptions(remember = false))
+      val connections = coordinator.connections()
+      connections.map { it.id } shouldBe listOf(device, DeviceId("B"))
+      connections.map { it.state } shouldBe listOf(ConnectionState.CONNECTED, ConnectionState.DISCONNECTED)
+      connections.last().remembered shouldBe earlier
+    }
+  }
+
+  given("devices remembered before a relaunch") {
+    then("reports remembered devices before they connect again") {
+      val earlier = RememberedDevice(DeviceId("B"), "Thermo-2", DeviceIdentity("Thermo-2"), 1_000)
+      val coordinator = coordinator(FakeConnectionSource(), store = FakeRememberedDeviceStore(listOf(earlier)))
+      val recorder = ConnectionRecorder(coordinator.changes())
+      eventually { recorder.changes.size == 1 }
+      recorder.changes shouldBe listOf(ConnectionChange(DeviceId("B"), "Thermo-2", ConnectionState.DISCONNECTED, null, earlier))
     }
   }
 

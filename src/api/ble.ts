@@ -12,8 +12,11 @@ import { Scanner } from '../specs/Scanner.nitro'
 import { Connection } from '../specs/Connection.nitro'
 import {
   connectionStore,
+  defaultConnectTimeout,
   Device,
   toNativeAndroid,
+  type DeviceConnection,
+  type DeviceIdentity,
   type AndroidConnectionOptions,
   type Characteristic,
   type CharacteristicProperty,
@@ -56,6 +59,7 @@ export type {
   ServiceCacheRefresh,
 }
 export { BleError, Device }
+export type { DeviceIdentity }
 
 /** Bonded's settings. Every field is optional; omitted fields keep their current value. */
 export interface BleConfig {
@@ -79,6 +83,117 @@ function subscription(remove: () => void): Subscription {
       remove()
     },
   }
+}
+
+/** Which device `ble.connect()` connects to: one by its ID, or the first that matches a filter. */
+export type ConnectTarget = { id: string } | { name?: ScanNameFilter; services?: string[] }
+
+/** How long Bonded keeps listening after the first match, to tell one device from several. */
+const findAgainSettle = 1_500
+
+function rememberedConnections(): DeviceConnection[] {
+  return connectionStore
+    .all()
+    .filter((connection) => connection.isRemembered)
+    .sort((a, b) => (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0))
+}
+
+function deviceHandle(id: string): Device
+function deviceHandle(): Device | undefined
+function deviceHandle(id?: string): Device | undefined {
+  if (id != null) return new Device(id)
+  const remembered = rememberedConnections()
+  if (remembered.length > 1) throw new Error('Several devices are remembered; pass an id')
+  return remembered.length === 1 ? new Device(remembered[0]!.id) : undefined
+}
+
+/** What a scan that ended without a result means for a connection. */
+function scanEnded(stop: ScanStop | undefined, message: string): BleError {
+  if (stop?.error != null) return stop.error
+  if (stop?.reason === 'replaced')
+    return new BleError('cancelled', 'Another scan replaced the one looking for the device', { operation: 'connect' })
+  return new BleError('deviceNotFound', message, { operation: 'connect' })
+}
+
+/** Scans for the first device that matches, within `timeoutMs` (0 for no limit). */
+async function findFirst(
+  target: { name?: ScanNameFilter; services?: string[] },
+  timeoutMs: number,
+  options: ConnectOptions
+): Promise<ScannedDevice> {
+  let onFound: (device: ScannedDevice) => void = () => {}
+  const found = new Promise<ScannedDevice>((resolve) => (onFound = resolve))
+  const scan = await ble.startScan(
+    { name: target.name, services: target.services, timeout: timeoutMs, ...prepareOptionsOf(options) },
+    (device) => onFound(device)
+  )
+  const result = await Promise.race([found, scan.stopped])
+  scan.stop()
+  if ('id' in result) return result
+  throw scanEnded(result, 'No device matched before the timeout')
+}
+
+/** Scans for a remembered device's identity, within `timeoutMs`; resolves with the one device that matches it. */
+async function findAgain(identity: DeviceIdentity, timeoutMs: number): Promise<ScannedDevice> {
+  const matches = new Map<string, ScannedDevice>()
+  let onFirst: () => void = () => {}
+  const first = new Promise<void>((resolve) => (onFirst = resolve))
+  const scan = await ble.startScan(
+    {
+      services: identity.services,
+      name: identity.name,
+      filter: (device) => identity.companyId == null || device.manufacturerData?.companyId === identity.companyId,
+      allowDuplicates: true,
+      timeout: timeoutMs,
+      autoRequestPermission: false,
+      autoEnableBluetooth: false,
+    },
+    (device) => {
+      matches.set(device.id, device)
+      onFirst()
+    }
+  )
+  const settled = first.then(() => new Promise<'settled'>((resolve) => setTimeout(() => resolve('settled'), findAgainSettle)))
+  const result = await Promise.race([settled, scan.stopped])
+  scan.stop()
+  // A scan that ended early, replaced or failed, never had the time to tell one device from several.
+  if (result !== 'settled' && result.reason !== 'timeout') throw scanEnded(result, 'The remembered device was not found')
+  if (matches.size > 1) {
+    throw new BleError('deviceNotFound', 'Several devices match the remembered device; connect by ID', { operation: 'connect' })
+  }
+  const [match] = matches.values()
+  if (match == null) throw new BleError('deviceNotFound', 'The remembered device was not found', { operation: 'connect' })
+  return match
+}
+
+/**
+ * Connects a device by its ID. When the platform says the ID is unknown (iOS after a network reset; a device never
+ * seen), finds it again by how it was found, connects to the one match and, unless `remember` is off, forgets the
+ * old ID, which can never connect again. A timeout is not a reason: the device is usually just off or away.
+ */
+async function connectRemembered(device: Device, options: ConnectOptions): Promise<Device> {
+  const cancellations = connectionStore.cancelCount(device.id)
+  try {
+    await device.connect(options)
+    return device
+  } catch (error) {
+    const identity = connectionStore.get(device.id)?.identity
+    const isUnknown = error instanceof BleError && error.code === 'deviceNotFound'
+    const isFindable = identity != null && (identity.name != null || identity.services.length > 0 || identity.companyId != null)
+    if (!isUnknown || !isFindable) throw error
+    const found = await findAgain(identity, options.timeout ?? defaultConnectTimeout)
+    if (connectionStore.cancelCount(device.id) !== cancellations) {
+      throw new BleError('cancelled', 'The connection attempt was cancelled', { deviceId: device.id, operation: 'connect' })
+    }
+    const moved = new Device(found.id)
+    await moved.connect(options)
+    if (moved.id !== device.id && options.remember !== false && device.isRemembered) await device.forget()
+    return moved
+  }
+}
+
+function prepareOptionsOf(options: ConnectOptions) {
+  return { autoRequestPermission: options.autoRequestPermission, autoEnableBluetooth: options.autoEnableBluetooth }
 }
 
 /**
@@ -150,7 +265,7 @@ export const ble = {
         native,
         (device) => {
           const scanned = fromNativeDevice(device)
-          if (scanned.name != null) connectionStore.rememberName(scanned.id, scanned.name)
+          connectionStore.rememberScan(scanned.id, scanned)
           if (filter != null && !filter(scanned)) return
           if (isDeduplicatedHere) {
             if (accepted.has(scanned.id)) return
@@ -206,9 +321,53 @@ export const ble = {
     return subscribeToDiagnostics(onEvent).subscription
   },
 
-  /** A handle for the device with this ID. Cheap: create one wherever it's needed. */
-  device(id: string): Device {
-    return new Device(id)
+  /**
+   * A handle for the device with this ID. Cheap: create one wherever it's needed. Without an ID, the one
+   * remembered device, or `undefined` when none is; throws when several are, since it can't know which. Read
+   * without an ID once remembered devices have loaded, for example after `await ble.getRememberedDevices()`.
+   */
+  device: deviceHandle,
+
+  /**
+   * Connects, and resolves with the device once it's ready.
+   *
+   * - `ble.connect()`: the remembered device. Rejects with `deviceNotFound` when none is remembered, and throws when
+   *   several are.
+   * - `ble.connect({ id })`: that device.
+   * - `ble.connect({ name, services })`: scans, and connects to the first device that matches.
+   *
+   * When the platform says a remembered device's ID is unknown (iOS changes it after a network reset), Bonded scans
+   * for how it was found (name, services, company ID), connects to the one device that matches and remembers it
+   * under its new ID. Several matches: it doesn't guess, and rejects. A timeout never starts this search: the device
+   * is usually just off or out of range. The scans it starts replace a running scan, `useScan()` included.
+   */
+  async connect(target?: ConnectTarget, options: ConnectOptions = {}): Promise<Device> {
+    await connectionStore.start()
+    if (target == null) {
+      const device = deviceHandle()
+      if (device == null) {
+        throw new BleError('deviceNotFound', 'No device is remembered; connect by ID or by filter first', { operation: 'connect' })
+      }
+      return connectRemembered(device, options)
+    }
+    if ('id' in target) return connectRemembered(new Device(target.id), options)
+    if (target.name == null && (target.services == null || target.services.length === 0)) {
+      throw new RangeError('connect needs an id, a name or services; an empty filter would connect to any device')
+    }
+    // One timeout for finding and connecting together.
+    const timeout = options.timeout ?? defaultConnectTimeout
+    const started = Date.now()
+    const found = await findFirst(target, timeout, options)
+    const remaining = timeout === 0 ? 0 : Math.max(1, timeout - (Date.now() - started))
+    const device = new Device(found.id)
+    await device.connect({ ...options, timeout: remaining })
+    return device
+  },
+
+  /** The remembered devices, most recently connected first. In components, prefer `useRememberedDevices()`. */
+  async getRememberedDevices(): Promise<Device[]> {
+    await connectionStore.start()
+    return rememberedConnections().map((connection) => new Device(connection.id))
   },
 
   /** The devices that are connected, connecting or disconnecting. */

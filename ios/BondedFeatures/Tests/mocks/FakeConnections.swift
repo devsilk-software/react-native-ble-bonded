@@ -109,3 +109,15 @@ let heartRateService = GattService(
 func transientFailure() -> BleError {
   BleError(code: .connectionFailed, message: "GATT error", platformCode: 133, operation: "connect")
 }
+
+/// A `RememberedDeviceStore` in memory, starting with what a previous launch saved.
+actor FakeRememberedDeviceStore: RememberedDeviceStore {
+  private(set) var saved: [RememberedDevice]
+
+  init(saved: [RememberedDevice] = []) {
+    self.saved = saved
+  }
+
+  func load() async -> [RememberedDevice] { saved }
+  func save(_ devices: [RememberedDevice]) async { saved = devices }
+}

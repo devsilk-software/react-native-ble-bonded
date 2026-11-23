@@ -42,6 +42,26 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
+  Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_> HybridConnectionSpecSwift::getConnections() {
+    auto __result = withCxxResult<Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridConnectionSpec_cxx::getConnections(__outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
+  Promise<void> HybridConnectionSpecSwift::forget(const swift::String& id) {
+    auto __result = withCxxResult<Promise<void>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridConnectionSpec_cxx::forget(id, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
   Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_> HybridConnectionSpecSwift::getServices(const swift::String& id) {
     auto __result = withCxxResult<Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_>>([&](void* __outResult) {
       return ::NitroBleBonded::HybridConnectionSpec_cxx::getServices(id, __outResult);
@@ -82,6 +102,8 @@ namespace margelo::nitro::blebonded {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("connect", &HybridConnectionSpecSwift::connect);
       clazz.registerStaticHybridMethod("disconnect", &HybridConnectionSpecSwift::disconnect);
+      clazz.registerStaticHybridMethod("getConnections", &HybridConnectionSpecSwift::getConnections);
+      clazz.registerStaticHybridMethod("forget", &HybridConnectionSpecSwift::forget);
       clazz.registerStaticHybridMethod("getServices", &HybridConnectionSpecSwift::getServices);
       clazz.registerStaticHybridMethod("addListener", &HybridConnectionSpecSwift::addListener);
       clazz.registerStaticHybridMethod("removeListener", &HybridConnectionSpecSwift::removeListener);

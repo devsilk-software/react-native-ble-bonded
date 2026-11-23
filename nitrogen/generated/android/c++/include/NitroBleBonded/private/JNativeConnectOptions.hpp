@@ -11,9 +11,10 @@
 #include <NitroModules/JSIConverter.hpp>
 #include <NitroModules/JNIConverter+Primitives.hpp>
 #include <NitroModules/JSIConverter+JNIPrimitives.hpp>
-#include <NitroBleBonded/private/JNativeAndroidConnectionOptions.hpp>
+#include <NitroBleBonded/private/JNativeDeviceIdentity.hpp>
 #include <NitroModules/JNIConverter+Optional.hpp>
 #include <NitroModules/JSIConverter+JOptional.hpp>
+#include <NitroBleBonded/private/JNativeAndroidConnectionOptions.hpp>
 
 namespace margelo::nitro::blebonded {
 
@@ -23,14 +24,24 @@ namespace margelo::nitro::blebonded {
   struct JNativeConnectOptions final : public jni::JavaClass<JNativeConnectOptions> {
     static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/blebonded/NativeConnectOptions;";
 
-    static jni::local_ref<JNativeConnectOptions> create(jdouble timeoutMs, jni::alias_ref<JOptional<JNativeAndroidConnectionOptions>> android) {
+    static jni::local_ref<JNativeConnectOptions> create(jdouble timeoutMs, jboolean remember, jni::alias_ref<JOptional<JNativeDeviceIdentity>> identity, jni::alias_ref<JOptional<JNativeAndroidConnectionOptions>> android) {
       static const auto clazz = javaClassStatic();
-      static const auto create = clazz->getStaticMethod<JNativeConnectOptions(jdouble, jni::alias_ref<JOptional<JNativeAndroidConnectionOptions>>)>("fromCpp");
-      return create(clazz, timeoutMs, android);
+      static const auto create = clazz->getStaticMethod<JNativeConnectOptions(jdouble, jboolean, jni::alias_ref<JOptional<JNativeDeviceIdentity>>, jni::alias_ref<JOptional<JNativeAndroidConnectionOptions>>)>("fromCpp");
+      return create(clazz, timeoutMs, remember, identity, android);
     }
 
     jdouble getTimeoutMs() const {
       static const auto field = javaClassStatic()->getField<jdouble>("timeoutMs");
+      return getFieldValue(field);
+    }
+
+    jboolean getRemember() const {
+      static const auto field = javaClassStatic()->getField<jboolean>("remember");
+      return getFieldValue(field);
+    }
+
+    jni::local_ref<JOptional<JNativeDeviceIdentity>> getIdentity() const {
+      static const auto field = javaClassStatic()->getField<JOptional<JNativeDeviceIdentity>>("identity");
       return getFieldValue(field);
     }
 

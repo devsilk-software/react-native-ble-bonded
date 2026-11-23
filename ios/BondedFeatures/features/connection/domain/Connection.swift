@@ -37,12 +37,15 @@ public struct ConnectionChange: Sendable, Equatable {
   public let name: String?
   public let state: ConnectionState
   public let lastDisconnect: Disconnect?
+  /// Set while the device is remembered.
+  public let remembered: RememberedDevice?
 
-  public init(id: DeviceId, name: String?, state: ConnectionState, lastDisconnect: Disconnect?) {
+  public init(id: DeviceId, name: String?, state: ConnectionState, lastDisconnect: Disconnect?, remembered: RememberedDevice? = nil) {
     self.id = id
     self.name = name
     self.state = state
     self.lastDisconnect = lastDisconnect
+    self.remembered = remembered
   }
 }
 
@@ -50,9 +53,15 @@ public struct ConnectionChange: Sendable, Equatable {
 public struct ConnectOptions: Sendable, Equatable {
   /// Give up after this long; `nil` to wait until the device appears.
   public let timeout: Duration?
+  /// Remember the device once connected, so it can connect again after a relaunch.
+  public let remember: Bool
+  /// How the device was found, kept with it to find it again when its ID changes.
+  public let identity: DeviceIdentity?
 
-  public init(timeout: Duration? = .seconds(30)) {
+  public init(timeout: Duration? = .seconds(30), remember: Bool = true, identity: DeviceIdentity? = nil) {
     self.timeout = timeout
+    self.remember = remember
+    self.identity = identity
   }
 }
 

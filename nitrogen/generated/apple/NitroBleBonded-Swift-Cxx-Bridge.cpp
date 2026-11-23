@@ -14,15 +14,17 @@
 #include <NitroBleBonded/private/HybridConnectionSpecSwift.hpp>
 #include <NitroModules/NitroModules-Swift-Cxx-Umbrella.hpp>
 #include <NitroModules/JSIConverter+SwiftString.hpp>
-#include <NitroBleBonded/private/CharacteristicProperty-Swift.hpp>
-#include <NitroModules/JSIConverter+SwiftArray.hpp>
-#include <NitroBleBonded/private/NativeCharacteristic-Swift.hpp>
-#include <NitroBleBonded/private/NativeService-Swift.hpp>
-#include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__NativeService_-Swift.hpp>
 #include <NitroModules/JSIConverter+SwiftOptional.hpp>
 #include <NitroBleBonded/private/ConnectionState-Swift.hpp>
 #include <NitroBleBonded/private/DisconnectReason-Swift.hpp>
+#include <NitroModules/JSIConverter+SwiftArray.hpp>
+#include <NitroBleBonded/private/NativeDeviceIdentity-Swift.hpp>
 #include <NitroBleBonded/private/NativeConnectionChange-Swift.hpp>
+#include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_-Swift.hpp>
+#include <NitroBleBonded/private/CharacteristicProperty-Swift.hpp>
+#include <NitroBleBonded/private/NativeCharacteristic-Swift.hpp>
+#include <NitroBleBonded/private/NativeService-Swift.hpp>
+#include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__NativeService_-Swift.hpp>
 #include <NitroBleBonded/private/HybridDiagnosticsSpecSwift.hpp>
 #include <NitroBleBonded/private/DiagnosticEventType-Swift.hpp>
 #include <NitroBleBonded/private/DiagnosticAppState-Swift.hpp>
@@ -103,6 +105,24 @@ namespace margelo::nitro::blebonded::swift_bridge {
     auto wrapper = std::dynamic_pointer_cast<margelo::nitro::blebonded::HybridConnectionSpecSwift>(value);
     if (!wrapper) throw std::runtime_error("HybridConnectionSpec is not implemented in Swift");
     return wrapper->getSwiftPart().toUnsafe();
+  }
+
+  Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_ create_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_() { return Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_::pending(); }
+
+  void reject_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, std::exception_ptr error) { promise.reject(std::move(error)); }
+
+  void listenRejected_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, std::function<void(const std::exception_ptr&)> listener) { promise.addOnRejectedListener(std::move(listener)); }
+
+  void resolve_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, const void* NON_NULL value) {
+    promise.resolve(NitroModules::copySwiftValue<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_>(value));
+  }
+
+  void listen_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, std::function<void(const void* NON_NULL)> listener) {
+    promise.addOnResolvedListener([listener = std::move(listener)](const ::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& value) {
+      NitroModules::withSwiftValue(value, [&](const void* pointer) {
+        listener(pointer);
+      });
+    });
   }
 
   Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_ create_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_() { return Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_::pending(); }

@@ -38,6 +38,7 @@ target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeCharacteristic.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeConnectOptions.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeConnectionChange.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeDeviceIdentity.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeScanOptions.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeScanStop.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeScannedDevice.cpp"

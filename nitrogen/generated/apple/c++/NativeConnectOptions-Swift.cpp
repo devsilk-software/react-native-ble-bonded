@@ -13,12 +13,14 @@ namespace margelo::nitro {
 
   ::NitroBleBonded::NativeConnectOptions JSIConverter<::NitroBleBonded::NativeConnectOptions>::fromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     auto object = value.asObject(runtime);
-    return ::NitroBleBonded::NativeConnectOptions::init_cxx(JSIConverter<double>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))), JSIConverter<swift::Optional<::NitroBleBonded::NativeAndroidConnectionOptions>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android"))));
+    return ::NitroBleBonded::NativeConnectOptions::init_cxx(JSIConverter<double>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))), JSIConverter<bool>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remember"))), JSIConverter<swift::Optional<::NitroBleBonded::NativeDeviceIdentity>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "identity"))), JSIConverter<swift::Optional<::NitroBleBonded::NativeAndroidConnectionOptions>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android"))));
   }
 
   jsi::Value JSIConverter<::NitroBleBonded::NativeConnectOptions>::toJSI(jsi::Runtime& runtime, const ::NitroBleBonded::NativeConnectOptions& value) {
     jsi::Object object(runtime);
     object.setProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"), JSIConverter<double>::toJSI(runtime, value.getTimeoutMs_cxx()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "remember"), JSIConverter<bool>::toJSI(runtime, value.getRemember_cxx()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "identity"), JSIConverter<swift::Optional<::NitroBleBonded::NativeDeviceIdentity>>::toJSI(runtime, value.getIdentity_cxx()));
     object.setProperty(runtime, PropNameIDCache::get(runtime, "android"), JSIConverter<swift::Optional<::NitroBleBonded::NativeAndroidConnectionOptions>>::toJSI(runtime, value.getAndroid_cxx()));
     return object;
   }
@@ -27,7 +29,7 @@ namespace margelo::nitro {
     if (!value.isObject()) return false;
     auto object = value.getObject(runtime);
     if (!isPlainObject(runtime, object)) return false;
-    return JSIConverter<double>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))) && JSIConverter<swift::Optional<::NitroBleBonded::NativeAndroidConnectionOptions>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android")));
+    return JSIConverter<double>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))) && JSIConverter<bool>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remember"))) && JSIConverter<swift::Optional<::NitroBleBonded::NativeDeviceIdentity>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "identity"))) && JSIConverter<swift::Optional<::NitroBleBonded::NativeAndroidConnectionOptions>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android")));
   }
 
 } // namespace margelo::nitro

@@ -17,6 +17,7 @@
 #include <NitroBleBonded/private/JDisconnectReason.hpp>
 #include <NitroModules/JNIConverter+Primitives.hpp>
 #include <NitroModules/JSIConverter+JNIPrimitives.hpp>
+#include <NitroBleBonded/private/JNativeDeviceIdentity.hpp>
 
 namespace margelo::nitro::blebonded {
 
@@ -26,10 +27,10 @@ namespace margelo::nitro::blebonded {
   struct JNativeConnectionChange final : public jni::JavaClass<JNativeConnectionChange> {
     static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/blebonded/NativeConnectionChange;";
 
-    static jni::local_ref<JNativeConnectionChange> create(jni::alias_ref<jni::JString> id, jni::alias_ref<JOptional<jni::JString>> name, jni::alias_ref<JConnectionState> state, jni::alias_ref<JOptional<JDisconnectReason>> reason, jni::alias_ref<JOptional<jni::JString>> errorCode, jni::alias_ref<JOptional<jni::JString>> errorMessage, jni::alias_ref<JOptional<jni::JDouble>> platformCode) {
+    static jni::local_ref<JNativeConnectionChange> create(jni::alias_ref<jni::JString> id, jni::alias_ref<JOptional<jni::JString>> name, jni::alias_ref<JConnectionState> state, jni::alias_ref<JOptional<JDisconnectReason>> reason, jni::alias_ref<JOptional<jni::JString>> errorCode, jni::alias_ref<JOptional<jni::JString>> errorMessage, jni::alias_ref<JOptional<jni::JDouble>> platformCode, jboolean isRemembered, jni::alias_ref<JOptional<JNativeDeviceIdentity>> identity, jni::alias_ref<JOptional<jni::JDouble>> lastConnectedAt) {
       static const auto clazz = javaClassStatic();
-      static const auto create = clazz->getStaticMethod<JNativeConnectionChange(jni::alias_ref<jni::JString>, jni::alias_ref<JOptional<jni::JString>>, jni::alias_ref<JConnectionState>, jni::alias_ref<JOptional<JDisconnectReason>>, jni::alias_ref<JOptional<jni::JString>>, jni::alias_ref<JOptional<jni::JString>>, jni::alias_ref<JOptional<jni::JDouble>>)>("fromCpp");
-      return create(clazz, id, name, state, reason, errorCode, errorMessage, platformCode);
+      static const auto create = clazz->getStaticMethod<JNativeConnectionChange(jni::alias_ref<jni::JString>, jni::alias_ref<JOptional<jni::JString>>, jni::alias_ref<JConnectionState>, jni::alias_ref<JOptional<JDisconnectReason>>, jni::alias_ref<JOptional<jni::JString>>, jni::alias_ref<JOptional<jni::JString>>, jni::alias_ref<JOptional<jni::JDouble>>, jboolean, jni::alias_ref<JOptional<JNativeDeviceIdentity>>, jni::alias_ref<JOptional<jni::JDouble>>)>("fromCpp");
+      return create(clazz, id, name, state, reason, errorCode, errorMessage, platformCode, isRemembered, identity, lastConnectedAt);
     }
 
     jni::local_ref<jni::JString> getId() const {
@@ -64,6 +65,21 @@ namespace margelo::nitro::blebonded {
 
     jni::local_ref<JOptional<jni::JDouble>> getPlatformCode() const {
       static const auto field = javaClassStatic()->getField<JOptional<jni::JDouble>>("platformCode");
+      return getFieldValue(field);
+    }
+
+    jboolean getIsRemembered() const {
+      static const auto field = javaClassStatic()->getField<jboolean>("isRemembered");
+      return getFieldValue(field);
+    }
+
+    jni::local_ref<JOptional<JNativeDeviceIdentity>> getIdentity() const {
+      static const auto field = javaClassStatic()->getField<JOptional<JNativeDeviceIdentity>>("identity");
+      return getFieldValue(field);
+    }
+
+    jni::local_ref<JOptional<jni::JDouble>> getLastConnectedAt() const {
+      static const auto field = javaClassStatic()->getField<JOptional<jni::JDouble>>("lastConnectedAt");
       return getFieldValue(field);
     }
   };

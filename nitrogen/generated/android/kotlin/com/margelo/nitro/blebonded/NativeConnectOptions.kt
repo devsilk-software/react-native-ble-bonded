@@ -22,17 +22,27 @@ data class NativeConnectOptions(
   val timeoutMs: Double,
   @DoNotStrip
   @Keep
+  val remember: Boolean,
+  @DoNotStrip
+  @Keep
+  val identity: NativeDeviceIdentity?,
+  @DoNotStrip
+  @Keep
   val android: NativeAndroidConnectionOptions?
 ) {
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is NativeConnectOptions) return false
     return this.timeoutMs.toBits() == other.timeoutMs.toBits()
+      && this.remember == other.remember
+      && (this.identity == null && other.identity == null || this.identity != null && other.identity != null && this.identity == other.identity)
       && (this.android == null && other.android == null || this.android != null && other.android != null && this.android == other.android)
   }
 
   override fun hashCode(): Int {
     var result = this.timeoutMs.hashCode()
+    result = 31 * result + this.remember.hashCode()
+    result = 31 * result + (if (this.identity != null) this.identity.hashCode() else 0)
     result = 31 * result + (if (this.android != null) this.android.hashCode() else 0)
     return result
   }
@@ -45,8 +55,8 @@ data class NativeConnectOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(timeoutMs: Double, android: NativeAndroidConnectionOptions?): NativeConnectOptions {
-      return NativeConnectOptions(timeoutMs, android)
+    private fun fromCpp(timeoutMs: Double, remember: Boolean, identity: NativeDeviceIdentity?, android: NativeAndroidConnectionOptions?): NativeConnectOptions {
+      return NativeConnectOptions(timeoutMs, remember, identity, android)
     }
   }
 }

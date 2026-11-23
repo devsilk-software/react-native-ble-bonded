@@ -6,6 +6,10 @@ public struct DomainEvent: Sendable, Equatable {
     case permissionChanged
     case scanStarted
     case scanStopped
+    case connecting
+    case connected
+    case disconnected
+    case connectionRetried
   }
 
   public let kind: Kind

@@ -12,10 +12,10 @@
  */
 @_expose(Cxx)
 public enum ScanStopReason: Int32, CaseIterable, Sendable, CustomStringConvertible {
-  case `stopped` = 0
-  case `replaced` = 1
-  case `timeout` = 2
-  case `failed` = 3
+  case `failed` = 0
+  case `stopped` = 1
+  case `replaced` = 2
+  case `timeout` = 3
 
   public static func fromRawValue(_ value: Int32) -> Self {
     return Self(rawValue: value)!
@@ -29,14 +29,14 @@ public extension ScanStopReason {
    */
   init?(fromString string: String) {
     switch string {
+      case "failed":
+        self = .failed
       case "stopped":
         self = .stopped
       case "replaced":
         self = .replaced
       case "timeout":
         self = .timeout
-      case "failed":
-        self = .failed
       default:
         return nil
     }
@@ -47,14 +47,14 @@ public extension ScanStopReason {
    */
   var stringValue: String {
     switch self {
+      case .failed:
+        return "failed"
       case .stopped:
         return "stopped"
       case .replaced:
         return "replaced"
       case .timeout:
         return "timeout"
-      case .failed:
-        return "failed"
     }
   }
 

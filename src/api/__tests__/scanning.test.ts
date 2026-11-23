@@ -13,6 +13,9 @@ jest.mock('../../specs/Permissions.nitro', () => ({
   Permissions: { getStatus: jest.fn(), request: jest.fn(), addListener: jest.fn(), removeListener: jest.fn() },
 }))
 jest.mock('../../specs/Diagnostics.nitro', () => ({ Diagnostics: {} }))
+jest.mock('../../specs/Connection.nitro', () => ({
+  Connection: { addListener: jest.fn().mockResolvedValue(1), configureAndroid: jest.fn() },
+}))
 jest.mock('../../specs/Scanner.nitro', () => ({ Scanner: { start: jest.fn(), stop: jest.fn() } }))
 
 const nativeState = jest.mocked(BluetoothState)

@@ -32,24 +32,24 @@ namespace margelo::nitro::blebonded {
       static const auto clazz = javaClassStatic();
       switch (value) {
         case 0: {
+          static const auto field_FAILED = clazz->getStaticField<JScanStopReason>("FAILED");
+          static const auto instance_FAILED = jni::make_global(clazz->getStaticFieldValue(field_FAILED));
+          return instance_FAILED;
+        }
+        case 1: {
           static const auto field_STOPPED = clazz->getStaticField<JScanStopReason>("STOPPED");
           static const auto instance_STOPPED = jni::make_global(clazz->getStaticFieldValue(field_STOPPED));
           return instance_STOPPED;
         }
-        case 1: {
+        case 2: {
           static const auto field_REPLACED = clazz->getStaticField<JScanStopReason>("REPLACED");
           static const auto instance_REPLACED = jni::make_global(clazz->getStaticFieldValue(field_REPLACED));
           return instance_REPLACED;
         }
-        case 2: {
+        case 3: {
           static const auto field_TIMEOUT = clazz->getStaticField<JScanStopReason>("TIMEOUT");
           static const auto instance_TIMEOUT = jni::make_global(clazz->getStaticFieldValue(field_TIMEOUT));
           return instance_TIMEOUT;
-        }
-        case 3: {
-          static const auto field_FAILED = clazz->getStaticField<JScanStopReason>("FAILED");
-          static const auto instance_FAILED = jni::make_global(clazz->getStaticFieldValue(field_FAILED));
-          return instance_FAILED;
         }
         default: [[unlikely]]
           throw std::invalid_argument("Invalid ScanStopReason value: " + std::to_string(value));

@@ -32,24 +32,44 @@ namespace margelo::nitro::blebonded {
       static const auto clazz = javaClassStatic();
       switch (value) {
         case 0: {
+          static const auto field_DISCONNECTED = clazz->getStaticField<JDiagnosticEventType>("DISCONNECTED");
+          static const auto instance_DISCONNECTED = jni::make_global(clazz->getStaticFieldValue(field_DISCONNECTED));
+          return instance_DISCONNECTED;
+        }
+        case 1: {
+          static const auto field_CONNECTING = clazz->getStaticField<JDiagnosticEventType>("CONNECTING");
+          static const auto instance_CONNECTING = jni::make_global(clazz->getStaticFieldValue(field_CONNECTING));
+          return instance_CONNECTING;
+        }
+        case 2: {
+          static const auto field_CONNECTED = clazz->getStaticField<JDiagnosticEventType>("CONNECTED");
+          static const auto instance_CONNECTED = jni::make_global(clazz->getStaticFieldValue(field_CONNECTED));
+          return instance_CONNECTED;
+        }
+        case 3: {
           static const auto field_STATECHANGED = clazz->getStaticField<JDiagnosticEventType>("STATECHANGED");
           static const auto instance_STATECHANGED = jni::make_global(clazz->getStaticFieldValue(field_STATECHANGED));
           return instance_STATECHANGED;
         }
-        case 1: {
+        case 4: {
           static const auto field_PERMISSIONCHANGED = clazz->getStaticField<JDiagnosticEventType>("PERMISSIONCHANGED");
           static const auto instance_PERMISSIONCHANGED = jni::make_global(clazz->getStaticFieldValue(field_PERMISSIONCHANGED));
           return instance_PERMISSIONCHANGED;
         }
-        case 2: {
+        case 5: {
           static const auto field_SCANSTARTED = clazz->getStaticField<JDiagnosticEventType>("SCANSTARTED");
           static const auto instance_SCANSTARTED = jni::make_global(clazz->getStaticFieldValue(field_SCANSTARTED));
           return instance_SCANSTARTED;
         }
-        case 3: {
+        case 6: {
           static const auto field_SCANSTOPPED = clazz->getStaticField<JDiagnosticEventType>("SCANSTOPPED");
           static const auto instance_SCANSTOPPED = jni::make_global(clazz->getStaticFieldValue(field_SCANSTOPPED));
           return instance_SCANSTOPPED;
+        }
+        case 7: {
+          static const auto field_CONNECTIONRETRIED = clazz->getStaticField<JDiagnosticEventType>("CONNECTIONRETRIED");
+          static const auto instance_CONNECTIONRETRIED = jni::make_global(clazz->getStaticFieldValue(field_CONNECTIONRETRIED));
+          return instance_CONNECTIONRETRIED;
         }
         default: [[unlikely]]
           throw std::invalid_argument("Invalid DiagnosticEventType value: " + std::to_string(value));

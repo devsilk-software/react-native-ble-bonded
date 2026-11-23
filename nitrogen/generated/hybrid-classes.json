@@ -15,6 +15,20 @@
         "language": "swift"
       }
     },
+    "Connection": {
+      "android": {
+        "implementation": {
+          "className": "HybridConnection"
+        },
+        "language": "kotlin"
+      },
+      "apple": {
+        "implementation": {
+          "className": "HybridConnection"
+        },
+        "language": "swift"
+      }
+    },
     "Diagnostics": {
       "android": {
         "implementation": {

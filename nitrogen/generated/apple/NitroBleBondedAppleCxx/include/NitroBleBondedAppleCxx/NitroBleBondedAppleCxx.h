@@ -14,6 +14,35 @@ namespace NitroBleBonded { class BluetoothAdapterState; }
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Callback.hpp>
 #include <NitroModules/Result.hpp>
+// Forward declaration of `HybridConnectionSpec_cxx` to properly resolve imports.
+namespace NitroBleBonded { class HybridConnectionSpec_cxx; }
+// Forward declaration of `SwiftContainer_swift__Array___NitroBleBonded__NativeService_` to properly resolve imports.
+namespace NitroBleBonded { class SwiftContainer_swift__Array___NitroBleBonded__NativeService_; }
+namespace swift { class String; }
+// Forward declaration of `CharacteristicProperty` to properly resolve imports.
+namespace NitroBleBonded { class CharacteristicProperty; }
+#ifndef SWIFT_SWIFT_H
+namespace swift { template <class T> class Array; }
+#endif
+// Forward declaration of `NativeCharacteristic` to properly resolve imports.
+namespace NitroBleBonded { class NativeCharacteristic; }
+// Forward declaration of `NativeService` to properly resolve imports.
+namespace NitroBleBonded { class NativeService; }
+#ifndef SWIFT_SWIFT_H
+namespace swift { template <class T> class Optional; }
+#endif
+// Forward declaration of `ServiceCacheRefresh` to properly resolve imports.
+namespace NitroBleBonded { class ServiceCacheRefresh; }
+// Forward declaration of `NativeAndroidConnectionOptions` to properly resolve imports.
+namespace NitroBleBonded { class NativeAndroidConnectionOptions; }
+// Forward declaration of `NativeConnectOptions` to properly resolve imports.
+namespace NitroBleBonded { class NativeConnectOptions; }
+// Forward declaration of `ConnectionState` to properly resolve imports.
+namespace NitroBleBonded { class ConnectionState; }
+// Forward declaration of `DisconnectReason` to properly resolve imports.
+namespace NitroBleBonded { class DisconnectReason; }
+// Forward declaration of `NativeConnectionChange` to properly resolve imports.
+namespace NitroBleBonded { class NativeConnectionChange; }
 // Forward declaration of `HybridDiagnosticsSpec_cxx` to properly resolve imports.
 namespace NitroBleBonded { class HybridDiagnosticsSpec_cxx; }
 // Forward declaration of `SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_` to properly resolve imports.
@@ -22,15 +51,8 @@ namespace NitroBleBonded { class SwiftContainer_swift__Array___NitroBleBonded__D
 namespace NitroBleBonded { class DiagnosticEventType; }
 // Forward declaration of `DiagnosticAppState` to properly resolve imports.
 namespace NitroBleBonded { class DiagnosticAppState; }
-namespace swift { class String; }
-#ifndef SWIFT_SWIFT_H
-namespace swift { template <class T> class Optional; }
-#endif
 // Forward declaration of `DiagnosticEvent` to properly resolve imports.
 namespace NitroBleBonded { class DiagnosticEvent; }
-#ifndef SWIFT_SWIFT_H
-namespace swift { template <class T> class Array; }
-#endif
 // Forward declaration of `DiagnosticsConfig` to properly resolve imports.
 namespace NitroBleBonded { class DiagnosticsConfig; }
 // Forward declaration of `HybridPermissionsSpec_cxx` to properly resolve imports.
@@ -56,6 +78,8 @@ namespace NitroBleBonded { class NativeScanStop; }
 // Forward declaration of `HybridBluetoothStateSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridBluetoothStateSpecSwift; }
 #include <NitroModules/NitroDefines.hpp>
+// Forward declaration of `HybridConnectionSpecSwift` to properly resolve imports.
+namespace margelo::nitro::blebonded { class HybridConnectionSpecSwift; }
 // Forward declaration of `HybridDiagnosticsSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridDiagnosticsSpecSwift; }
 // Forward declaration of `HybridPermissionsSpecSwift` to properly resolve imports.
@@ -87,6 +111,25 @@ namespace margelo::nitro::blebonded::swift_bridge {
   void callAndForget_Callback_void___NitroBleBonded__BluetoothAdapterState(const Callback_void___NitroBleBonded__BluetoothAdapterState& callback, const void* NON_NULL param0);
   Callback_void___NitroBleBonded__BluetoothAdapterState create_Callback_void___NitroBleBonded__BluetoothAdapterState(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
   using Result_double = Result<double, margelo::nitro::blebonded::swift_bridge::ResultTag>;
+  using std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridConnectionSpecSwift>;
+  using std__weak_ptr_margelo__nitro__blebonded__HybridConnectionSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridConnectionSpecSwift>;
+  inline std__weak_ptr_margelo__nitro__blebonded__HybridConnectionSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_& value) {
+    return value;
+  }
+  std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(void* NON_NULL pointer);
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(const std::shared_ptr<HybridObject>& value);
+  using Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_ = Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_>;
+  Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_ create_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_();
+  void reject_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::exception_ptr error);
+  void listenRejected_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::function<void(const std::exception_ptr&)> listener);
+  void resolve_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, const void* NON_NULL value);
+  void listen_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::function<void(const void* NON_NULL)> listener);
+  using Promise_double = Promise<double>;
+  using Callback_void___NitroBleBonded__NativeConnectionChange = Callback<void(const ::NitroBleBonded::NativeConnectionChange&)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__NativeConnectionChange(const Callback_void___NitroBleBonded__NativeConnectionChange& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void___NitroBleBonded__NativeConnectionChange(const Callback_void___NitroBleBonded__NativeConnectionChange& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void___NitroBleBonded__NativeConnectionChange(const Callback_void___NitroBleBonded__NativeConnectionChange& callback, const void* NON_NULL param0);
+  Callback_void___NitroBleBonded__NativeConnectionChange create_Callback_void___NitroBleBonded__NativeConnectionChange(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
   using std__shared_ptr_margelo__nitro__blebonded__HybridDiagnosticsSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridDiagnosticsSpecSwift>;
   using std__weak_ptr_margelo__nitro__blebonded__HybridDiagnosticsSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridDiagnosticsSpecSwift>;
   inline std__weak_ptr_margelo__nitro__blebonded__HybridDiagnosticsSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridDiagnosticsSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridDiagnosticsSpec_& value) {
@@ -100,7 +143,6 @@ namespace margelo::nitro::blebonded::swift_bridge {
   void listenRejected_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_& promise, std::function<void(const std::exception_ptr&)> listener);
   void resolve_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_& promise, const void* NON_NULL value);
   void listen_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_& promise, std::function<void(const void* NON_NULL)> listener);
-  using Promise_double = Promise<double>;
   using Callback_void___NitroBleBonded__DiagnosticEvent = Callback<void(const ::NitroBleBonded::DiagnosticEvent&)>;
   Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__DiagnosticEvent(const Callback_void___NitroBleBonded__DiagnosticEvent& callback, const void* NON_NULL param0) noexcept;
   Promise<void> callAsync_Callback_void___NitroBleBonded__DiagnosticEvent(const Callback_void___NitroBleBonded__DiagnosticEvent& callback, const void* NON_NULL param0);

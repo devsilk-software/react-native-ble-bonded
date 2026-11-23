@@ -9,6 +9,23 @@ import {
   type DiagnosticsConfig,
 } from '../specs/Diagnostics.nitro'
 import { Scanner } from '../specs/Scanner.nitro'
+import { Connection } from '../specs/Connection.nitro'
+import {
+  connectionStore,
+  Device,
+  toNativeAndroid,
+  type AndroidConnectionOptions,
+  type Characteristic,
+  type CharacteristicProperty,
+  type ConnectionChange,
+  type ConnectionState,
+  type ConnectOptions,
+  type DisconnectReason,
+  type LastDisconnect,
+  type Service,
+  type ServiceCacheRefresh,
+} from './connections'
+import { prepare } from './prepare'
 import { BleError, toBleError, type BleErrorCode } from './BleError'
 import { maxCapacity, notifyDiagnosticsReset, subscribeToDiagnostics } from './diagnostics'
 import {
@@ -26,12 +43,26 @@ import {
 
 export type { BluetoothAdapterState, BluetoothPermission, DiagnosticAppState, DiagnosticEvent, DiagnosticEventType, DiagnosticsConfig }
 export type { BleErrorCode, ManufacturerData, Scan, ScanNameFilter, ScannedDevice, ScanOptions, ScanStop, ScanStopReason }
-export { BleError }
+export type {
+  AndroidConnectionOptions,
+  Characteristic,
+  CharacteristicProperty,
+  ConnectionChange,
+  ConnectionState,
+  ConnectOptions,
+  DisconnectReason,
+  LastDisconnect,
+  Service,
+  ServiceCacheRefresh,
+}
+export { BleError, Device }
 
 /** Bonded's settings. Every field is optional; omitted fields keep their current value. */
 export interface BleConfig {
   /** Off by default. Turn on in debug builds to record what happens, for bug reports. */
   diagnostics?: DiagnosticsConfig
+  /** Android's connection workarounds for every connection, all on by default. iOS ignores them. */
+  android?: AndroidConnectionOptions
 }
 
 /** A listener registration. Call `remove()` to stop receiving updates. */
@@ -104,18 +135,13 @@ export const ble = {
    */
   async startScan(options: ScanOptions, onDevice: (device: ScannedDevice) => void): Promise<Scan> {
     const filter = options.filter
+    const accepted = new Set<string>()
     // Native code reports each device once; with a JavaScript filter that would hide every later report of a
     // device whose first report the filter rejected. So the filter sees every report, and the devices it accepts
     // are deduplicated here instead.
     const isDeduplicatedHere = filter != null && options.allowDuplicates !== true
     const native = toNativeOptions(isDeduplicatedHere ? { ...options, allowDuplicates: true } : options)
-    if (options.autoRequestPermission !== false && (await Permissions.getStatus()) === 'denied') {
-      await Permissions.request()
-    }
-    if (options.autoEnableBluetooth !== false && (await BluetoothState.getState()) === 'poweredOff') {
-      await BluetoothState.requestEnable()
-    }
-    const accepted = new Set<string>()
+    await prepare(options)
     let onStopped: (stop: ScanStop) => void = () => {}
     const stopped = new Promise<ScanStop>((resolve) => (onStopped = resolve))
     let id: number
@@ -124,6 +150,7 @@ export const ble = {
         native,
         (device) => {
           const scanned = fromNativeDevice(device)
+          if (scanned.name != null) connectionStore.rememberName(scanned.id, scanned.name)
           if (filter != null && !filter(scanned)) return
           if (isDeduplicatedHere) {
             if (accepted.has(scanned.id)) return
@@ -141,6 +168,8 @@ export const ble = {
 
   /** Changes Bonded's settings. Turning diagnostics off also deletes the recorded events. */
   async configure(config: BleConfig): Promise<void> {
+    const android = toNativeAndroid(config.android)
+    if (android != null) Connection.configureAndroid(android)
     const diagnostics = config.diagnostics
     if (diagnostics == null) return
     const capacity = diagnostics.capacity
@@ -175,6 +204,31 @@ export const ble = {
    */
   onDiagnosticEvent(onEvent: (event: DiagnosticEvent) => void): Subscription {
     return subscribeToDiagnostics(onEvent).subscription
+  },
+
+  /** A handle for the device with this ID. Cheap: create one wherever it's needed. */
+  device(id: string): Device {
+    return new Device(id)
+  },
+
+  /** The devices that are connected, connecting or disconnecting. */
+  async getConnectedDevices(): Promise<Device[]> {
+    await connectionStore.start()
+    return connectionStore
+      .all()
+      .filter((connection) => connection.state !== 'disconnected')
+      .map((connection) => new Device(connection.id))
+  },
+
+  /**
+   * Calls `onChange` with every known device's current connection, then every change, tagged with the device's
+   * ID. For one device, `ble.device(id).onConnectionStateChange()`; in components, `useConnectedDevices()`.
+   */
+  onConnectionStateChange(onChange: (id: string, change: ConnectionChange) => void): Subscription {
+    const listener = connectionStore.subscribe((connection) =>
+      onChange(connection.id, { state: connection.state, lastDisconnect: connection.lastDisconnect })
+    )
+    return subscription(() => listener.remove())
   },
 
   /** Opens the app's system settings, where a `blocked` permission can be granted. */

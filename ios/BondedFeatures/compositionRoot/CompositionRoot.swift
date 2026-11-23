@@ -14,6 +14,10 @@ public final class CompositionRoot: Sendable {
   public let observeDiagnostics: ObserveDiagnostics
   public let startScan: StartScan
   public let stopScan: StopScan
+  public let connect: Connect
+  public let disconnect: DisconnectDevice
+  public let getServices: GetServices
+  public let observeConnections: ObserveConnections
 
   private let configure: ConfigureDiagnostics
   private let publishers: EventPublishers
@@ -51,6 +55,12 @@ public final class CompositionRoot: Sendable {
     )
     startScan = StartScan(coordinator: scanner)
     stopScan = StopScan(coordinator: scanner)
+
+    let connections = ConnectionCoordinator(source: CoreBluetoothConnectionSource(central: central), bus: bus)
+    connect = Connect(coordinator: connections)
+    disconnect = DisconnectDevice(coordinator: connections)
+    getServices = GetServices(coordinator: connections)
+    observeConnections = ObserveConnections(coordinator: connections)
 
     publishers = EventPublishers(
       adapterState: PublishAdapterStateEvents(observe: observeAdapterState, bus: bus),

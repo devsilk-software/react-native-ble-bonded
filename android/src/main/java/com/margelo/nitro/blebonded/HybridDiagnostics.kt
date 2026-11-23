@@ -34,6 +34,10 @@ class HybridDiagnostics : HybridDiagnosticsSpec() {
             RecordedEvent.Kind.PERMISSION_CHANGED -> DiagnosticEventType.PERMISSIONCHANGED
             RecordedEvent.Kind.SCAN_STARTED -> DiagnosticEventType.SCANSTARTED
             RecordedEvent.Kind.SCAN_STOPPED -> DiagnosticEventType.SCANSTOPPED
+            RecordedEvent.Kind.CONNECTING -> DiagnosticEventType.CONNECTING
+            RecordedEvent.Kind.CONNECTED -> DiagnosticEventType.CONNECTED
+            RecordedEvent.Kind.DISCONNECTED -> DiagnosticEventType.DISCONNECTED
+            RecordedEvent.Kind.CONNECTION_RETRIED -> DiagnosticEventType.CONNECTIONRETRIED
           },
         at = at.toDouble(),
         appState =

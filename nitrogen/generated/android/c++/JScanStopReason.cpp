@@ -23,10 +23,10 @@ namespace margelo::nitro {
   int32_t JSIConverter<jni::local_ref<margelo::nitro::blebonded::JScanStopReason>>::valueFromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     const auto string = value.asString(runtime).utf8(runtime);
     switch (hashString(string)) {
-      case hashString("stopped"): return 0;
-      case hashString("replaced"): return 1;
-      case hashString("timeout"): return 2;
-      case hashString("failed"): return 3;
+      case hashString("failed"): return 0;
+      case hashString("stopped"): return 1;
+      case hashString("replaced"): return 2;
+      case hashString("timeout"): return 3;
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert \"" + string + "\" to enum ScanStopReason - invalid value!");
     }
@@ -34,10 +34,10 @@ namespace margelo::nitro {
 
   jsi::Value JSIConverter<jni::local_ref<margelo::nitro::blebonded::JScanStopReason>>::toJSI(jsi::Runtime& runtime, jni::alias_ref<margelo::nitro::blebonded::JScanStopReason> value) {
     switch (value->value()) {
-      case 0: return createJSIString<"stopped">(runtime);
-      case 1: return createJSIString<"replaced">(runtime);
-      case 2: return createJSIString<"timeout">(runtime);
-      case 3: return createJSIString<"failed">(runtime);
+      case 0: return createJSIString<"failed">(runtime);
+      case 1: return createJSIString<"stopped">(runtime);
+      case 2: return createJSIString<"replaced">(runtime);
+      case 3: return createJSIString<"timeout">(runtime);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert ScanStopReason to JS - invalid value: " + std::to_string(value->value()) + "!");
     }
@@ -47,10 +47,10 @@ namespace margelo::nitro {
     if (!value.isString()) return false;
     const auto string = value.getString(runtime).utf8(runtime);
     switch (hashString(string)) {
+      case hashString("failed"): return true;
       case hashString("stopped"): return true;
       case hashString("replaced"): return true;
       case hashString("timeout"): return true;
-      case hashString("failed"): return true;
       default: return false;
     }
   }

@@ -5,8 +5,6 @@ import NitroModules
 /// The `Scanner` HybridObject: calls the `scanning` feature's use cases and maps between them and the generated
 /// Nitro types. Nothing else lives here (decision A5).
 final class HybridScanner: HybridScannerSpec {
-  private static let listeners = ListenerRegistry()
-
   static func start(
     options: NativeScanOptions,
     onDevice: any Callback<(NativeScannedDevice), Void>,
@@ -20,14 +18,18 @@ final class HybridScanner: HybridScannerSpec {
       } catch let error as BleError {
         throw RuntimeError(error.jsMessage)
       }
-      _ = listeners.add(session.events) { event in
-        switch event {
-        case let .device(device):
-          if let device = try? NativeScannedDevice(device) {
-            onDevice.callAndForget(device)
+      // The session's stream finishes with the scan, so this task ends too; nothing needs removing.
+      let events = session.events
+      Task {
+        for await event in events {
+          switch event {
+          case let .device(device):
+            if let device = try? NativeScannedDevice(device) {
+              onDevice.callAndForget(device)
+            }
+          case let .stopped(reason, error):
+            onStop.callAndForget(NativeScanStop(reason, error: error))
           }
-        case let .stopped(reason, error):
-          onStop.callAndForget(NativeScanStop(reason, error: error))
         }
       }
       return Double(session.id)

@@ -80,6 +80,19 @@ describe('Scanning', () => {
     expect(onDevice.mock.calls.map(([device]) => device.id)).toEqual(['A'])
   })
 
+  it('lets the filter see every report, then reports each accepted device once', async () => {
+    const native = startsScanning()
+    const onDevice = jest.fn()
+
+    await ble.startScan({ filter: (device) => device.rssi > -70 }, onDevice)
+    native.onDevice?.({ id: 'A', rssi: -90, serviceUuids: [] })
+    native.onDevice?.({ id: 'A', rssi: -60, serviceUuids: [] })
+    native.onDevice?.({ id: 'A', rssi: -55, serviceUuids: [] })
+
+    expect(nativeScanner.start.mock.calls[0]?.[0].allowDuplicates).toBe(true)
+    expect(onDevice.mock.calls.map(([device]) => device.rssi)).toEqual([-60])
+  })
+
   it('turns native service data into a record by UUID', async () => {
     const native = startsScanning()
     const onDevice = jest.fn()

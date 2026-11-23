@@ -11,6 +11,7 @@ import com.margelo.nitro.core.Callback
 import com.margelo.nitro.core.Promise
 import com.margelo.nitro.core.invoke
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -22,7 +23,6 @@ import com.margelo.nitro.blebonded.features.scanning.domain.ScanStopReason as St
  */
 class HybridScanner : HybridScannerSpec() {
   companion object : HybridScannerSpec.Companion {
-    private val listeners = ListenerRegistry()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun start(
@@ -38,10 +38,13 @@ class HybridScanner : HybridScannerSpec() {
           } catch (error: BleError) {
             throw Exception(error.jsMessage)
           }
-        listeners.add(session.events) { event ->
-          when (event) {
-            is ScanEvent.Device -> onDevice(event.device.toSpec())
-            is ScanEvent.Stopped -> onStop(event.toSpec())
+        // The session's flow ends with the scan, so its collection ends too; nothing needs removing.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+          session.events.collect { event ->
+            when (event) {
+              is ScanEvent.Device -> onDevice(event.device.toSpec())
+              is ScanEvent.Stopped -> onStop(event.toSpec())
+            }
           }
         }
         session.id.toDouble()

@@ -10,6 +10,8 @@ export {
   type ConnectionChange,
   type ConnectionState,
   type ConnectOptions,
+  type ConnectTarget,
+  type DeviceIdentity,
   type DisconnectReason,
   type LastDisconnect,
   type Service,

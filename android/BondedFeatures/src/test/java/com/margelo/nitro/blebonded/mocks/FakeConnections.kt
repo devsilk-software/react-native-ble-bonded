@@ -2,6 +2,7 @@ package com.margelo.nitro.blebonded.mocks
 
 import com.margelo.nitro.blebonded.features.connection.application.interfaces.ConnectionSource
 import com.margelo.nitro.blebonded.features.connection.application.interfaces.PlatformDisconnect
+import com.margelo.nitro.blebonded.features.connection.application.interfaces.RememberedDeviceStore
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
 import com.margelo.nitro.blebonded.features.connection.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectMode
@@ -11,6 +12,7 @@ import com.margelo.nitro.blebonded.features.connection.domain.ConnectionState
 import com.margelo.nitro.blebonded.features.connection.domain.Disconnect
 import com.margelo.nitro.blebonded.features.connection.domain.GattCharacteristic
 import com.margelo.nitro.blebonded.features.connection.domain.GattService
+import com.margelo.nitro.blebonded.features.connection.domain.RememberedDevice
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
@@ -105,3 +107,14 @@ val heartRateService =
   )
 
 fun transientFailure() = BleError(BleError.Code.CONNECTION_FAILED, "GATT error", 133, operation = "connect")
+
+/** A [RememberedDeviceStore] in memory, starting with what a previous launch saved. */
+class FakeRememberedDeviceStore(
+  @Volatile var saved: List<RememberedDevice> = emptyList(),
+) : RememberedDeviceStore {
+  override suspend fun load(): List<RememberedDevice> = saved
+
+  override suspend fun save(devices: List<RememberedDevice>) {
+    saved = devices
+  }
+}

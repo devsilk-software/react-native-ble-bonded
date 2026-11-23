@@ -48,6 +48,7 @@
 #include <NitroBleBonded/private/NativeService-Swift.hpp>
 #include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__NativeService_-Swift.hpp>
 #include <NitroModules/JSIConverter+SwiftOptional.hpp>
+#include <NitroBleBonded/private/NativeDeviceIdentity-Swift.hpp>
 #include <NitroBleBonded/private/ServiceCacheRefresh-Swift.hpp>
 #include <NitroBleBonded/private/NativeAndroidConnectionOptions-Swift.hpp>
 #include <NitroBleBonded/private/NativeConnectOptions-Swift.hpp>

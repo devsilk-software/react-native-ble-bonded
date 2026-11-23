@@ -8,6 +8,7 @@ import com.margelo.nitro.core.invoke
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOverrides as Overrides
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectOptions as Options
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionChange as Change
+import com.margelo.nitro.blebonded.features.connection.domain.DeviceIdentity as Identity
 import com.margelo.nitro.blebonded.features.connection.domain.GattService as Service
 import com.margelo.nitro.blebonded.features.connection.domain.ServiceCacheRefresh as CacheRefresh
 
@@ -24,6 +25,8 @@ class HybridConnection : HybridConnectionSpec() {
         Options(
           timeoutMs = if (options.timeoutMs > 0) options.timeoutMs.toLong() else null,
           android = options.android?.toOverrides() ?: Overrides(),
+          remember = options.remember,
+          identity = options.identity?.let { Identity(it.name, it.services.toList(), it.companyId?.toInt()) },
         )
       return Promise.async {
         try {
@@ -35,6 +38,8 @@ class HybridConnection : HybridConnectionSpec() {
     }
 
     override fun disconnect(id: String): Promise<Unit> = Promise.async { root().disconnect(DeviceId(id)) }
+
+    override fun forget(id: String): Promise<Unit> = Promise.async { root().forgetDevice(DeviceId(id)) }
 
     override fun getServices(id: String): Promise<Array<NativeService>> =
       Promise.async {
@@ -81,6 +86,9 @@ class HybridConnection : HybridConnectionSpec() {
         errorCode = error?.code?.publicName,
         errorMessage = error?.message,
         platformCode = error?.platformCode?.toDouble(),
+        isRemembered = remembered != null,
+        identity = remembered?.identity?.let { NativeDeviceIdentity(it.name, it.services.toTypedArray(), it.companyId?.toDouble()) },
+        lastConnectedAt = remembered?.lastConnectedAt?.toDouble(),
       )
     }
 

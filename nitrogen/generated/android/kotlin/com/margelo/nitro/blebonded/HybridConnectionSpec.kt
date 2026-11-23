@@ -67,6 +67,8 @@ abstract class HybridConnectionSpec: HybridObject() {
 
     fun disconnect(id: String): Promise<Unit>
 
+    fun forget(id: String): Promise<Unit>
+
     fun getServices(id: String): Promise<Array<NativeService>>
 
     fun addListener(onChange: Callback<(change: NativeConnectionChange) -> Unit>): Promise<Double>
@@ -95,6 +97,13 @@ abstract class HybridConnectionSpec: HybridObject() {
     @Keep
     private fun disconnect_cxx(id: String): Promise<Unit> {
       return HybridConnection.disconnect(id)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun forget_cxx(id: String): Promise<Unit> {
+      return HybridConnection.forget(id)
     }
 
     @JvmStatic

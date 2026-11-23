@@ -7,7 +7,13 @@ final class HybridConnection: HybridConnectionSpec {
   private static let listeners = ListenerRegistry()
 
   static func connect(id: String, options: NativeConnectOptions) throws -> any Promise<Void> {
-    let options = ConnectOptions(timeout: options.timeoutMs > 0 ? .milliseconds(Int64(options.timeoutMs)) : nil)
+    let options = ConnectOptions(
+      timeout: options.timeoutMs > 0 ? .milliseconds(Int64(options.timeoutMs)) : nil,
+      remember: options.remember,
+      identity: options.identity.map {
+        DeviceIdentity(name: $0.name, services: $0.services, companyId: $0.companyId.map { Int($0) })
+      }
+    )
     return Promise_void.async {
       do {
         try await CompositionRoot.shared.connect(DeviceId(id), options: options)
@@ -20,6 +26,12 @@ final class HybridConnection: HybridConnectionSpec {
   static func disconnect(id: String) throws -> any Promise<Void> {
     Promise_void.async {
       await CompositionRoot.shared.disconnect(DeviceId(id))
+    }
+  }
+
+  static func forget(id: String) throws -> any Promise<Void> {
+    Promise_void.async {
+      await CompositionRoot.shared.forgetDevice(DeviceId(id))
     }
   }
 
@@ -76,7 +88,12 @@ extension NativeConnectionChange {
       reason: reason,
       errorCode: error?.code.rawValue,
       errorMessage: error?.message,
-      platformCode: error?.platformCode.map(Double.init)
+      platformCode: error?.platformCode.map(Double.init),
+      isRemembered: change.remembered != nil,
+      identity: change.remembered.map {
+        NativeDeviceIdentity(name: $0.identity.name, services: $0.identity.services, companyId: $0.identity.companyId.map(Double.init))
+      },
+      lastConnectedAt: change.remembered.map { Double($0.lastConnectedAt) }
     )
   }
 }

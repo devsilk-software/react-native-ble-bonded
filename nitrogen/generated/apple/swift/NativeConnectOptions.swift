@@ -11,21 +11,35 @@ internal import CxxStdlib
 @_expose(Cxx)
 public struct NativeConnectOptions: Equatable, Hashable, Sendable {
   public let timeoutMs: Double
+  public let remember: Bool
+  public let identity: NativeDeviceIdentity?
   public let android: NativeAndroidConnectionOptions?
 
-  public init(timeoutMs: Double, android: NativeAndroidConnectionOptions?) {
+  public init(timeoutMs: Double, remember: Bool, identity: NativeDeviceIdentity?, android: NativeAndroidConnectionOptions?) {
     self.timeoutMs = timeoutMs
+    self.remember = remember
+    self.identity = identity
     self.android = android
   }
 
   @_spi(NitroCxx)
-  public static func init_cxx(_ timeoutMs: Double, _ android: NativeAndroidConnectionOptions?) -> Self {
-    return Self(timeoutMs: timeoutMs, android: android)
+  public static func init_cxx(_ timeoutMs: Double, _ remember: Bool, _ identity: NativeDeviceIdentity?, _ android: NativeAndroidConnectionOptions?) -> Self {
+    return Self(timeoutMs: timeoutMs, remember: remember, identity: identity, android: android)
   }
 
   @_spi(NitroCxx)
   public borrowing func getTimeoutMs_cxx() -> Double {
     return self.timeoutMs
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getRemember_cxx() -> Bool {
+    return self.remember
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getIdentity_cxx() -> NativeDeviceIdentity? {
+    return self.identity
   }
 
   @_spi(NitroCxx)

@@ -37,7 +37,16 @@ data class NativeConnectionChange(
   val errorMessage: String?,
   @DoNotStrip
   @Keep
-  val platformCode: Double?
+  val platformCode: Double?,
+  @DoNotStrip
+  @Keep
+  val isRemembered: Boolean,
+  @DoNotStrip
+  @Keep
+  val identity: NativeDeviceIdentity?,
+  @DoNotStrip
+  @Keep
+  val lastConnectedAt: Double?
 ) {
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -49,6 +58,9 @@ data class NativeConnectionChange(
       && (this.errorCode == null && other.errorCode == null || this.errorCode != null && other.errorCode != null && this.errorCode == other.errorCode)
       && (this.errorMessage == null && other.errorMessage == null || this.errorMessage != null && other.errorMessage != null && this.errorMessage == other.errorMessage)
       && (this.platformCode == null && other.platformCode == null || this.platformCode != null && other.platformCode != null && this.platformCode.toBits() == other.platformCode.toBits())
+      && this.isRemembered == other.isRemembered
+      && (this.identity == null && other.identity == null || this.identity != null && other.identity != null && this.identity == other.identity)
+      && (this.lastConnectedAt == null && other.lastConnectedAt == null || this.lastConnectedAt != null && other.lastConnectedAt != null && this.lastConnectedAt.toBits() == other.lastConnectedAt.toBits())
   }
 
   override fun hashCode(): Int {
@@ -59,6 +71,9 @@ data class NativeConnectionChange(
     result = 31 * result + (if (this.errorCode != null) this.errorCode.hashCode() else 0)
     result = 31 * result + (if (this.errorMessage != null) this.errorMessage.hashCode() else 0)
     result = 31 * result + (if (this.platformCode != null) this.platformCode.hashCode() else 0)
+    result = 31 * result + this.isRemembered.hashCode()
+    result = 31 * result + (if (this.identity != null) this.identity.hashCode() else 0)
+    result = 31 * result + (if (this.lastConnectedAt != null) this.lastConnectedAt.hashCode() else 0)
     return result
   }
 
@@ -70,8 +85,8 @@ data class NativeConnectionChange(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(id: String, name: String?, state: ConnectionState, reason: DisconnectReason?, errorCode: String?, errorMessage: String?, platformCode: Double?): NativeConnectionChange {
-      return NativeConnectionChange(id, name, state, reason, errorCode, errorMessage, platformCode)
+    private fun fromCpp(id: String, name: String?, state: ConnectionState, reason: DisconnectReason?, errorCode: String?, errorMessage: String?, platformCode: Double?, isRemembered: Boolean, identity: NativeDeviceIdentity?, lastConnectedAt: Double?): NativeConnectionChange {
+      return NativeConnectionChange(id, name, state, reason, errorCode, errorMessage, platformCode, isRemembered, identity, lastConnectedAt)
     }
   }
 }

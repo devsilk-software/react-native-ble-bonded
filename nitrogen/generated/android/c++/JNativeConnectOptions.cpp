@@ -8,9 +8,10 @@
 #include <NitroBleBonded/private/JNativeConnectOptions.hpp>
 #include <NitroModules/JNIConverter+Primitives.hpp>
 #include <NitroModules/JSIConverter+JNIPrimitives.hpp>
-#include <NitroBleBonded/private/JNativeAndroidConnectionOptions.hpp>
+#include <NitroBleBonded/private/JNativeDeviceIdentity.hpp>
 #include <NitroModules/JNIConverter+Optional.hpp>
 #include <NitroModules/JSIConverter+JOptional.hpp>
+#include <NitroBleBonded/private/JNativeAndroidConnectionOptions.hpp>
 #include <NitroModules/PropNameIDCache.hpp>
 #include <NitroModules/JSIHelpers.hpp>
 
@@ -18,12 +19,14 @@ namespace margelo::nitro {
 
   jni::local_ref<margelo::nitro::blebonded::JNativeConnectOptions> JSIConverter<jni::local_ref<margelo::nitro::blebonded::JNativeConnectOptions>>::fromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     auto object = value.asObject(runtime);
-    return margelo::nitro::blebonded::JNativeConnectOptions::create(JSIConverter<jdouble>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))), JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeAndroidConnectionOptions>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android"))));
+    return margelo::nitro::blebonded::JNativeConnectOptions::create(JSIConverter<jdouble>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))), JSIConverter<jboolean>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remember"))), JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeDeviceIdentity>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "identity"))), JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeAndroidConnectionOptions>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android"))));
   }
 
   jsi::Value JSIConverter<jni::local_ref<margelo::nitro::blebonded::JNativeConnectOptions>>::toJSI(jsi::Runtime& runtime, jni::alias_ref<margelo::nitro::blebonded::JNativeConnectOptions> value) {
     jsi::Object object(runtime);
     object.setProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"), JSIConverter<jdouble>::toJSI(runtime, value->getTimeoutMs()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "remember"), JSIConverter<jboolean>::toJSI(runtime, value->getRemember()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "identity"), JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeDeviceIdentity>>>::toJSI(runtime, value->getIdentity()));
     object.setProperty(runtime, PropNameIDCache::get(runtime, "android"), JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeAndroidConnectionOptions>>>::toJSI(runtime, value->getAndroid()));
     return object;
   }
@@ -32,7 +35,7 @@ namespace margelo::nitro {
     if (!value.isObject()) return false;
     auto object = value.getObject(runtime);
     if (!isPlainObject(runtime, object)) return false;
-    return JSIConverter<jdouble>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))) && JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeAndroidConnectionOptions>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android")));
+    return JSIConverter<jdouble>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "timeoutMs"))) && JSIConverter<jboolean>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "remember"))) && JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeDeviceIdentity>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "identity"))) && JSIConverter<jni::local_ref<JOptional<margelo::nitro::blebonded::JNativeAndroidConnectionOptions>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "android")));
   }
 
 } // namespace margelo::nitro

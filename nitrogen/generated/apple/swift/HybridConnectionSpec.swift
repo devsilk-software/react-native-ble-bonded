@@ -24,6 +24,7 @@ public protocol HybridConnectionSpec_protocol: HybridConnectionSpec_base, Hybrid
   // Static Methods
   static func connect(id: String, options: NativeConnectOptions) throws -> any Promise<Void>
   static func disconnect(id: String) throws -> any Promise<Void>
+  static func forget(id: String) throws -> any Promise<Void>
   static func getServices(id: String) throws -> any Promise<[NativeService]>
   static func addListener(onChange: any Callback<(/* change */ NativeConnectionChange), Void>) throws -> any Promise<Double>
   static func removeListener(id: Double) throws -> Void

@@ -7,8 +7,12 @@ import Testing
 struct ConnectionTests {
   private let device = DeviceId("A")
 
-  private func coordinator(_ source: FakeConnectionSource, bus: EventBus = EventBus()) -> ConnectionCoordinator {
-    ConnectionCoordinator(source: source, bus: bus, retry: RetryPolicy(directAttempts: 2))
+  private func coordinator(
+    _ source: FakeConnectionSource,
+    bus: EventBus = EventBus(),
+    store: FakeRememberedDeviceStore = FakeRememberedDeviceStore()
+  ) -> ConnectionCoordinator {
+    ConnectionCoordinator(source: source, bus: bus, store: store, retry: RetryPolicy(directAttempts: 2), now: { 5000 })
   }
 
   @Test("connects and discovers the device's services")
@@ -209,6 +213,72 @@ struct ConnectionTests {
     let coordinator = coordinator(FakeConnectionSource())
 
     await #expect { try await coordinator.services(of: device) } throws: { ($0 as? BleError)?.code == .notConnected }
+  }
+
+  @Test("remembers a device after it connects")
+  func remembersADeviceAfterItConnects() async throws {
+    let store = FakeRememberedDeviceStore()
+    let coordinator = coordinator(FakeConnectionSource(outcomes: [.succeed([])]), store: store)
+
+    try await coordinator.connect(device)
+
+    let saved = await store.saved
+    #expect(saved.map(\.id) == [device])
+    #expect(saved.first?.name == "Thermo-1")
+    #expect(saved.first?.lastConnectedAt == 5000)
+  }
+
+  @Test("remembers nothing when asked not to")
+  func remembersNothingWhenAskedNotTo() async throws {
+    let store = FakeRememberedDeviceStore()
+    let coordinator = coordinator(FakeConnectionSource(outcomes: [.succeed([])]), store: store)
+
+    try await coordinator.connect(device, options: ConnectOptions(remember: false))
+
+    #expect(await store.saved.isEmpty)
+    #expect(await coordinator.rememberedDevices().isEmpty)
+  }
+
+  @Test("reports remembered devices before they connect again")
+  func reportsRememberedDevicesBeforeTheyConnectAgain() async {
+    let earlier = RememberedDevice(id: DeviceId("B"), name: "Thermo-2", identity: DeviceIdentity(name: "Thermo-2"), lastConnectedAt: 1000)
+    let coordinator = coordinator(FakeConnectionSource(), store: FakeRememberedDeviceStore(saved: [earlier]))
+
+    let recorder = ConnectionRecorder(await coordinator.changes())
+    await eventually { await recorder.changes.count == 1 }
+
+    #expect(await recorder.changes == [
+      ConnectionChange(id: DeviceId("B"), name: "Thermo-2", state: .disconnected, lastDisconnect: nil, remembered: earlier),
+    ])
+  }
+
+  @Test("forgets a device and disconnects it")
+  func forgetsADeviceAndDisconnectsIt() async throws {
+    let source = FakeConnectionSource(outcomes: [.succeed([])])
+    let store = FakeRememberedDeviceStore()
+    let coordinator = coordinator(source, store: store)
+    let recorder = ConnectionRecorder(await coordinator.changes())
+    try await coordinator.connect(device)
+
+    await coordinator.forget(device)
+    await eventually { await recorder.changes.last?.remembered == nil }
+
+    #expect(await source.disconnectCount == 1)
+    #expect(await store.saved.isEmpty)
+    #expect(await recorder.changes.last?.remembered == nil)
+  }
+
+  @Test("keeps the identity the device was found by")
+  func keepsTheIdentityTheDeviceWasFoundBy() async throws {
+    let store = FakeRememberedDeviceStore()
+    let coordinator = coordinator(FakeConnectionSource(outcomes: [.succeed([]), .succeed([])]), store: store)
+    let found = DeviceIdentity(name: "Thermo-1", services: ["0000180d-0000-1000-8000-00805f9b34fb"], companyId: 0x0059)
+
+    try await coordinator.connect(device, options: ConnectOptions(identity: found))
+    await coordinator.disconnect(device)
+    try await coordinator.connect(device)
+
+    #expect(await store.saved.first?.identity == found)
   }
 
   @Test("publishes connection attempts, retries, connections and disconnections")

@@ -90,13 +90,31 @@ function subscribeToConnections(onStoreChange: () => void): () => void {
 
 /**
  * The device with this ID, re-rendering when its connection changes. The returned handle's `name`,
- * `connectionState` and `lastDisconnect` are current, and its methods (`connect()`, `getServices()`…) work as on
- * `ble.device(id)`.
+ * `connectionState`, `lastDisconnect` and `isRemembered` are current, and its methods (`connect()`, `forget()`…)
+ * work as on `ble.device(id)`.
+ *
+ * Without an ID, the one remembered device, connected or not, or `undefined` while none is; throws when several
+ * are remembered, since it can't know which.
  */
-export function useDevice(id: string): Device {
-  const connection = useSyncExternalStore(subscribeToConnections, () => connectionStore.get(id))
+export function useDevice(id: string): Device
+export function useDevice(): Device | undefined
+export function useDevice(id?: string): Device | undefined {
+  const all = useSyncExternalStore(subscribeToConnections, () => connectionStore.all())
   // A new handle for each change, so components that compare the device see it change.
-  return useMemo(() => new Device(id), [id, connection])
+  return useMemo(() => (id == null ? ble.device() : new Device(id)), [id, all])
+}
+
+/** The remembered devices, most recently connected first, re-rendering when one is remembered or forgotten. */
+export function useRememberedDevices(): Device[] {
+  const all = useSyncExternalStore(subscribeToConnections, () => connectionStore.all())
+  return useMemo(
+    () =>
+      all
+        .filter((connection) => connection.isRemembered)
+        .sort((a, b) => (b.lastConnectedAt ?? 0) - (a.lastConnectedAt ?? 0))
+        .map((connection) => new Device(connection.id)),
+    [all]
+  )
 }
 
 /** The devices that are connected, connecting or disconnecting, re-rendering when any of them changes. */

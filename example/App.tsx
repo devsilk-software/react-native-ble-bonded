@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Button, FlatList, Pressable, SafeAreaView, StatusBar, StyleSheet, Switch, Text, View } from 'react-native'
 import { ble, type DiagnosticEvent, type ScannedDevice, type Service } from 'react-native-ble-bonded'
-import { useBluetoothPermission, useBluetoothState, useDevice, useDiagnosticEvents, useScan } from 'react-native-ble-bonded/hooks'
+import {
+  useBluetoothPermission,
+  useBluetoothState,
+  useDevice,
+  useDiagnosticEvents,
+  useRememberedDevices,
+  useScan,
+} from 'react-native-ble-bonded/hooks'
 
 type Tab = 'scan' | 'device' | 'diagnostics'
 
@@ -70,7 +77,37 @@ function Scanning({ onSelect }: { onSelect: (id: string) => void }) {
         <Text style={styles.label}>{isTestOnly ? 'Test peripheral only' : 'Every device'}</Text>
         <Switch value={isTestOnly} onValueChange={setIsTestOnly} testID='scan-test-only' />
       </View>
+      <Remembered onSelect={onSelect} />
       {isWanted && <DeviceList onSelect={onSelect} services={isTestOnly ? [testService] : []} />}
+    </View>
+  )
+}
+
+// The remembered devices, and ble.connect() without arguments: what a one-device app calls at startup.
+function Remembered({ onSelect }: { onSelect: (id: string) => void }) {
+  const remembered = useRememberedDevices()
+  const [status, setStatus] = useState<string>()
+
+  const connectRemembered = async () => {
+    setStatus('connecting…')
+    try {
+      const device = await ble.connect()
+      setStatus(undefined)
+      onSelect(device.id)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  return (
+    <View>
+      <View style={styles.row}>
+        <Text style={styles.label} testID='remembered-count'>
+          Remembered: {remembered.map((device) => device.name ?? device.id).join(', ') || 'none'}
+        </Text>
+        <Button title='Connect remembered' onPress={connectRemembered} testID='connect-remembered' />
+      </View>
+      {status != null && <Text style={styles.note}>{status}</Text>}
     </View>
   )
 }
@@ -134,6 +171,7 @@ function Connection({ id }: { id: string }) {
         <Text style={styles.value} testID='connection-state'>
           {device.connectionState}
         </Text>
+        {device.isRemembered ? '  (remembered)' : ''}
       </Text>
       <Text style={styles.event}>{id}</Text>
       {last != null && (
@@ -151,6 +189,7 @@ function Connection({ id }: { id: string }) {
         <Button title='Connect' onPress={() => run(() => device.connect())} testID='connect' />
         <Button title='Disconnect' onPress={() => run(() => device.disconnect())} testID='disconnect' />
         <Button title='Services' onPress={() => run(async () => setServices(await device.getServices()))} testID='services' />
+        <Button title='Forget' onPress={() => run(() => device.forget())} disabled={!device.isRemembered} testID='forget' />
       </View>
       <FlatList
         data={services ?? []}

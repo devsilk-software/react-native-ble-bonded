@@ -151,6 +151,16 @@ public final class HybridConnectionSpec_cxx {
     }
   }
 
+  public class func forget(id: String, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+    do {
+      let value = try HybridConnection.forget(id: id)
+      __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_void.self, repeating: value.toCpp(), count: 1)
+      return bridge.Result_void.withValue()
+    } catch {
+      return bridge.Result_void.withError(error.toCpp())
+    }
+  }
+
   public class func getServices(id: String, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
     do {
       let value = try HybridConnection.getServices(id: id)

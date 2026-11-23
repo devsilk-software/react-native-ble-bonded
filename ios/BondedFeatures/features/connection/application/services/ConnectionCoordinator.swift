@@ -7,7 +7,11 @@ public actor ConnectionCoordinator {
   private let source: any ConnectionSource
   private let bus: EventBus
   private let retry: RetryPolicy
+  private let store: any RememberedDeviceStore
+  private let now: @Sendable () -> Int64
   private var devices: [DeviceId: Entry] = [:]
+  private var remembered: [DeviceId: RememberedDevice] = [:]
+  private var hasLoaded = false
   private var observers: [UUID: AsyncStream<ConnectionChange>.Continuation] = [:]
   private var isWatching = false
 
@@ -22,15 +26,54 @@ public actor ConnectionCoordinator {
     var disconnecting: Task<Void, Never>?
   }
 
-  public init(source: any ConnectionSource, bus: EventBus, retry: RetryPolicy = RetryPolicy()) {
+  public init(
+    source: any ConnectionSource,
+    bus: EventBus,
+    store: any RememberedDeviceStore,
+    retry: RetryPolicy = RetryPolicy(),
+    now: @escaping @Sendable () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) }
+  ) {
     self.source = source
     self.bus = bus
+    self.store = store
     self.retry = retry
+    self.now = now
+  }
+
+  /// Disconnects the device and forgets it. The system's pairing stays.
+  public func forget(_ id: DeviceId) async {
+    await loadRemembered()
+    await disconnect(id)
+    guard remembered.removeValue(forKey: id) != nil else { return }
+    await store.save(Array(remembered.values))
+    emit(id)
+  }
+
+  /// The remembered devices, most recently connected first.
+  public func rememberedDevices() async -> [RememberedDevice] {
+    await loadRemembered()
+    return remembered.values.sorted { $0.lastConnectedAt > $1.lastConnectedAt }
+  }
+
+  private func loadRemembered() async {
+    guard !hasLoaded else { return }
+    hasLoaded = true
+    for device in await store.load() where remembered[device.id] == nil {
+      remembered[device.id] = device
+    }
+  }
+
+  /// Saves the device as remembered. The caller reports the change, together with the connection's.
+  private func remember(_ id: DeviceId, name: String?, identity: DeviceIdentity?) async {
+    let known = remembered[id]?.identity ?? DeviceIdentity(name: name)
+    remembered[id] = RememberedDevice(id: id, name: name, identity: known.updated(with: identity), lastConnectedAt: now())
+    await store.save(Array(remembered.values))
   }
 
   /// Connects and discovers the device's services; returns once it's ready. Returns at once when it's already
   /// connected, and shares the running attempt when one is under way. Throws a `BleError`.
   public func connect(_ id: DeviceId, options: ConnectOptions = ConnectOptions()) async throws {
+    await loadRemembered()
     await watchDisconnections()
     while let disconnecting = devices[id]?.disconnecting {
       await disconnecting.value
@@ -99,15 +142,17 @@ public actor ConnectionCoordinator {
     return entry.services
   }
 
-  /// Every known device's current connection, then every change, from the moment this returns.
-  public func changes() -> AsyncStream<ConnectionChange> {
+  /// Every known device's current connection, remembered devices included, then every change, from the moment
+  /// this returns.
+  public func changes() async -> AsyncStream<ConnectionChange> {
+    await loadRemembered()
     let (stream, continuation) = AsyncStream<ConnectionChange>.makeStream()
     let id = UUID()
     continuation.onTermination = { _ in
       Task { await self.removeObserver(id) }
     }
     observers[id] = continuation
-    for deviceId in devices.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
+    for deviceId in Set(devices.keys).union(remembered.keys).sorted(by: { $0.rawValue < $1.rawValue }) {
       if let change = change(for: deviceId) { continuation.yield(change) }
     }
     return stream
@@ -125,7 +170,10 @@ public actor ConnectionCoordinator {
         await source.disconnect(id)
         throw CancellationError()
       }
-      let name = await source.name(of: id)
+      let name = await source.name(of: id) ?? devices[id]?.name
+      if options.remember {
+        await remember(id, name: name, identity: options.identity)
+      }
       update(id) {
         $0.state = .connected
         $0.services = services
@@ -248,14 +296,23 @@ public actor ConnectionCoordinator {
     let before = (entry.state, entry.lastDisconnect, entry.name)
     change(&entry)
     devices[id] = entry
-    if before != (entry.state, entry.lastDisconnect, entry.name), let snapshot = self.change(for: id) {
-      observers.values.forEach { $0.yield(snapshot) }
+    if before != (entry.state, entry.lastDisconnect, entry.name) {
+      emit(id)
     }
   }
 
+  private func emit(_ id: DeviceId) {
+    let snapshot = change(for: id)
+      ?? ConnectionChange(id: id, name: nil, state: .disconnected, lastDisconnect: nil)
+    observers.values.forEach { $0.yield(snapshot) }
+  }
+
   private func change(for id: DeviceId) -> ConnectionChange? {
-    guard let entry = devices[id] else { return nil }
-    return ConnectionChange(id: id, name: entry.name, state: entry.state, lastDisconnect: entry.lastDisconnect)
+    let saved = remembered[id]
+    guard let entry = devices[id] else {
+      return saved.map { ConnectionChange(id: id, name: $0.name, state: .disconnected, lastDisconnect: nil, remembered: $0) }
+    }
+    return ConnectionChange(id: id, name: entry.name ?? saved?.name, state: entry.state, lastDisconnect: entry.lastDisconnect, remembered: saved)
   }
 
   private func removeObserver(_ id: UUID) {

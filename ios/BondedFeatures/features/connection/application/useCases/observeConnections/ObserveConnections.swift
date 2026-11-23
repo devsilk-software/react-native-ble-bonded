@@ -1,4 +1,4 @@
-/// Every known device's current connection, then every change.
+/// Every known device's current connection, remembered devices included, then every change.
 public struct ObserveConnections: Sendable {
   private let coordinator: ConnectionCoordinator
 

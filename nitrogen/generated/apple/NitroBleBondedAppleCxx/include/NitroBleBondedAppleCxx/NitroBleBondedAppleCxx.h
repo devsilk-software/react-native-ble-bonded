@@ -31,6 +31,8 @@ namespace NitroBleBonded { class NativeService; }
 #ifndef SWIFT_SWIFT_H
 namespace swift { template <class T> class Optional; }
 #endif
+// Forward declaration of `NativeDeviceIdentity` to properly resolve imports.
+namespace NitroBleBonded { class NativeDeviceIdentity; }
 // Forward declaration of `ServiceCacheRefresh` to properly resolve imports.
 namespace NitroBleBonded { class ServiceCacheRefresh; }
 // Forward declaration of `NativeAndroidConnectionOptions` to properly resolve imports.

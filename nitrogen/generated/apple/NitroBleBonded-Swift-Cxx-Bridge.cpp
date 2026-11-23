@@ -22,6 +22,7 @@
 #include <NitroModules/JSIConverter+SwiftOptional.hpp>
 #include <NitroBleBonded/private/ConnectionState-Swift.hpp>
 #include <NitroBleBonded/private/DisconnectReason-Swift.hpp>
+#include <NitroBleBonded/private/NativeDeviceIdentity-Swift.hpp>
 #include <NitroBleBonded/private/NativeConnectionChange-Swift.hpp>
 #include <NitroBleBonded/private/HybridDiagnosticsSpecSwift.hpp>
 #include <NitroBleBonded/private/DiagnosticEventType-Swift.hpp>

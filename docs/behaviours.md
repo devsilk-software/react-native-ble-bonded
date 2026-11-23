@@ -65,6 +65,7 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - remembers a device after it connects
 - remembers nothing when asked not to
 - reports remembered devices before they connect again
+- lists every known connection, remembered devices included
 - forgets a device and disconnects it
 - keeps the identity the device was found by
 - reads every characteristic's properties

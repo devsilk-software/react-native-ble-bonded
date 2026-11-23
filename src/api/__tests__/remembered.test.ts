@@ -21,6 +21,7 @@ jest.mock('../../specs/Connection.nitro', () => ({
     connect: jest.fn(),
     disconnect: jest.fn(),
     forget: jest.fn(),
+    getConnections: jest.fn().mockResolvedValue([]),
     getServices: jest.fn(),
     addListener: jest.fn((onChange: (change: NativeConnectionChange) => void) => {
       report = (change) => onChange({ isRemembered: false, ...change })
@@ -122,7 +123,7 @@ describe('Remembered devices', () => {
   it('finds a remembered device again under a new ID, and forgets the old one', async () => {
     remembered('A', 1000)
     native.connect.mockImplementation(async (id) => {
-      if (id === 'A') throw new Error("[timeout] Couldn't connect within 30 s")
+      if (id === 'A') throw new Error('[deviceNotFound] No device with this ID is known')
     })
     advertising([{ id: 'D', name: 'Thermo-A', rssi: -50, serviceUuids: ['b0ed0001-0000-4000-8000-00000000b0ed'] }])
     native.forget.mockImplementation(async (id) => report({ id, state: 'disconnected', isRemembered: false }))
@@ -136,7 +137,7 @@ describe('Remembered devices', () => {
 
   it("doesn't guess when several devices match a remembered device", async () => {
     remembered('A', 1000)
-    native.connect.mockRejectedValue(new Error("[timeout] Couldn't connect within 30 s"))
+    native.connect.mockRejectedValue(new Error('[deviceNotFound] No device with this ID is known'))
     advertising([
       { id: 'D', name: 'Thermo-A', rssi: -50, serviceUuids: ['b0ed0001-0000-4000-8000-00000000b0ed'] },
       { id: 'E', name: 'Thermo-A', rssi: -60, serviceUuids: ['b0ed0001-0000-4000-8000-00000000b0ed'] },
@@ -148,6 +149,75 @@ describe('Remembered devices', () => {
     await expect(failure).rejects.toMatchObject({ code: 'deviceNotFound', message: expect.stringContaining('Several devices') })
     expect(native.connect).toHaveBeenCalledTimes(1)
   }, 10_000)
+
+  it("doesn't look for another device when the remembered one only timed out", async () => {
+    remembered('A', 1000)
+    native.connect.mockRejectedValue(new Error("[timeout] Couldn't connect within 30 s"))
+
+    await expect(ble.connect()).rejects.toMatchObject({ code: 'timeout' })
+    expect(scanner.start).not.toHaveBeenCalled()
+    expect(native.forget).not.toHaveBeenCalled()
+  })
+
+  it('keeps the old ID when a device found again should not be remembered', async () => {
+    remembered('A', 1000)
+    native.connect.mockImplementation(async (id) => {
+      if (id === 'A') throw new Error('[deviceNotFound] No device with this ID is known')
+    })
+    advertising([{ id: 'D', name: 'Thermo-A', rssi: -50, serviceUuids: ['b0ed0001-0000-4000-8000-00000000b0ed'] }])
+
+    const device = await ble.connect({ id: 'A' }, { remember: false })
+
+    expect(device.id).toBe('D')
+    expect(native.forget).not.toHaveBeenCalled()
+  }, 10_000)
+
+  it('stops finding a device again when the app disconnects it meanwhile', async () => {
+    remembered('A', 1000)
+    native.connect.mockImplementation(async (id) => {
+      if (id === 'A') throw new Error('[deviceNotFound] No device with this ID is known')
+    })
+    advertising([{ id: 'D', name: 'Thermo-A', rssi: -50, serviceUuids: ['b0ed0001-0000-4000-8000-00000000b0ed'] }])
+
+    const connecting = ble.connect()
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 100))
+    await ble.device('A').disconnect()
+
+    await expect(connecting).rejects.toMatchObject({ code: 'cancelled' })
+    expect(native.connect).not.toHaveBeenCalledWith('D', expect.anything())
+  }, 10_000)
+
+  it('refuses a filter with neither a name nor services', async () => {
+    await expect(ble.connect({})).rejects.toThrow(RangeError)
+    expect(scanner.start).not.toHaveBeenCalled()
+  })
+
+  it('gives the scan and the connection one timeout together', async () => {
+    advertising([{ id: 'C', name: 'Thermo-C', rssi: -50, serviceUuids: [] }])
+    native.connect.mockResolvedValue(undefined)
+
+    await ble.connect({ name: 'Thermo-C' }, { timeout: 5_000 })
+
+    expect(scanner.start.mock.calls[0]?.[0].timeoutMs).toBe(5_000)
+    const connectTimeout = native.connect.mock.calls[0]?.[1].timeoutMs ?? 0
+    expect(connectTimeout).toBeGreaterThan(0)
+    expect(connectTimeout).toBeLessThanOrEqual(5_000)
+  })
+
+  it('knows the remembered devices as soon as it has started, before the listener reports', async () => {
+    const { connectionStore } = await import('../connections')
+    const store = connectionStore as unknown as { registration: Promise<void> | undefined; devices: Map<string, unknown> }
+    store.devices.delete('E')
+    store.registration = undefined
+    native.addListener.mockResolvedValueOnce(2)
+    native.getConnections.mockResolvedValueOnce([
+      { id: 'E', name: 'Thermo-E', state: 'disconnected', isRemembered: true, identity: { services: [] }, lastConnectedAt: 3000 },
+    ])
+
+    const devices = await ble.getRememberedDevices()
+
+    expect(devices.map((device) => device.id)).toContain('E')
+  })
 
   it('forgets a device through native code', async () => {
     remembered('A', 1000)

@@ -16,35 +16,37 @@ namespace NitroBleBonded { class BluetoothAdapterState; }
 #include <NitroModules/Result.hpp>
 // Forward declaration of `HybridConnectionSpec_cxx` to properly resolve imports.
 namespace NitroBleBonded { class HybridConnectionSpec_cxx; }
-// Forward declaration of `SwiftContainer_swift__Array___NitroBleBonded__NativeService_` to properly resolve imports.
-namespace NitroBleBonded { class SwiftContainer_swift__Array___NitroBleBonded__NativeService_; }
+// Forward declaration of `SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_` to properly resolve imports.
+namespace NitroBleBonded { class SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_; }
 namespace swift { class String; }
-// Forward declaration of `CharacteristicProperty` to properly resolve imports.
-namespace NitroBleBonded { class CharacteristicProperty; }
+#ifndef SWIFT_SWIFT_H
+namespace swift { template <class T> class Optional; }
+#endif
+// Forward declaration of `ConnectionState` to properly resolve imports.
+namespace NitroBleBonded { class ConnectionState; }
+// Forward declaration of `DisconnectReason` to properly resolve imports.
+namespace NitroBleBonded { class DisconnectReason; }
 #ifndef SWIFT_SWIFT_H
 namespace swift { template <class T> class Array; }
 #endif
+// Forward declaration of `NativeDeviceIdentity` to properly resolve imports.
+namespace NitroBleBonded { class NativeDeviceIdentity; }
+// Forward declaration of `NativeConnectionChange` to properly resolve imports.
+namespace NitroBleBonded { class NativeConnectionChange; }
+// Forward declaration of `SwiftContainer_swift__Array___NitroBleBonded__NativeService_` to properly resolve imports.
+namespace NitroBleBonded { class SwiftContainer_swift__Array___NitroBleBonded__NativeService_; }
+// Forward declaration of `CharacteristicProperty` to properly resolve imports.
+namespace NitroBleBonded { class CharacteristicProperty; }
 // Forward declaration of `NativeCharacteristic` to properly resolve imports.
 namespace NitroBleBonded { class NativeCharacteristic; }
 // Forward declaration of `NativeService` to properly resolve imports.
 namespace NitroBleBonded { class NativeService; }
-#ifndef SWIFT_SWIFT_H
-namespace swift { template <class T> class Optional; }
-#endif
-// Forward declaration of `NativeDeviceIdentity` to properly resolve imports.
-namespace NitroBleBonded { class NativeDeviceIdentity; }
 // Forward declaration of `ServiceCacheRefresh` to properly resolve imports.
 namespace NitroBleBonded { class ServiceCacheRefresh; }
 // Forward declaration of `NativeAndroidConnectionOptions` to properly resolve imports.
 namespace NitroBleBonded { class NativeAndroidConnectionOptions; }
 // Forward declaration of `NativeConnectOptions` to properly resolve imports.
 namespace NitroBleBonded { class NativeConnectOptions; }
-// Forward declaration of `ConnectionState` to properly resolve imports.
-namespace NitroBleBonded { class ConnectionState; }
-// Forward declaration of `DisconnectReason` to properly resolve imports.
-namespace NitroBleBonded { class DisconnectReason; }
-// Forward declaration of `NativeConnectionChange` to properly resolve imports.
-namespace NitroBleBonded { class NativeConnectionChange; }
 // Forward declaration of `HybridDiagnosticsSpec_cxx` to properly resolve imports.
 namespace NitroBleBonded { class HybridDiagnosticsSpec_cxx; }
 // Forward declaration of `SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_` to properly resolve imports.
@@ -120,6 +122,12 @@ namespace margelo::nitro::blebonded::swift_bridge {
   }
   std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(void* NON_NULL pointer);
   void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(const std::shared_ptr<HybridObject>& value);
+  using Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_ = Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_>;
+  Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_ create_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_();
+  void reject_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, std::exception_ptr error);
+  void listenRejected_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, std::function<void(const std::exception_ptr&)> listener);
+  void resolve_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, const void* NON_NULL value);
+  void listen_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_& promise, std::function<void(const void* NON_NULL)> listener);
   using Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_ = Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_>;
   Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_ create_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_();
   void reject_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::exception_ptr error);

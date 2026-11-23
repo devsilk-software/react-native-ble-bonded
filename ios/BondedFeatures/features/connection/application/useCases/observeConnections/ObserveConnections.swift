@@ -9,4 +9,9 @@ public struct ObserveConnections: Sendable {
   public func callAsFunction() async -> AsyncStream<ConnectionChange> {
     await coordinator.changes()
   }
+
+  /// Every known device's current connection, remembered devices included.
+  public func current() async -> [ConnectionChange] {
+    await coordinator.connections()
+  }
 }

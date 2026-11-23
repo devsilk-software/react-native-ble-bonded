@@ -296,6 +296,19 @@ class ConnectionTest : BehaviorSpec({
     }
   }
 
+  given("a connected device and one remembered before") {
+    then("lists every known connection, remembered devices included") {
+      val earlier = RememberedDevice(DeviceId("B"), "Thermo-2", DeviceIdentity("Thermo-2"), 1_000)
+      val coordinator =
+        coordinator(FakeConnectionSource(outcomes = listOf(Result.success(emptyList()))), store = FakeRememberedDeviceStore(listOf(earlier)))
+      coordinator.connect(device, ConnectOptions(remember = false))
+      val connections = coordinator.connections()
+      connections.map { it.id } shouldBe listOf(device, DeviceId("B"))
+      connections.map { it.state } shouldBe listOf(ConnectionState.CONNECTED, ConnectionState.DISCONNECTED)
+      connections.last().remembered shouldBe earlier
+    }
+  }
+
   given("devices remembered before a relaunch") {
     then("reports remembered devices before they connect again") {
       val earlier = RememberedDevice(DeviceId("B"), "Thermo-2", DeviceIdentity("Thermo-2"), 1_000)

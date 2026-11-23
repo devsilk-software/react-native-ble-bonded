@@ -29,6 +29,12 @@ final class HybridConnection: HybridConnectionSpec {
     }
   }
 
+  static func getConnections() throws -> any Promise<[NativeConnectionChange]> {
+    Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_.async {
+      await CompositionRoot.shared.observeConnections.current().map(NativeConnectionChange.init)
+    }
+  }
+
   static func forget(id: String) throws -> any Promise<Void> {
     Promise_void.async {
       await CompositionRoot.shared.forgetDevice(DeviceId(id))

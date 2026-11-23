@@ -7,4 +7,7 @@ import kotlinx.coroutines.flow.Flow
 /** Every known device's current connection, then every change. */
 class ObserveConnections(private val coordinator: ConnectionCoordinator) {
   operator fun invoke(): Flow<ConnectionChange> = coordinator.changes()
+
+  /** Every known device's current connection, remembered devices included. */
+  suspend fun current(): List<ConnectionChange> = coordinator.connections()
 }

@@ -60,6 +60,7 @@ namespace margelo::nitro::blebonded {
     // Static methods
     static Promise<void> connect(const swift::String& id, const ::NitroBleBonded::NativeConnectOptions& options);
     static Promise<void> disconnect(const swift::String& id);
+    static Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeConnectionChange_> getConnections();
     static Promise<void> forget(const swift::String& id);
     static Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_> getServices(const swift::String& id);
     static Promise<double> addListener(const Callback<void(const ::NitroBleBonded::NativeConnectionChange&)>& onChange);

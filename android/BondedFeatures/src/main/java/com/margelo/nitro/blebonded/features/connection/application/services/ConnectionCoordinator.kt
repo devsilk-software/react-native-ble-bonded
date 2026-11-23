@@ -54,6 +54,9 @@ class ConnectionCoordinator(
   private val devices = HashMap<DeviceId, Entry>()
   private val remembered = HashMap<DeviceId, RememberedDevice>()
   private var hasLoaded = false
+
+  /** Held through each save, which writes the list as it is then, so saves never land out of order. */
+  private val saving = Mutex()
   private val changes = MutableSharedFlow<ConnectionChange>(extraBufferCapacity = 64)
   private var watching: Job? = null
 
@@ -86,13 +89,22 @@ class ConnectionCoordinator(
   suspend fun forget(id: DeviceId) {
     loadRemembered()
     disconnect(id)
-    val devices =
-      lock.withLock {
-        if (remembered.remove(id) == null) return
-        emit(id)
-        remembered.values.toList()
-      }
-    store.save(devices)
+    lock.withLock {
+      if (remembered.remove(id) == null) return
+      emit(id)
+    }
+    persist()
+  }
+
+  /** Every known device's current connection, remembered devices included. */
+  suspend fun connections(): List<ConnectionChange> {
+    loadRemembered()
+    return lock.withLock { (devices.keys + remembered.keys).sortedBy { it.rawValue }.map { snapshot(it) } }
+  }
+
+  /** Saves the remembered devices as they are once the previous save has finished. */
+  private suspend fun persist() {
+    saving.withLock { store.save(lock.withLock { remembered.values.toList() }) }
   }
 
   /** The remembered devices, most recently connected first. */
@@ -206,26 +218,23 @@ class ConnectionCoordinator(
     try {
       val timeoutMs = options.timeoutMs
       val services = if (timeoutMs == null) work.await() else withTimeout(timeoutMs) { work.await() }
-      if (lock.withLock { devices.getValue(id).isCancelling }) {
-        // `disconnect()` came while the platform finished connecting; the failure path drops the link.
-        throw CancellationException("disconnected while connecting")
-      }
-      val saved =
-        lock.withLock {
-          val entry = devices.getValue(id)
-          entry.name = source.name(id) ?: entry.name
-          if (options.remember) {
-            val known = remembered[id]?.identity ?: DeviceIdentity(name = entry.name)
-            remembered[id] = RememberedDevice(id, entry.name, known.updated(options.identity), now())
-          }
-          entry.state = ConnectionState.CONNECTED
-          entry.services = services
-          entry.attempt = null
-          entry.work = null
-          emit(id, entry)
-          if (options.remember) remembered.values.toList() else null
+      // One locked section from this check to `connected`: a `disconnect()` or `forget()` either comes before it,
+      // and the failure path drops the link, or after it, and finds the device connected.
+      lock.withLock {
+        val entry = devices.getValue(id)
+        if (entry.isCancelling) throw CancellationException("disconnected while connecting")
+        entry.name = source.name(id) ?: entry.name
+        if (options.remember) {
+          val known = remembered[id]?.identity ?: DeviceIdentity(name = entry.name)
+          remembered[id] = RememberedDevice(id, entry.name, known.updated(options.identity), now())
         }
-      saved?.let { store.save(it) }
+        entry.state = ConnectionState.CONNECTED
+        entry.services = services
+        entry.attempt = null
+        entry.work = null
+        emit(id, entry)
+      }
+      if (options.remember) persist()
       bus.publish(DomainEvent(DomainEvent.Kind.CONNECTED, id, detail = "in ${System.currentTimeMillis() - started} ms"))
       return services
     } catch (failure: Throwable) {

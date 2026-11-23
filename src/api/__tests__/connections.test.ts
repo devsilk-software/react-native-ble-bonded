@@ -26,6 +26,7 @@ jest.mock('../../specs/Connection.nitro', () => ({
       return Promise.resolve(1)
     }),
     forget: jest.fn(),
+    getConnections: jest.fn().mockResolvedValue([]),
     removeListener: jest.fn(),
     configureAndroid: jest.fn(),
   },

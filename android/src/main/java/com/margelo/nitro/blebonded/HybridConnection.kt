@@ -39,6 +39,9 @@ class HybridConnection : HybridConnectionSpec() {
 
     override fun disconnect(id: String): Promise<Unit> = Promise.async { root().disconnect(DeviceId(id)) }
 
+    override fun getConnections(): Promise<Array<NativeConnectionChange>> =
+      Promise.async { root().observeConnections.current().map { it.toSpec() }.toTypedArray() }
+
     override fun forget(id: String): Promise<Unit> = Promise.async { root().forgetDevice(DeviceId(id)) }
 
     override fun getServices(id: String): Promise<Array<NativeService>> =

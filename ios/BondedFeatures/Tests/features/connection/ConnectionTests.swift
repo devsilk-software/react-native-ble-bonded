@@ -252,6 +252,19 @@ struct ConnectionTests {
     ])
   }
 
+  @Test("lists every known connection, remembered devices included")
+  func listsEveryKnownConnectionRememberedDevicesIncluded() async throws {
+    let earlier = RememberedDevice(id: DeviceId("B"), name: "Thermo-2", identity: DeviceIdentity(name: "Thermo-2"), lastConnectedAt: 1000)
+    let coordinator = coordinator(FakeConnectionSource(outcomes: [.succeed([])]), store: FakeRememberedDeviceStore(saved: [earlier]))
+    try await coordinator.connect(device, options: ConnectOptions(remember: false))
+
+    let connections = await coordinator.connections()
+
+    #expect(connections.map(\.id) == [device, DeviceId("B")])
+    #expect(connections.map(\.state) == [.connected, .disconnected])
+    #expect(connections.last?.remembered == earlier)
+  }
+
   @Test("forgets a device and disconnects it")
   func forgetsADeviceAndDisconnectsIt() async throws {
     let source = FakeConnectionSource(outcomes: [.succeed([])])

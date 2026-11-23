@@ -12,6 +12,8 @@ public actor ConnectionCoordinator {
   private var devices: [DeviceId: Entry] = [:]
   private var remembered: [DeviceId: RememberedDevice] = [:]
   private var hasLoaded = false
+  /// The last save; each new one waits for it and writes the list as it is then, so saves never land out of order.
+  private var saving: Task<Void, Never>?
   private var observers: [UUID: AsyncStream<ConnectionChange>.Continuation] = [:]
   private var isWatching = false
 
@@ -45,8 +47,29 @@ public actor ConnectionCoordinator {
     await loadRemembered()
     await disconnect(id)
     guard remembered.removeValue(forKey: id) != nil else { return }
-    await store.save(Array(remembered.values))
     emit(id)
+    await persist()
+  }
+
+  /// Every known device's current connection, remembered devices included.
+  public func connections() async -> [ConnectionChange] {
+    await loadRemembered()
+    return Set(devices.keys).union(remembered.keys).sorted { $0.rawValue < $1.rawValue }.compactMap(change(for:))
+  }
+
+  /// Saves the remembered devices as they are once the previous save has finished.
+  private func persist() async {
+    let previous = saving
+    let task = Task {
+      await previous?.value
+      await self.store.save(Array(await self.rememberedSnapshot()))
+    }
+    saving = task
+    await task.value
+  }
+
+  private func rememberedSnapshot() -> [RememberedDevice] {
+    Array(remembered.values)
   }
 
   /// The remembered devices, most recently connected first.
@@ -63,11 +86,10 @@ public actor ConnectionCoordinator {
     }
   }
 
-  /// Saves the device as remembered. The caller reports the change, together with the connection's.
-  private func remember(_ id: DeviceId, name: String?, identity: DeviceIdentity?) async {
+  /// Remembers the device in memory; the caller reports the change, together with the connection's, and saves it.
+  private func remember(_ id: DeviceId, name: String?, identity: DeviceIdentity?) {
     let known = remembered[id]?.identity ?? DeviceIdentity(name: name)
     remembered[id] = RememberedDevice(id: id, name: name, identity: known.updated(with: identity), lastConnectedAt: now())
-    await store.save(Array(remembered.values))
   }
 
   /// Connects and discovers the device's services; returns once it's ready. Returns at once when it's already
@@ -165,20 +187,24 @@ public actor ConnectionCoordinator {
     do {
       let isWaiting = options.timeout == nil
       let services = try await withTimeout(options.timeout, for: id) { try await self.attempts(id, isWaiting: isWaiting) }
+      let name = await source.name(of: id) ?? devices[id]?.name
+      // No await from this check to `connected`: a `disconnect()` or `forget()` either comes before it, and the link
+      // goes, or after it, and finds the device connected.
       if devices[id]?.isCancelling == true {
-        // `disconnect()` came while the platform finished connecting: drop the link it made.
         await source.disconnect(id)
         throw CancellationError()
       }
-      let name = await source.name(of: id) ?? devices[id]?.name
       if options.remember {
-        await remember(id, name: name, identity: options.identity)
+        remember(id, name: name, identity: options.identity)
       }
       update(id) {
         $0.state = .connected
         $0.services = services
         $0.attempt = nil
         $0.name = name ?? $0.name
+      }
+      if options.remember {
+        await persist()
       }
       let elapsed = ContinuousClock.now - started
       await bus.publish(DomainEvent(kind: .connected, deviceId: id, detail: "in \(elapsed.milliseconds) ms"))

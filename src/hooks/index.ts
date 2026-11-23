@@ -93,16 +93,30 @@ function subscribeToConnections(onStoreChange: () => void): () => void {
  * `connectionState`, `lastDisconnect` and `isRemembered` are current, and its methods (`connect()`, `forget()`…)
  * work as on `ble.device(id)`.
  *
- * Without an ID, the one remembered device, connected or not, or `undefined` while none is; throws when several
- * are remembered, since it can't know which.
+ * Without an ID, the one remembered device, connected or not, or `undefined` while none is. With several remembered
+ * it can't know which, so it gives `undefined` and warns in development; pass an ID then.
  */
 export function useDevice(id: string): Device
 export function useDevice(): Device | undefined
 export function useDevice(id?: string): Device | undefined {
   const all = useSyncExternalStore(subscribeToConnections, () => connectionStore.all())
   // A new handle for each change, so components that compare the device see it change.
-  return useMemo(() => (id == null ? ble.device() : new Device(id)), [id, all])
+  return useMemo(() => (id == null ? onlyRemembered() : new Device(id)), [id, all])
 }
+
+/** The one remembered device; with several, `undefined` and a warning in development, never a crash in render. */
+function onlyRemembered(): Device | undefined {
+  try {
+    return ble.device()
+  } catch (error) {
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      console.warn(`useDevice() without an ID: ${error instanceof Error ? error.message : String(error)}`)
+    }
+    return undefined
+  }
+}
+
+declare const __DEV__: boolean | undefined
 
 /** The remembered devices, most recently connected first, re-rendering when one is remembered or forgotten. */
 export function useRememberedDevices(): Device[] {

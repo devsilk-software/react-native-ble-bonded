@@ -88,6 +88,9 @@ export declare class Connection extends HybridObject {
   /** Disconnects, or cancels a connection attempt; resolves once disconnected. */
   static disconnect(id: string): Promise<void>
 
+  /** Every known device's current connection, remembered devices included. */
+  static getConnections(): Promise<NativeConnectionChange[]>
+
   /** Disconnects the device and forgets it; the system's pairing stays. */
   static forget(id: string): Promise<void>
 

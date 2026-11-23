@@ -92,6 +92,8 @@ class ConnectionStore {
   /** Devices known only by a name a scan saw, kept so reading one twice returns the same object. */
   private readonly named = new Map<string, DeviceConnection>()
   private readonly listeners = new Set<(connection: DeviceConnection) => void>()
+  /** Counts each device's `disconnect()` and `forget()` calls, so work in JavaScript can see it was cancelled. */
+  private readonly cancellations = new Map<string, number>()
   private registration: Promise<void> | undefined
   private list: DeviceConnection[] = []
 
@@ -101,7 +103,12 @@ class ConnectionStore {
    */
   start(): Promise<void> {
     this.registration ??= Connection.addListener((change) => this.apply(change)).then(
-      () => undefined,
+      // The listener's first reports can arrive after its registration resolves; the snapshot can't. A device the
+      // listener already reported is newer than the snapshot, so only the others are taken from it.
+      async () => {
+        const current = await Connection.getConnections()
+        current.filter((change) => !this.devices.has(change.id)).forEach((change) => this.apply(change))
+      },
       (error: unknown) => {
         this.registration = undefined
         throw error
@@ -142,6 +149,14 @@ class ConnectionStore {
       companyId: scanned.manufacturerData?.companyId,
     })
     if (scanned.name != null) this.rememberName(id, scanned.name)
+  }
+
+  cancel(id: string): void {
+    this.cancellations.set(id, this.cancelCount(id) + 1)
+  }
+
+  cancelCount(id: string): number {
+    return this.cancellations.get(id) ?? 0
   }
 
   /** The identity scans saw, if any. */
@@ -233,6 +248,7 @@ export class Device {
 
   /** Disconnects the device and forgets it. The system's pairing stays. */
   forget(): Promise<void> {
+    connectionStore.cancel(this.id)
     return Connection.forget(this.id)
   }
 
@@ -258,8 +274,9 @@ export class Device {
     }
   }
 
-  /** Disconnects, or cancels a connection attempt; resolves once disconnected. */
+  /** Disconnects, or cancels a connection attempt, also one `ble.connect()` is still finding; resolves once disconnected. */
   disconnect(): Promise<void> {
+    connectionStore.cancel(this.id)
     return Connection.disconnect(this.id)
   }
 

@@ -14,7 +14,7 @@ jest.mock('../../specs/Permissions.nitro', () => ({
 }))
 
 jest.mock('../../specs/Connection.nitro', () => ({
-  Connection: { addListener: jest.fn().mockResolvedValue(1), configureAndroid: jest.fn() },
+  Connection: { addListener: jest.fn().mockResolvedValue(1), getConnections: jest.fn().mockResolvedValue([]), configureAndroid: jest.fn() },
 }))
 jest.mock('../../specs/Scanner.nitro', () => ({ Scanner: { start: jest.fn(), stop: jest.fn() } }))
 jest.mock('../../specs/Diagnostics.nitro', () => ({

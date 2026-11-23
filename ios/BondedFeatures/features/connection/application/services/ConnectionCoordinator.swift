@@ -18,6 +18,8 @@ public actor ConnectionCoordinator {
     var services: [GattService] = []
     var attempt: Task<[GattService], any Error>?
     var isCancelling = false
+    /// A `disconnect()` still under way; a new connection waits for it.
+    var disconnecting: Task<Void, Never>?
   }
 
   public init(source: any ConnectionSource, bus: EventBus, retry: RetryPolicy = RetryPolicy()) {
@@ -30,6 +32,9 @@ public actor ConnectionCoordinator {
   /// connected, and shares the running attempt when one is under way. Throws a `BleError`.
   public func connect(_ id: DeviceId, options: ConnectOptions = ConnectOptions()) async throws {
     await watchDisconnections()
+    while let disconnecting = devices[id]?.disconnecting {
+      await disconnecting.value
+    }
     if let error = await source.readiness().error {
       throw error
     }
@@ -64,14 +69,24 @@ public actor ConnectionCoordinator {
       _ = try? await attempt.value
       return
     }
+    if let disconnecting = entry.disconnecting {
+      await disconnecting.value
+      return
+    }
     guard entry.state == .connected else { return }
     update(id) { $0.state = .disconnecting }
+    let task = Task { await self.finishDisconnect(id) }
+    devices[id]?.disconnecting = task
+    await task.value
+  }
+
+  private func finishDisconnect(_ id: DeviceId) async {
     await source.disconnect(id)
-    guard devices[id]?.state == .disconnecting else { return }
     update(id) {
       $0.state = .disconnected
       $0.lastDisconnect = Disconnect(reason: .requested)
       $0.services = []
+      $0.disconnecting = nil
     }
     await bus.publish(DomainEvent(kind: .disconnected, deviceId: id, detail: DisconnectReason.requested.rawValue))
   }
@@ -105,6 +120,11 @@ public actor ConnectionCoordinator {
     do {
       let isWaiting = options.timeout == nil
       let services = try await withTimeout(options.timeout, for: id) { try await self.attempts(id, isWaiting: isWaiting) }
+      if devices[id]?.isCancelling == true {
+        // `disconnect()` came while the platform finished connecting: drop the link it made.
+        await source.disconnect(id)
+        throw CancellationError()
+      }
       let name = await source.name(of: id)
       update(id) {
         $0.state = .connected

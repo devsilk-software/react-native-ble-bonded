@@ -62,6 +62,9 @@ class ConnectionCoordinator(
     var attempt: Deferred<List<GattService>>? = null
     var work: Job? = null
     var isCancelling = false
+
+    /** A `disconnect()` still under way; a new connection waits for it. */
+    var disconnecting: Deferred<Unit>? = null
   }
 
   fun configureAndroid(overrides: AndroidConnectionOverrides) {
@@ -74,6 +77,10 @@ class ConnectionCoordinator(
    */
   suspend fun connect(id: DeviceId, options: ConnectOptions = ConnectOptions()) {
     watchDisconnections()
+    while (true) {
+      val disconnecting = lock.withLock { devices[id]?.disconnecting } ?: break
+      disconnecting.await()
+    }
     source.readiness().error?.let { throw it }
     var isNew = false
     val attempt =
@@ -97,31 +104,32 @@ class ConnectionCoordinator(
 
   /** Disconnects the device and returns once it has. An attempt under way is cancelled; its callers get `cancelled`. */
   suspend fun disconnect(id: DeviceId) {
-    val attempt =
+    val waitFor: Deferred<*> =
       lock.withLock {
         val entry = devices[id] ?: return
         entry.attempt?.let {
           entry.isCancelling = true
           entry.work?.cancel()
           it
-        } ?: run {
+        } ?: entry.disconnecting ?: run {
           if (entry.state != ConnectionState.CONNECTED) return
           entry.state = ConnectionState.DISCONNECTING
           emit(id, entry)
-          null
+          scope.async(start = CoroutineStart.LAZY) { finishDisconnect(id) }.also { entry.disconnecting = it }
         }
       }
-    if (attempt != null) {
-      runCatching { attempt.await() }
-      return
-    }
+    waitFor.start()
+    runCatching { waitFor.await() }
+  }
+
+  private suspend fun finishDisconnect(id: DeviceId) {
     source.disconnect(id)
     lock.withLock {
-      val entry = devices[id] ?: return
-      if (entry.state != ConnectionState.DISCONNECTING) return
+      val entry = devices.getValue(id)
       entry.state = ConnectionState.DISCONNECTED
       entry.lastDisconnect = Disconnect(DisconnectReason.REQUESTED)
       entry.services = emptyList()
+      entry.disconnecting = null
       emit(id, entry)
     }
     bus.publish(DomainEvent(DomainEvent.Kind.DISCONNECTED, id, detail = DisconnectReason.REQUESTED.publicName))
@@ -159,6 +167,10 @@ class ConnectionCoordinator(
     try {
       val timeoutMs = options.timeoutMs
       val services = if (timeoutMs == null) work.await() else withTimeout(timeoutMs) { work.await() }
+      if (lock.withLock { devices.getValue(id).isCancelling }) {
+        // `disconnect()` came while the platform finished connecting; the failure path drops the link.
+        throw CancellationException("disconnected while connecting")
+      }
       lock.withLock {
         val entry = devices.getValue(id)
         entry.state = ConnectionState.CONNECTED
@@ -173,6 +185,8 @@ class ConnectionCoordinator(
     } catch (failure: Throwable) {
       work.cancel()
       if (failure is CancellationException && failure !is TimeoutCancellationException) currentCoroutineContext().ensureActive()
+      // Whatever the platform had connected by now goes, so nothing holds the device after `disconnect()`.
+      if (lock.withLock { devices.getValue(id).isCancelling }) source.disconnect(id)
       val disconnect: Disconnect
       val error: BleError
       lock.withLock {

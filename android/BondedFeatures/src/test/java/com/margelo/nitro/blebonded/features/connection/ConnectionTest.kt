@@ -89,6 +89,31 @@ class ConnectionTest : BehaviorSpec({
       }
     }
 
+    `when`("connect is called while a disconnect is still under way") {
+      then("connects again only after a disconnect still under way has finished") {
+        val source =
+          FakeConnectionSource(outcomes = listOf(Result.success(listOf(heartRateService)), Result.success(listOf(heartRateService))))
+        source.disconnectPauseMs = 50
+        val coordinator = coordinator(source)
+        val recorder = ConnectionRecorder(coordinator.changes())
+        coordinator.connect(device)
+        val disconnecting = background().async { coordinator.disconnect(device) }
+        eventually { recorder.states.lastOrNull() == ConnectionState.DISCONNECTING }
+        coordinator.connect(device)
+        disconnecting.await()
+        eventually { recorder.states.size == 6 }
+        recorder.states shouldBe
+          listOf(
+            ConnectionState.CONNECTING,
+            ConnectionState.CONNECTED,
+            ConnectionState.DISCONNECTING,
+            ConnectionState.DISCONNECTED,
+            ConnectionState.CONNECTING,
+            ConnectionState.CONNECTED,
+          )
+      }
+    }
+
     `when`("the device drops the connection") {
       then("reports why the device disconnected") {
         val source = FakeConnectionSource(outcomes = listOf(Result.success(listOf(heartRateService))))
@@ -134,6 +159,20 @@ class ConnectionTest : BehaviorSpec({
         shouldThrow<BleError> { coordinator.connect(device, ConnectOptions(timeoutMs = 30)) }.code shouldBe BleError.Code.TIMEOUT
         eventually { source.cancelledAttempts.get() == 1 }
         source.cancelledAttempts.get() shouldBe 1
+        shouldThrow<BleError> { coordinator.services(device) }
+      }
+    }
+
+    `when`("the platform finishes connecting after disconnect was called") {
+      then("disconnects a device that finished connecting after disconnect was called") {
+        val source = FakeConnectionSource(outcomes = listOf(Result.success(listOf(heartRateService))))
+        source.lateSuccessMs = 50
+        val coordinator = coordinator(source)
+        val attempt = background().async { runCatching { coordinator.connect(device, ConnectOptions(timeoutMs = null)) } }
+        eventually { source.attemptCount == 1 }
+        coordinator.disconnect(device)
+        (attempt.await().exceptionOrNull() as BleError).code shouldBe BleError.Code.CANCELLED
+        source.disconnectCount.get() shouldBe 1
         shouldThrow<BleError> { coordinator.services(device) }
       }
     }

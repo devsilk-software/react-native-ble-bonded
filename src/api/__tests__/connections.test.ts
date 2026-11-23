@@ -159,3 +159,19 @@ describe('Connections', () => {
     expect(native.configureAndroid).toHaveBeenCalledWith(expect.objectContaining({ refreshServiceCache: 'always', waitForBonding: false }))
   })
 })
+
+describe('Connection listener registration', () => {
+  it('tries again after a failed registration instead of failing for good', async () => {
+    const { connectionStore } = await import('../connections')
+    // Simulate a store whose first registration fails, by replacing its state.
+    const store = connectionStore as unknown as { registration: Promise<void> | undefined }
+    const saved = store.registration
+    store.registration = undefined
+    native.addListener.mockRejectedValueOnce(new Error('not ready'))
+
+    await expect(connectionStore.start()).rejects.toThrow('not ready')
+    await expect(connectionStore.start()).resolves.toBeUndefined()
+
+    store.registration = saved
+  })
+})

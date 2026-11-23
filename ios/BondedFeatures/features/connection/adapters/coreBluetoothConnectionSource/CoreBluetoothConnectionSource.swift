@@ -24,9 +24,16 @@ public struct CoreBluetoothConnectionSource: ConnectionSource {
     guard let identifier = UUID(uuidString: id.rawValue) else { throw Self.notFound(id) }
     do {
       try await central.connect(identifier)
-      return try await central.discover(identifier).map(Self.service)
     } catch let error as CentralError {
       throw Self.bleError(error, id: id)
+    }
+    do {
+      return try await central.discover(identifier).map(Self.service)
+    } catch {
+      // Connected but not ready: drop the link, so the device isn't held by a connection nobody reports.
+      await central.disconnect(identifier)
+      if let error = error as? CentralError { throw Self.bleError(error, id: id) }
+      throw error
     }
   }
 

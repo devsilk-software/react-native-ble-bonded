@@ -6,6 +6,8 @@ actor FakeConnectionSource: ConnectionSource {
   enum Outcome {
     case succeed([GattService])
     case fail(BleError)
+    /// Succeeds after a pause, ignoring cancellation, as a platform step that can't be interrupted.
+    case succeedLate([GattService], Duration)
   }
 
   var currentReadiness: ConnectionReadiness
@@ -33,6 +35,14 @@ actor FakeConnectionSource: ConnectionSource {
       switch outcomes.removeFirst() {
       case let .succeed(services): return services
       case let .fail(error): throw error
+      case let .succeedLate(services, pause):
+        await withCheckedContinuation { continuation in
+          Task.detached {
+            try? await Task.sleep(for: pause)
+            continuation.resume()
+          }
+        }
+        return services
       }
     }
     do {
@@ -46,6 +56,14 @@ actor FakeConnectionSource: ConnectionSource {
 
   func disconnect(_ id: DeviceId) async {
     disconnectCount += 1
+    if let disconnectPause { try? await Task.sleep(for: disconnectPause) }
+  }
+
+  /// How long a disconnect takes, for tests of what happens meanwhile.
+  var disconnectPause: Duration?
+
+  func setDisconnectPause(_ pause: Duration) {
+    disconnectPause = pause
   }
 
   func disconnections() async -> AsyncStream<PlatformDisconnect> {

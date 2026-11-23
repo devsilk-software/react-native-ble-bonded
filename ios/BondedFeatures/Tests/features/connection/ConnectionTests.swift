@@ -101,6 +101,37 @@ struct ConnectionTests {
     #expect(await recorder.changes.last?.lastDisconnect == lost)
   }
 
+  @Test("disconnects a device that finished connecting after disconnect was called")
+  func disconnectsADeviceThatFinishedConnectingAfterDisconnectWasCalled() async {
+    let source = FakeConnectionSource(outcomes: [.succeedLate([heartRateService], .milliseconds(50))])
+    let coordinator = coordinator(source)
+
+    let attempt = Task { try await coordinator.connect(device, options: ConnectOptions(timeout: nil)) }
+    await eventually { await source.attemptCount == 1 }
+    await coordinator.disconnect(device)
+
+    await #expect { try await attempt.value } throws: { ($0 as? BleError)?.code == .cancelled }
+    #expect(await source.disconnectCount == 1)
+    await #expect(throws: BleError.self) { try await coordinator.services(of: device) }
+  }
+
+  @Test("connects again only after a disconnect still under way has finished")
+  func connectsAgainOnlyAfterADisconnectStillUnderWayHasFinished() async throws {
+    let source = FakeConnectionSource(outcomes: [.succeed([heartRateService]), .succeed([heartRateService])])
+    await source.setDisconnectPause(.milliseconds(50))
+    let coordinator = coordinator(source)
+    let recorder = ConnectionRecorder(await coordinator.changes())
+    try await coordinator.connect(device)
+
+    let disconnecting = Task { await coordinator.disconnect(device) }
+    await eventually { await recorder.states.last == .disconnecting }
+    try await coordinator.connect(device)
+    await disconnecting.value
+    await eventually { await recorder.states.count == 6 }
+
+    #expect(await recorder.states == [.connecting, .connected, .disconnecting, .disconnected, .connecting, .connected])
+  }
+
   @Test("disconnects when asked and reports it as requested")
   func disconnectsWhenAskedAndReportsItAsRequested() async throws {
     let source = FakeConnectionSource(outcomes: [.succeed([heartRateService])])

@@ -79,25 +79,39 @@ class ConnectionStore {
   private registration: Promise<void> | undefined
   private list: DeviceConnection[] = []
 
-  /** Starts the native listener once; resolves when it's registered and has reported the current state. */
+  /**
+   * Starts the native listener once; resolves when it's registered and has reported the current state. A failed
+   * registration isn't kept, so the next call tries again.
+   */
   start(): Promise<void> {
-    this.registration ??= Connection.addListener((change) => this.apply(change)).then(() => undefined)
+    this.registration ??= Connection.addListener((change) => this.apply(change)).then(
+      () => undefined,
+      (error: unknown) => {
+        this.registration = undefined
+        throw error
+      }
+    )
     return this.registration
   }
 
+  /** Starts the listener for a synchronous read; a failure shows up on the next awaited call instead. */
+  private startQuietly(): void {
+    this.start().catch(() => {})
+  }
+
   get(id: string): DeviceConnection | undefined {
-    void this.start()
+    this.startQuietly()
     return this.devices.get(id) ?? this.named.get(id)
   }
 
   /** Every known device, in a list that's replaced on every change. */
   all(): DeviceConnection[] {
-    void this.start()
+    this.startQuietly()
     return this.list
   }
 
   subscribe(listener: (connection: DeviceConnection) => void): { remove(): void } {
-    void this.start()
+    this.startQuietly()
     this.listeners.add(listener)
     this.devices.forEach(listener)
     return { remove: () => this.listeners.delete(listener) }

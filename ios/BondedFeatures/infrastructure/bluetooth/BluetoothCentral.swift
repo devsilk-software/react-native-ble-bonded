@@ -145,21 +145,28 @@ public actor BluetoothCentral {
     }
   }
 
-  /// Discovers every service and every characteristic of a connected peripheral.
+  /// Discovers every service and every characteristic of a connected peripheral. Cancelling the calling task
+  /// cancels the connection, which ends the discovery.
   public func discover(_ identifier: UUID) async throws -> [DiscoveredService] {
     guard let peripheral = peripherals[identifier], peripheral.state == .connected else { throw CentralError.notConnected }
-    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-      serviceWaiters[identifier] = continuation
-      peripheral.discoverServices(nil)
-    }
-    let services = peripheral.services ?? []
-    if !services.isEmpty {
+    try await withTaskCancellationHandler {
+      try Task.checkCancellation()
       try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-        characteristicWaiters[identifier] = (services.count, continuation)
-        for service in services {
-          peripheral.discoverCharacteristics(nil, for: service)
+        serviceWaiters[identifier] = continuation
+        peripheral.discoverServices(nil)
+      }
+      let services = peripheral.services ?? []
+      if !services.isEmpty {
+        try Task.checkCancellation()
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+          characteristicWaiters[identifier] = (services.count, continuation)
+          for service in services {
+            peripheral.discoverCharacteristics(nil, for: service)
+          }
         }
       }
+    } onCancel: {
+      Task { await self.cancelConnection(identifier) }
     }
     return (peripheral.services ?? []).map(DiscoveredService.init)
   }

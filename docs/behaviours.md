@@ -51,6 +51,8 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - gives up after the timeout
 - cancels a connection attempt when disconnect is called
 - disconnects when asked and reports it as requested
+- disconnects a device that finished connecting after disconnect was called
+- connects again only after a disconnect still under way has finished
 - reports why the device disconnected
 - reports each device's current state first, then each change
 - retries transient failures, first directly, then waiting for the device

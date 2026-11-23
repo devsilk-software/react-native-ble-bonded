@@ -51,7 +51,10 @@ class FakeConnectionSource(
   override suspend fun attempt(id: DeviceId, mode: ConnectMode, options: AndroidConnectionOptions): List<GattService> {
     modes.add(mode)
     this.options.add(options)
-    outcomes.poll()?.let { return it.getOrThrow() }
+    outcomes.poll()?.let {
+      if (lateSuccessMs > 0) kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { kotlinx.coroutines.delay(lateSuccessMs) }
+      return it.getOrThrow()
+    }
     try {
       awaitCancellation()
     } catch (cancelled: CancellationException) {
@@ -60,8 +63,15 @@ class FakeConnectionSource(
     }
   }
 
+  /** How long a disconnect takes, for tests of what happens meanwhile. */
+  @Volatile var disconnectPauseMs = 0L
+
+  /** How long the next successful attempt takes, ignoring cancellation, as a platform step that can't be interrupted. */
+  @Volatile var lateSuccessMs = 0L
+
   override suspend fun disconnect(id: DeviceId) {
     disconnectCount.incrementAndGet()
+    if (disconnectPauseMs > 0) kotlinx.coroutines.delay(disconnectPauseMs)
   }
 
   override fun disconnections(): Flow<PlatformDisconnect> = drops

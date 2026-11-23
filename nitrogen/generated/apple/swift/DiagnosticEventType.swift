@@ -12,10 +12,14 @@
  */
 @_expose(Cxx)
 public enum DiagnosticEventType: Int32, CaseIterable, Sendable, CustomStringConvertible {
-  case `statechanged` = 0
-  case `permissionchanged` = 1
-  case `scanstarted` = 2
-  case `scanstopped` = 3
+  case `disconnected` = 0
+  case `connecting` = 1
+  case `connected` = 2
+  case `statechanged` = 3
+  case `permissionchanged` = 4
+  case `scanstarted` = 5
+  case `scanstopped` = 6
+  case `connectionretried` = 7
 
   public static func fromRawValue(_ value: Int32) -> Self {
     return Self(rawValue: value)!
@@ -29,6 +33,12 @@ public extension DiagnosticEventType {
    */
   init?(fromString string: String) {
     switch string {
+      case "disconnected":
+        self = .disconnected
+      case "connecting":
+        self = .connecting
+      case "connected":
+        self = .connected
       case "stateChanged":
         self = .statechanged
       case "permissionChanged":
@@ -37,6 +47,8 @@ public extension DiagnosticEventType {
         self = .scanstarted
       case "scanStopped":
         self = .scanstopped
+      case "connectionRetried":
+        self = .connectionretried
       default:
         return nil
     }
@@ -47,6 +59,12 @@ public extension DiagnosticEventType {
    */
   var stringValue: String {
     switch self {
+      case .disconnected:
+        return "disconnected"
+      case .connecting:
+        return "connecting"
+      case .connected:
+        return "connected"
       case .statechanged:
         return "stateChanged"
       case .permissionchanged:
@@ -55,6 +73,8 @@ public extension DiagnosticEventType {
         return "scanStarted"
       case .scanstopped:
         return "scanStopped"
+      case .connectionretried:
+        return "connectionRetried"
     }
   }
 

@@ -81,6 +81,10 @@ class BluetoothRadio(private val context: Context) {
       }
     }
 
+  /** The device with this Bluetooth address, or null when the address isn't valid or there's no adapter. */
+  fun remoteDevice(address: String): android.bluetooth.BluetoothDevice? =
+    runCatching { manager?.adapter?.getRemoteDevice(address) }.getOrNull()
+
   /** The adapter's `BluetoothAdapter.STATE_*` value, or null when the phone has no Bluetooth adapter. */
   fun radioState(): Int? = manager?.adapter?.state
 

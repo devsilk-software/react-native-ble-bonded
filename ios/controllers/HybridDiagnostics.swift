@@ -45,6 +45,10 @@ extension DiagnosticEventType {
     case .permissionChanged: self = .permissionchanged
     case .scanStarted: self = .scanstarted
     case .scanStopped: self = .scanstopped
+    case .connecting: self = .connecting
+    case .connected: self = .connected
+    case .disconnected: self = .disconnected
+    case .connectionRetried: self = .connectionretried
     }
   }
 }

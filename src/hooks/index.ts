@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import {
   ble,
   BleError,
   type BluetoothAdapterState,
   type BluetoothPermission,
+  Device,
   type DiagnosticEvent,
   type ScannedDevice,
   type ScanOptions,
 } from '../api/ble'
+import { connectionStore } from '../api/connections'
 import { onDiagnosticsReset, subscribeToDiagnostics } from '../api/diagnostics'
-import { DeviceList } from './deviceList'
+import { DeviceList, type ScanSort } from './deviceList'
 import { createExternalStore } from './externalStore'
 import { latestEvents } from './latestEvents'
 
@@ -81,11 +83,44 @@ export function useDiagnosticEvents({ limit = 100 }: { limit?: number } = {}): D
   return events
 }
 
+function subscribeToConnections(onStoreChange: () => void): () => void {
+  const subscription = connectionStore.subscribe(onStoreChange)
+  return () => subscription.remove()
+}
+
+/**
+ * The device with this ID, re-rendering when its connection changes. The returned handle's `name`,
+ * `connectionState` and `lastDisconnect` are current, and its methods (`connect()`, `getServices()`…) work as on
+ * `ble.device(id)`.
+ */
+export function useDevice(id: string): Device {
+  const connection = useSyncExternalStore(subscribeToConnections, () => connectionStore.get(id))
+  // A new handle for each change, so components that compare the device see it change.
+  return useMemo(() => new Device(id), [id, connection])
+}
+
+/** The devices that are connected, connecting or disconnecting, re-rendering when any of them changes. */
+export function useConnectedDevices(): Device[] {
+  const all = useSyncExternalStore(subscribeToConnections, () => connectionStore.all())
+  return useMemo(
+    () => all.filter((connection) => connection.state !== 'disconnected').map((connection) => new Device(connection.id)),
+    [all]
+  )
+}
+
 /** How often `useScan` re-renders at most while devices are reported. */
 const scanRenderInterval = 250
 
+export interface UseScanOptions extends ScanOptions {
+  /**
+   * `firstSeen` (default) keeps devices in the order first heard, so rows never move and stay easy to tap;
+   * `signal` puts the strongest signal first, re-ordering as signals change.
+   */
+  sort?: ScanSort
+}
+
 export interface ScanResult {
-  /** Each device once, with its latest RSSI and name, strongest signal first; devices unheard for 10 s drop off. */
+  /** Each device once, with its latest RSSI and name; devices unheard for 10 s drop off. */
   devices: ScannedDevice[]
   isScanning: boolean
   /** Why the scan isn't running: Bluetooth off, permission blocked, or a failure. */
@@ -99,7 +134,7 @@ export interface ScanResult {
  * isn't granted, and starts by itself once both are fine; unless switched off, it asks for both first. Never
  * throws: problems are in `error`. Stops after 30 seconds unless `timeout` says otherwise; `restart()` scans again.
  */
-export function useScan(options: ScanOptions = {}): ScanResult {
+export function useScan(options: UseScanOptions = {}): ScanResult {
   const state = useBluetoothState()
   const permission = useBluetoothPermission()
   const [devices, setDevices] = useState<ScannedDevice[]>([])
@@ -108,6 +143,8 @@ export function useScan(options: ScanOptions = {}): ScanResult {
   const [generation, setGeneration] = useState(0)
   const filter = useRef(options.filter)
   filter.current = options.filter
+  const sort = useRef(options.sort)
+  sort.current = options.sort
   const hasAsked = useRef({ permission: false, bluetooth: false })
 
   const { services, name, fullAdvertisement, timeout, autoRequestPermission, autoEnableBluetooth } = options
@@ -135,7 +172,7 @@ export function useScan(options: ScanOptions = {}): ScanResult {
     let scan: { stop(): void } | undefined
     const list = new DeviceList()
     const flush = () => {
-      const changes = list.takeChanges(Date.now())
+      const changes = list.takeChanges(Date.now(), sort.current)
       if (changes != null) setDevices(changes)
     }
     const interval = setInterval(flush, scanRenderInterval)
@@ -192,4 +229,5 @@ function waitingError(state: BluetoothAdapterState, permission: BluetoothPermiss
   return undefined
 }
 
-export type { BluetoothAdapterState, BluetoothPermission, DiagnosticEvent, ScannedDevice, ScanOptions }
+export type { BluetoothAdapterState, BluetoothPermission, DiagnosticEvent, ScannedDevice, ScanOptions, ScanSort }
+export { Device }

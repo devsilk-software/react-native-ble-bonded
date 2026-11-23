@@ -16,10 +16,14 @@ import com.facebook.proguard.annotations.DoNotStrip
 @DoNotStrip
 @Keep
 enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
-  STATECHANGED(0),
-  PERMISSIONCHANGED(1),
-  SCANSTARTED(2),
-  SCANSTOPPED(3);
+  DISCONNECTED(0),
+  CONNECTING(1),
+  CONNECTED(2),
+  STATECHANGED(3),
+  PERMISSIONCHANGED(4),
+  SCANSTARTED(5),
+  SCANSTOPPED(6),
+  CONNECTIONRETRIED(7);
 
   /**
    * Get the String value this DiagnosticEventType represents.
@@ -27,10 +31,14 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
   val stringValue: String
     get() =
       when (this) {
+        DISCONNECTED -> "disconnected"
+        CONNECTING -> "connecting"
+        CONNECTED -> "connected"
         STATECHANGED -> "stateChanged"
         PERMISSIONCHANGED -> "permissionChanged"
         SCANSTARTED -> "scanStarted"
         SCANSTOPPED -> "scanStopped"
+        CONNECTIONRETRIED -> "connectionRetried"
       }
 
   override fun toString(): String = stringValue
@@ -42,10 +50,14 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
      */
     fun fromString(value: String): DiagnosticEventType? =
       when (value) {
+        "disconnected" -> DISCONNECTED
+        "connecting" -> CONNECTING
+        "connected" -> CONNECTED
         "stateChanged" -> STATECHANGED
         "permissionChanged" -> PERMISSIONCHANGED
         "scanStarted" -> SCANSTARTED
         "scanStopped" -> SCANSTOPPED
+        "connectionRetried" -> CONNECTIONRETRIED
         else -> null
       }
   }

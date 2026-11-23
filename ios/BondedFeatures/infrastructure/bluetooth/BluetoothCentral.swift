@@ -24,6 +24,15 @@ public actor BluetoothCentral {
   private var authorizationObservers: [UUID: AsyncStream<CBManagerAuthorization>.Continuation] = [:]
   private var foregroundObserver: (any NSObjectProtocol)?
   private var discoveries: AsyncStream<Discovery>.Continuation?
+  private var peripherals: [UUID: CBPeripheral] = [:]
+  /// Peripherals connected or being connected. Tracked here because when Bluetooth goes off, Core Bluetooth marks
+  /// every peripheral disconnected without telling each one.
+  private var connections: Set<UUID> = []
+  private var connectWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
+  private var disconnectWaiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
+  private var serviceWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
+  private var characteristicWaiters: [UUID: (remaining: Int, continuation: CheckedContinuation<Void, any Error>)] = [:]
+  private var disconnectionObservers: [UUID: AsyncStream<CentralDisconnect>.Continuation] = [:]
 
   public init() {}
 
@@ -111,6 +120,156 @@ public actor BluetoothCentral {
     discoveries = nil
   }
 
+  // MARK: - Connections
+
+  /// Connects to a peripheral the system knows (one found by a scan or connected before) and returns once
+  /// connected. Core Bluetooth waits for the peripheral without a timeout; cancelling the calling task cancels
+  /// the attempt.
+  public func connect(_ identifier: UUID) async throws {
+    guard await managerState() == .poweredOn, let manager else { throw CentralError.notReady }
+    guard let peripheral = manager.retrievePeripherals(withIdentifiers: [identifier]).first else {
+      throw CentralError.unknownPeripheral
+    }
+    peripherals[identifier] = peripheral
+    peripheral.delegate = delegate
+    connections.insert(identifier)
+    if peripheral.state == .connected { return }
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+        connectWaiters[identifier]?.resume(throwing: CancellationError())
+        connectWaiters[identifier] = continuation
+        manager.connect(peripheral)
+      }
+    } onCancel: {
+      Task { await self.cancelConnection(identifier) }
+    }
+  }
+
+  /// Discovers every service and every characteristic of a connected peripheral. Cancelling the calling task
+  /// cancels the connection, which ends the discovery.
+  public func discover(_ identifier: UUID) async throws -> [DiscoveredService] {
+    guard let peripheral = peripherals[identifier], peripheral.state == .connected else { throw CentralError.notConnected }
+    try await withTaskCancellationHandler {
+      try Task.checkCancellation()
+      try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+        serviceWaiters[identifier] = continuation
+        peripheral.discoverServices(nil)
+      }
+      let services = peripheral.services ?? []
+      if !services.isEmpty {
+        try Task.checkCancellation()
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+          characteristicWaiters[identifier] = (services.count, continuation)
+          for service in services {
+            peripheral.discoverCharacteristics(nil, for: service)
+          }
+        }
+      }
+    } onCancel: {
+      Task { await self.cancelConnection(identifier) }
+    }
+    return (peripheral.services ?? []).map(DiscoveredService.init)
+  }
+
+  /// Disconnects a peripheral and returns once it has, or at once when it isn't connected.
+  public func disconnect(_ identifier: UUID) async {
+    guard let manager, let peripheral = peripherals[identifier], peripheral.state != .disconnected else { return }
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+      disconnectWaiters[identifier, default: []].append(continuation)
+      manager.cancelPeripheralConnection(peripheral)
+    }
+  }
+
+  /// Every disconnection of a connected peripheral that `disconnect` didn't cause, from the moment this returns.
+  public func disconnections() -> AsyncStream<CentralDisconnect> {
+    let (stream, continuation) = AsyncStream<CentralDisconnect>.makeStream()
+    let id = UUID()
+    continuation.onTermination = { _ in
+      Task { await self.removeDisconnectionObserver(id) }
+    }
+    disconnectionObservers[id] = continuation
+    return stream
+  }
+
+  /// The peripheral's name as Core Bluetooth last saw it.
+  public func peripheralName(_ identifier: UUID) -> String? {
+    peripherals[identifier]?.name ?? manager?.retrievePeripherals(withIdentifiers: [identifier]).first?.name
+  }
+
+  private func cancelConnection(_ identifier: UUID) {
+    connections.remove(identifier)
+    if let peripheral = peripherals[identifier] {
+      manager?.cancelPeripheralConnection(peripheral)
+    }
+    fail(identifier, with: CancellationError())
+  }
+
+  private func removeDisconnectionObserver(_ id: UUID) {
+    disconnectionObservers[id] = nil
+  }
+
+  /// Ends every wait on this peripheral with `error`.
+  private func fail(_ identifier: UUID, with error: any Error) {
+    connectWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
+    serviceWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
+    characteristicWaiters.removeValue(forKey: identifier)?.continuation.resume(throwing: error)
+  }
+
+  private func handleConnection(_ event: CentralEvent) {
+    switch event {
+    case let .connected(identifier):
+      connectWaiters.removeValue(forKey: identifier)?.resume()
+    case let .failedToConnect(identifier, error):
+      connections.remove(identifier)
+      fail(identifier, with: CentralError.platform(error))
+    case let .disconnected(identifier, error):
+      connections.remove(identifier)
+      let wasRequested = disconnectWaiters[identifier] != nil
+      disconnectWaiters.removeValue(forKey: identifier)?.forEach { $0.resume() }
+      let wasSettingUp = connectWaiters[identifier] != nil || serviceWaiters[identifier] != nil
+        || characteristicWaiters[identifier] != nil
+      fail(identifier, with: CentralError.platform(error ?? PlatformErrorInfo(domain: "", code: 0, message: "Disconnected")))
+      if !wasRequested, !wasSettingUp {
+        let disconnect = CentralDisconnect(identifier: identifier, error: error, isBluetoothOff: false)
+        disconnectionObservers.values.forEach { $0.yield(disconnect) }
+      }
+    case let .servicesDiscovered(identifier, error):
+      if let error {
+        serviceWaiters.removeValue(forKey: identifier)?.resume(throwing: CentralError.platform(error))
+      } else {
+        serviceWaiters.removeValue(forKey: identifier)?.resume()
+      }
+    case let .characteristicsDiscovered(identifier, error):
+      guard var waiter = characteristicWaiters[identifier] else { return }
+      if let error {
+        characteristicWaiters[identifier] = nil
+        waiter.continuation.resume(throwing: CentralError.platform(error))
+        return
+      }
+      waiter.remaining -= 1
+      if waiter.remaining == 0 {
+        characteristicWaiters[identifier] = nil
+        waiter.continuation.resume()
+      } else {
+        characteristicWaiters[identifier] = waiter
+      }
+    default:
+      break
+    }
+  }
+
+  /// Bluetooth left the powered-on state: Core Bluetooth drops every connection without telling each one.
+  private func dropConnections() {
+    let dropped = connections
+    connections.removeAll()
+    for identifier in dropped {
+      disconnectWaiters.removeValue(forKey: identifier)?.forEach { $0.resume() }
+      fail(identifier, with: CentralError.notReady)
+      let disconnect = CentralDisconnect(identifier: identifier, error: nil, isBluetoothOff: true)
+      disconnectionObservers.values.forEach { $0.yield(disconnect) }
+    }
+  }
+
   // MARK: - Manager
 
   private func activate() {
@@ -141,12 +300,15 @@ public actor BluetoothCentral {
     switch event {
     case let .discovered(discovery):
       discoveries?.yield(discovery)
+    case .connected, .failedToConnect, .disconnected, .servicesDiscovered, .characteristicsDiscovered:
+      handleConnection(event)
     case let .stateChanged(newState):
       state = newState
       if newState != .poweredOn {
-        // Core Bluetooth has stopped scanning by itself.
+        // Core Bluetooth has stopped scanning and dropped every connection by itself.
         discoveries?.finish()
         discoveries = nil
+        dropConnections()
       }
       hasReceivedState = true
       let waiters = stateWaiters
@@ -226,6 +388,56 @@ public actor BluetoothCentral {
 enum CentralEvent: Sendable {
   case stateChanged(CBManagerState)
   case discovered(Discovery)
+  case connected(UUID)
+  case failedToConnect(UUID, PlatformErrorInfo)
+  case disconnected(UUID, PlatformErrorInfo?)
+  case servicesDiscovered(UUID, PlatformErrorInfo?)
+  case characteristicsDiscovered(UUID, PlatformErrorInfo?)
+}
+
+/// A Core Bluetooth error, copied into values that can cross actors.
+public struct PlatformErrorInfo: Sendable, Equatable {
+  public let domain: String
+  public let code: Int
+  public let message: String
+
+  init(domain: String, code: Int, message: String) {
+    self.domain = domain
+    self.code = code
+    self.message = message
+  }
+
+  init(_ error: any Error) {
+    let error = error as NSError
+    self.init(domain: error.domain, code: error.code, message: error.localizedDescription)
+  }
+}
+
+/// Why the client couldn't do what it was asked.
+public enum CentralError: Error, Sendable {
+  case notReady
+  case unknownPeripheral
+  case notConnected
+  case platform(PlatformErrorInfo)
+}
+
+/// A connected peripheral disconnected without the app asking.
+public struct CentralDisconnect: Sendable {
+  public let identifier: UUID
+  /// Core Bluetooth's error; `nil` when Bluetooth went off.
+  public let error: PlatformErrorInfo?
+  public let isBluetoothOff: Bool
+}
+
+/// A discovered service and its characteristics, copied out of Core Bluetooth's objects.
+public struct DiscoveredService: Sendable {
+  public let uuid: String
+  public let characteristics: [(uuid: String, properties: UInt)]
+
+  init(_ service: CBService) {
+    uuid = service.uuid.uuidString
+    characteristics = (service.characteristics ?? []).map { ($0.uuid.uuidString, $0.properties.rawValue) }
+  }
 }
 
 /// One advertisement Core Bluetooth reported, copied out of its dictionary into values that can cross actors.
@@ -261,7 +473,7 @@ public struct Discovery: Sendable {
 }
 
 /// Receives Core Bluetooth's callbacks on Bonded's queue and forwards them, in order, to `BluetoothCentral`.
-private final class CentralDelegate: NSObject, CBCentralManagerDelegate, Sendable {
+private final class CentralDelegate: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate, Sendable {
   private let events: AsyncStream<CentralEvent>.Continuation
 
   init(events: AsyncStream<CentralEvent>.Continuation) {
@@ -279,5 +491,26 @@ private final class CentralDelegate: NSObject, CBCentralManagerDelegate, Sendabl
     rssi RSSI: NSNumber
   ) {
     events.yield(.discovered(Discovery(peripheral: peripheral, advertisementData: advertisementData, rssi: RSSI)))
+  }
+
+  func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+    events.yield(.connected(peripheral.identifier))
+  }
+
+  func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: (any Error)?) {
+    let info = error.map(PlatformErrorInfo.init) ?? PlatformErrorInfo(domain: "", code: 0, message: "Couldn't connect")
+    events.yield(.failedToConnect(peripheral.identifier, info))
+  }
+
+  func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: (any Error)?) {
+    events.yield(.disconnected(peripheral.identifier, error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: (any Error)?) {
+    events.yield(.servicesDiscovered(peripheral.identifier, error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
+    events.yield(.characteristicsDiscovered(peripheral.identifier, error.map(PlatformErrorInfo.init)))
   }
 }

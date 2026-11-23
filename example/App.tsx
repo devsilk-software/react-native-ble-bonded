@@ -1,77 +1,105 @@
 import { useState } from 'react'
-import { Button, FlatList, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native'
-import { ble, type DiagnosticEvent, type ScannedDevice } from 'react-native-ble-bonded'
-import { useBluetoothPermission, useBluetoothState, useDiagnosticEvents, useScan } from 'react-native-ble-bonded/hooks'
+import { Button, FlatList, Pressable, SafeAreaView, StatusBar, StyleSheet, Switch, Text, View } from 'react-native'
+import { ble, type DiagnosticEvent, type ScannedDevice, type Service } from 'react-native-ble-bonded'
+import { useBluetoothPermission, useBluetoothState, useDevice, useDiagnosticEvents, useScan } from 'react-native-ble-bonded/hooks'
 
-type Tab = 'scan' | 'diagnostics'
+type Tab = 'scan' | 'device' | 'diagnostics'
 
 // The device-test app: every feature gets a screen here as it lands, for the manual checklist.
 export default function App() {
   const state = useBluetoothState()
   const permission = useBluetoothPermission()
   const [tab, setTab] = useState<Tab>('scan')
+  const [selected, setSelected] = useState<string>()
 
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle='dark-content' />
       <View style={styles.status}>
         <Text style={styles.label}>
           Bluetooth{' '}
-          <Text style={styles.value} testID="bluetooth-state">
+          <Text style={styles.value} testID='bluetooth-state'>
             {state}
           </Text>
         </Text>
         <Text style={styles.label}>
           Permission{' '}
-          <Text style={styles.value} testID="bluetooth-permission">
+          <Text style={styles.value} testID='bluetooth-permission'>
             {permission ?? '…'}
           </Text>
         </Text>
       </View>
       <View style={styles.row}>
-        {permission === 'denied' && <Button title="Request permission" onPress={() => ble.requestPermissions()} />}
-        {permission === 'blocked' && <Button title="Open settings" onPress={() => ble.openSettings()} />}
-        {state === 'poweredOff' && <Button title="Turn Bluetooth on" onPress={() => ble.requestBluetoothOn()} />}
+        {permission === 'denied' && <Button title='Request permission' onPress={() => ble.requestPermissions()} />}
+        {permission === 'blocked' && <Button title='Open settings' onPress={() => ble.openSettings()} />}
+        {state === 'poweredOff' && <Button title='Turn Bluetooth on' onPress={() => ble.requestBluetoothOn()} />}
       </View>
       <View style={styles.tabs}>
-        <Button title="Scan" onPress={() => setTab('scan')} disabled={tab === 'scan'} testID="tab-scan" />
-        <Button title="Diagnostics" onPress={() => setTab('diagnostics')} disabled={tab === 'diagnostics'} testID="tab-diagnostics" />
+        <Button title='Scan' onPress={() => setTab('scan')} disabled={tab === 'scan'} testID='tab-scan' />
+        <Button title='Device' onPress={() => setTab('device')} disabled={tab === 'device' || selected == null} testID='tab-device' />
+        <Button title='Diagnostics' onPress={() => setTab('diagnostics')} disabled={tab === 'diagnostics'} testID='tab-diagnostics' />
       </View>
-      {tab === 'scan' ? <Scanning /> : <Diagnostics />}
+      {tab === 'scan' && (
+        <Scanning
+          onSelect={(id) => {
+            setSelected(id)
+            setTab('device')
+          }}
+        />
+      )}
+      {tab === 'device' && selected != null && <Connection id={selected} />}
+      {tab === 'diagnostics' && <Diagnostics />}
     </SafeAreaView>
   )
 }
 
+// The service the Mac test peripheral advertises (tools/test-peripheral).
+const testService = 'b0ed0001-0000-4000-8000-00000000b0ed'
+
 // useScan scans while mounted, so the list mounts only while scanning is wanted.
-function Scanning() {
+function Scanning({ onSelect }: { onSelect: (id: string) => void }) {
   const [isWanted, setIsWanted] = useState(false)
+  const [isTestOnly, setIsTestOnly] = useState(true)
   return (
     <View style={styles.section}>
       <View style={styles.row}>
         <Text style={styles.label}>Scanning {isWanted ? 'wanted' : 'off'}</Text>
-        <Button title={isWanted ? 'Stop' : 'Scan'} onPress={() => setIsWanted(!isWanted)} testID="scan-toggle" />
+        <Button title={isWanted ? 'Stop' : 'Scan'} onPress={() => setIsWanted(!isWanted)} testID='scan-toggle' />
       </View>
-      {isWanted && <DeviceList />}
+      <View style={styles.row}>
+        <Text style={styles.label}>{isTestOnly ? 'Test peripheral only' : 'Every device'}</Text>
+        <Switch value={isTestOnly} onValueChange={setIsTestOnly} testID='scan-test-only' />
+      </View>
+      {isWanted && <DeviceList onSelect={onSelect} services={isTestOnly ? [testService] : []} />}
     </View>
   )
 }
 
-function DeviceList() {
-  const { devices, isScanning, error, restart } = useScan({ timeout: 30_000 })
+function DeviceList({ onSelect, services }: { onSelect: (id: string) => void; services: string[] }) {
+  const { devices, isScanning, error, restart } = useScan({ services, timeout: 30_000 })
   return (
     <>
       <View style={styles.row}>
-        <Text style={styles.note} testID="scan-status">
+        <Text style={styles.note} testID='scan-status'>
           {isScanning ? `scanning, ${devices.length} found` : `stopped, ${devices.length} found`}
           {error != null ? ` (${error.code}: ${error.message})` : ''}
         </Text>
-        <Button title="Restart" onPress={restart} disabled={isScanning} testID="scan-restart" />
+        <Button title='Restart' onPress={restart} disabled={isScanning} testID='scan-restart' />
       </View>
       <FlatList
-        testID="scanned-devices"
+        testID='scanned-devices'
         data={devices}
         keyExtractor={(device) => device.id}
-        renderItem={({ item }) => <Text style={styles.event}>{describeDevice(item)}</Text>}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => onSelect(item.id)}
+            style={({ pressed }) => [styles.device, pressed && styles.pressed]}
+            testID={`device-${item.name ?? item.id}`}
+          >
+            <Text style={styles.deviceName}>{item.name ?? '(no name)'}</Text>
+            <Text style={styles.event}>{describeDevice(item)}</Text>
+          </Pressable>
+        )}
         ListEmptyComponent={<Text style={styles.note}>No devices yet</Text>}
       />
     </>
@@ -80,7 +108,62 @@ function DeviceList() {
 
 function describeDevice(device: ScannedDevice): string {
   const company = device.manufacturerData == null ? '' : `  company 0x${device.manufacturerData.companyId.toString(16).padStart(4, '0')}`
-  return `${device.rssi} dBm  ${device.name ?? '(no name)'}  ${device.id}${company}`
+  return `${device.rssi} dBm  ${device.id}${company}`
+}
+
+// One device: connect, disconnect, and the services discovered on connecting.
+function Connection({ id }: { id: string }) {
+  const device = useDevice(id)
+  const [services, setServices] = useState<Service[]>()
+  const [failure, setFailure] = useState<string>()
+
+  const run = async (action: () => Promise<unknown>) => {
+    setFailure(undefined)
+    try {
+      await action()
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  const last = device.lastDisconnect
+  return (
+    <View style={styles.section}>
+      <Text style={styles.label}>
+        {device.name ?? '(no name)'}{' '}
+        <Text style={styles.value} testID='connection-state'>
+          {device.connectionState}
+        </Text>
+      </Text>
+      <Text style={styles.event}>{id}</Text>
+      {last != null && (
+        <Text style={styles.note} testID='last-disconnect'>
+          last disconnect: {last.reason}
+          {last.error != null ? ` (${last.error.code}${last.error.platformCode != null ? ` ${last.error.platformCode}` : ''})` : ''}
+        </Text>
+      )}
+      {failure != null && (
+        <Text style={styles.note} testID='connection-failure'>
+          {failure}
+        </Text>
+      )}
+      <View style={styles.row}>
+        <Button title='Connect' onPress={() => run(() => device.connect())} testID='connect' />
+        <Button title='Disconnect' onPress={() => run(() => device.disconnect())} testID='disconnect' />
+        <Button title='Services' onPress={() => run(async () => setServices(await device.getServices()))} testID='services' />
+      </View>
+      <FlatList
+        data={services ?? []}
+        keyExtractor={(service) => service.uuid}
+        renderItem={({ item }) => (
+          <Text style={styles.event}>
+            {item.uuid}
+            {item.characteristics.map((characteristic) => `\n  ${characteristic.uuid} ${characteristic.properties.join(',')}`).join('')}
+          </Text>
+        )}
+      />
+    </View>
+  )
 }
 
 // Diagnostics are off by default; this section turns them on for testing and shows what Bonded recorded.
@@ -96,8 +179,8 @@ function Diagnostics() {
     <View style={styles.section}>
       <View style={styles.row}>
         <Text style={styles.label}>Diagnostics {isEnabled ? 'on' : 'off'}</Text>
-        <Button title={isEnabled ? 'Turn off' : 'Turn on'} onPress={toggle} testID="diagnostics-toggle" />
-        <Button title="Clear" onPress={() => ble.clearDiagnostics()} disabled={!isEnabled} />
+        <Button title={isEnabled ? 'Turn off' : 'Turn on'} onPress={toggle} testID='diagnostics-toggle' />
+        <Button title='Clear' onPress={() => ble.clearDiagnostics()} disabled={!isEnabled} />
       </View>
       <EventList />
     </View>
@@ -108,7 +191,7 @@ function EventList() {
   const events = useDiagnosticEvents({ limit: 50 })
   return (
     <FlatList
-      testID="diagnostic-events"
+      testID='diagnostic-events'
       data={[...events].reverse()}
       keyExtractor={(event, index) => `${event.at}-${index}`}
       renderItem={({ item }) => <Text style={styles.event}>{describe(item)}</Text>}
@@ -132,4 +215,7 @@ const styles = StyleSheet.create({
   section: { flex: 1, borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#c9ced6', paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 8 },
   event: { fontSize: 12, fontFamily: 'Menlo', paddingVertical: 2 },
+  device: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#c9ced6' },
+  pressed: { backgroundColor: '#eef1f5' },
+  deviceName: { fontSize: 16, fontWeight: '600' },
 })

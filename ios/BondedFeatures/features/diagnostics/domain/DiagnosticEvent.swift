@@ -5,6 +5,10 @@ public struct DiagnosticEvent: Sendable, Equatable, Codable {
     case permissionChanged
     case scanStarted
     case scanStopped
+    case connecting
+    case connected
+    case disconnected
+    case connectionRetried
   }
 
   /// Whether the app was in the foreground or the background when the event happened.

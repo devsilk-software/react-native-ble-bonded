@@ -3,7 +3,8 @@ import { Android, Apple, type HybridObject } from 'nitro-core'
 export * from '#nitro/Diagnostics'
 
 /** What happened. The list grows as features land (scans, connections, bonds). */
-export type DiagnosticEventType = 'stateChanged' | 'permissionChanged' | 'scanStarted' | 'scanStopped'
+export type DiagnosticEventType =
+  'stateChanged' | 'permissionChanged' | 'scanStarted' | 'scanStopped' | 'connecting' | 'connected' | 'disconnected' | 'connectionRetried'
 
 /** Whether the app was in the foreground or the background when the event happened. */
 export type DiagnosticAppState = 'foreground' | 'background'

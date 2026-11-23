@@ -17,10 +17,10 @@ namespace margelo::nitro {
   ::NitroBleBonded::ScanStopReason JSIConverter<::NitroBleBonded::ScanStopReason>::fromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     const auto string = value.asString(runtime).utf8(runtime);
     switch (hashString(string)) {
-      case hashString("stopped"): return ::NitroBleBonded::ScanStopReason::fromRawValue(0);
-      case hashString("replaced"): return ::NitroBleBonded::ScanStopReason::fromRawValue(1);
-      case hashString("timeout"): return ::NitroBleBonded::ScanStopReason::fromRawValue(2);
-      case hashString("failed"): return ::NitroBleBonded::ScanStopReason::fromRawValue(3);
+      case hashString("failed"): return ::NitroBleBonded::ScanStopReason::fromRawValue(0);
+      case hashString("stopped"): return ::NitroBleBonded::ScanStopReason::fromRawValue(1);
+      case hashString("replaced"): return ::NitroBleBonded::ScanStopReason::fromRawValue(2);
+      case hashString("timeout"): return ::NitroBleBonded::ScanStopReason::fromRawValue(3);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert \"" + string + "\" to enum ScanStopReason - invalid value!");
     }
@@ -28,10 +28,10 @@ namespace margelo::nitro {
 
   jsi::Value JSIConverter<::NitroBleBonded::ScanStopReason>::toJSI(jsi::Runtime& runtime, const ::NitroBleBonded::ScanStopReason& value) {
     switch (value.getRawValue()) {
-      case 0: return createJSIString<"stopped">(runtime);
-      case 1: return createJSIString<"replaced">(runtime);
-      case 2: return createJSIString<"timeout">(runtime);
-      case 3: return createJSIString<"failed">(runtime);
+      case 0: return createJSIString<"failed">(runtime);
+      case 1: return createJSIString<"stopped">(runtime);
+      case 2: return createJSIString<"replaced">(runtime);
+      case 3: return createJSIString<"timeout">(runtime);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert ScanStopReason to JS - invalid value: " + std::to_string(value.getRawValue()) + "!");
     }
@@ -41,10 +41,10 @@ namespace margelo::nitro {
     if (!value.isString()) return false;
     const auto string = value.getString(runtime).utf8(runtime);
     switch (hashString(string)) {
+      case hashString("failed"): return true;
       case hashString("stopped"): return true;
       case hashString("replaced"): return true;
       case hashString("timeout"): return true;
-      case hashString("failed"): return true;
       default: return false;
     }
   }

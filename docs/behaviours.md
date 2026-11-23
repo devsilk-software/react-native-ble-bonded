@@ -42,6 +42,31 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - expands short service UUIDs to their full form
 - spaces scan starts to stay within Android's limit — Android only
 
+## connection
+
+- connects and discovers the device's services
+- reports connecting, then connected once services are discovered
+- resolves at once when already connected
+- shares one attempt when connect is called again while connecting
+- gives up after the timeout
+- cancels a connection attempt when disconnect is called
+- disconnects when asked and reports it as requested
+- disconnects a device that finished connecting after disconnect was called
+- connects again only after a disconnect still under way has finished
+- reports why the device disconnected
+- reports each device's current state first, then each change
+- retries transient failures, first directly, then waiting for the device
+- fails at once on an error that won't pass on its own
+- refuses to connect while Bluetooth is off or without permission
+- keeps waiting for the device while Bluetooth is off
+- refuses to read services while not connected
+- publishes connection attempts, retries, connections and disconnections
+- maps platform disconnect errors to reasons
+- reads every characteristic's properties
+- plans the setup steps from the workarounds and the bond — Android only
+- applies a connection's own workarounds over the ones set for every connection — Android only
+- retries nothing when retrying transient errors is switched off — Android only
+
 ## diagnostics
 
 - records nothing while diagnostics are off

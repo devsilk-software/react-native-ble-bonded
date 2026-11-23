@@ -6,6 +6,13 @@ import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.observeAdapterState.ObserveAdapterState
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.publishAdapterStateEvents.PublishAdapterStateEvents
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.requestBluetoothOn.RequestBluetoothOn
+import com.margelo.nitro.blebonded.features.connection.adapters.androidConnectionSource.AndroidConnectionSource
+import com.margelo.nitro.blebonded.features.connection.application.services.ConnectionCoordinator
+import com.margelo.nitro.blebonded.features.connection.application.useCases.configureConnections.ConfigureConnections
+import com.margelo.nitro.blebonded.features.connection.application.useCases.connect.Connect
+import com.margelo.nitro.blebonded.features.connection.application.useCases.disconnectDevice.DisconnectDevice
+import com.margelo.nitro.blebonded.features.connection.application.useCases.getServices.GetServices
+import com.margelo.nitro.blebonded.features.connection.application.useCases.observeConnections.ObserveConnections
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.fileDiagnosticsStore.FileDiagnosticsStore
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.systemDiagnosticsEnvironment.SystemDiagnosticsEnvironment
 import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
@@ -68,6 +75,13 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   private val scanner = ScanCoordinator(AndroidScanSource(radio), SystemScanEnvironment(foreground), bus, scope)
   val startScan = StartScan(scanner)
   val stopScan = StopScan(scanner)
+
+  private val connections = ConnectionCoordinator(AndroidConnectionSource(context.applicationContext, radio), bus, scope)
+  val connect = Connect(connections)
+  val disconnect = DisconnectDevice(connections)
+  val getServices = GetServices(connections)
+  val observeConnections = ObserveConnections(connections)
+  val configureConnections = ConfigureConnections(connections)
 
   private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
   private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)

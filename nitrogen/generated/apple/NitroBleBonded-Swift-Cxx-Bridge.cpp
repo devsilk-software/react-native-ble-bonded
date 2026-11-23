@@ -11,14 +11,22 @@
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Callback.hpp>
 #include <NitroModules/SwiftResult.hpp>
+#include <NitroBleBonded/private/HybridConnectionSpecSwift.hpp>
+#include <NitroModules/NitroModules-Swift-Cxx-Umbrella.hpp>
+#include <NitroModules/JSIConverter+SwiftString.hpp>
+#include <NitroBleBonded/private/CharacteristicProperty-Swift.hpp>
+#include <NitroModules/JSIConverter+SwiftArray.hpp>
+#include <NitroBleBonded/private/NativeCharacteristic-Swift.hpp>
+#include <NitroBleBonded/private/NativeService-Swift.hpp>
+#include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__NativeService_-Swift.hpp>
+#include <NitroModules/JSIConverter+SwiftOptional.hpp>
+#include <NitroBleBonded/private/ConnectionState-Swift.hpp>
+#include <NitroBleBonded/private/DisconnectReason-Swift.hpp>
+#include <NitroBleBonded/private/NativeConnectionChange-Swift.hpp>
 #include <NitroBleBonded/private/HybridDiagnosticsSpecSwift.hpp>
 #include <NitroBleBonded/private/DiagnosticEventType-Swift.hpp>
 #include <NitroBleBonded/private/DiagnosticAppState-Swift.hpp>
-#include <NitroModules/NitroModules-Swift-Cxx-Umbrella.hpp>
-#include <NitroModules/JSIConverter+SwiftString.hpp>
-#include <NitroModules/JSIConverter+SwiftOptional.hpp>
 #include <NitroBleBonded/private/DiagnosticEvent-Swift.hpp>
-#include <NitroModules/JSIConverter+SwiftArray.hpp>
 #include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_-Swift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpecSwift.hpp>
 #include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>
@@ -78,6 +86,62 @@ namespace margelo::nitro::blebonded::swift_bridge {
 
   Callback_void___NitroBleBonded__BluetoothAdapterState create_Callback_void___NitroBleBonded__BluetoothAdapterState(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure) {
     return Callback_void___NitroBleBonded__BluetoothAdapterState::make([closure = std::move(closure)](::NitroBleBonded::BluetoothAdapterState param0) -> void {
+      auto __result = borrowSwiftValue(param0, [&](const void* param0) {
+        return closure(param0);
+      });
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    });
+  }
+
+  std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(void* NON_NULL pointer) {
+    return std::make_shared<margelo::nitro::blebonded::HybridConnectionSpecSwift>(::NitroBleBonded::HybridConnectionSpec_cxx::fromUnsafe(pointer));
+  }
+
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridConnectionSpec_(const std::shared_ptr<HybridObject>& value) {
+    auto wrapper = std::dynamic_pointer_cast<margelo::nitro::blebonded::HybridConnectionSpecSwift>(value);
+    if (!wrapper) throw std::runtime_error("HybridConnectionSpec is not implemented in Swift");
+    return wrapper->getSwiftPart().toUnsafe();
+  }
+
+  Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_ create_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_() { return Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_::pending(); }
+
+  void reject_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::exception_ptr error) { promise.reject(std::move(error)); }
+
+  void listenRejected_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::function<void(const std::exception_ptr&)> listener) { promise.addOnRejectedListener(std::move(listener)); }
+
+  void resolve_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, const void* NON_NULL value) {
+    promise.resolve(NitroModules::copySwiftValue<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_>(value));
+  }
+
+  void listen_Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_(const Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_& promise, std::function<void(const void* NON_NULL)> listener) {
+    promise.addOnResolvedListener([listener = std::move(listener)](const ::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_& value) {
+      NitroModules::withSwiftValue(value, [&](const void* pointer) {
+        listener(pointer);
+      });
+    });
+  }
+
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__NativeConnectionChange(const Callback_void___NitroBleBonded__NativeConnectionChange& callback, const void* NON_NULL param0) noexcept {
+    try {
+      callback.callSync(NitroModules::copySwiftValue<::NitroBleBonded::NativeConnectionChange>(param0));
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withValue();
+    } catch (...) {
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withError(std::current_exception());
+    }
+  }
+
+  Promise<void> callAsync_Callback_void___NitroBleBonded__NativeConnectionChange(const Callback_void___NitroBleBonded__NativeConnectionChange& callback, const void* NON_NULL param0) {
+    return callback.callAsync(NitroModules::copySwiftValue<::NitroBleBonded::NativeConnectionChange>(param0));
+  }
+
+  void callAndForget_Callback_void___NitroBleBonded__NativeConnectionChange(const Callback_void___NitroBleBonded__NativeConnectionChange& callback, const void* NON_NULL param0) {
+    callback.callAndForget(NitroModules::copySwiftValue<::NitroBleBonded::NativeConnectionChange>(param0));
+  }
+
+  Callback_void___NitroBleBonded__NativeConnectionChange create_Callback_void___NitroBleBonded__NativeConnectionChange(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure) {
+    return Callback_void___NitroBleBonded__NativeConnectionChange::make([closure = std::move(closure)](const ::NitroBleBonded::NativeConnectionChange& param0) -> void {
       auto __result = borrowSwiftValue(param0, [&](const void* param0) {
         return closure(param0);
       });

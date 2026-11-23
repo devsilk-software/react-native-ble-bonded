@@ -23,10 +23,14 @@ namespace margelo::nitro {
   int32_t JSIConverter<jni::local_ref<margelo::nitro::blebonded::JDiagnosticEventType>>::valueFromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     const auto string = value.asString(runtime).utf8(runtime);
     switch (hashString(string)) {
-      case hashString("stateChanged"): return 0;
-      case hashString("permissionChanged"): return 1;
-      case hashString("scanStarted"): return 2;
-      case hashString("scanStopped"): return 3;
+      case hashString("disconnected"): return 0;
+      case hashString("connecting"): return 1;
+      case hashString("connected"): return 2;
+      case hashString("stateChanged"): return 3;
+      case hashString("permissionChanged"): return 4;
+      case hashString("scanStarted"): return 5;
+      case hashString("scanStopped"): return 6;
+      case hashString("connectionRetried"): return 7;
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert \"" + string + "\" to enum DiagnosticEventType - invalid value!");
     }
@@ -34,10 +38,14 @@ namespace margelo::nitro {
 
   jsi::Value JSIConverter<jni::local_ref<margelo::nitro::blebonded::JDiagnosticEventType>>::toJSI(jsi::Runtime& runtime, jni::alias_ref<margelo::nitro::blebonded::JDiagnosticEventType> value) {
     switch (value->value()) {
-      case 0: return createJSIString<"stateChanged">(runtime);
-      case 1: return createJSIString<"permissionChanged">(runtime);
-      case 2: return createJSIString<"scanStarted">(runtime);
-      case 3: return createJSIString<"scanStopped">(runtime);
+      case 0: return createJSIString<"disconnected">(runtime);
+      case 1: return createJSIString<"connecting">(runtime);
+      case 2: return createJSIString<"connected">(runtime);
+      case 3: return createJSIString<"stateChanged">(runtime);
+      case 4: return createJSIString<"permissionChanged">(runtime);
+      case 5: return createJSIString<"scanStarted">(runtime);
+      case 6: return createJSIString<"scanStopped">(runtime);
+      case 7: return createJSIString<"connectionRetried">(runtime);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert DiagnosticEventType to JS - invalid value: " + std::to_string(value->value()) + "!");
     }
@@ -47,10 +55,14 @@ namespace margelo::nitro {
     if (!value.isString()) return false;
     const auto string = value.getString(runtime).utf8(runtime);
     switch (hashString(string)) {
+      case hashString("disconnected"): return true;
+      case hashString("connecting"): return true;
+      case hashString("connected"): return true;
       case hashString("stateChanged"): return true;
       case hashString("permissionChanged"): return true;
       case hashString("scanStarted"): return true;
       case hashString("scanStopped"): return true;
+      case hashString("connectionRetried"): return true;
       default: return false;
     }
   }

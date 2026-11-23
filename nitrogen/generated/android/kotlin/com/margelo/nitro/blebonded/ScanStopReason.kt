@@ -16,10 +16,10 @@ import com.facebook.proguard.annotations.DoNotStrip
 @DoNotStrip
 @Keep
 enum class ScanStopReason(@DoNotStrip @Keep val value: Int) {
-  STOPPED(0),
-  REPLACED(1),
-  TIMEOUT(2),
-  FAILED(3);
+  FAILED(0),
+  STOPPED(1),
+  REPLACED(2),
+  TIMEOUT(3);
 
   /**
    * Get the String value this ScanStopReason represents.
@@ -27,10 +27,10 @@ enum class ScanStopReason(@DoNotStrip @Keep val value: Int) {
   val stringValue: String
     get() =
       when (this) {
+        FAILED -> "failed"
         STOPPED -> "stopped"
         REPLACED -> "replaced"
         TIMEOUT -> "timeout"
-        FAILED -> "failed"
       }
 
   override fun toString(): String = stringValue
@@ -42,10 +42,10 @@ enum class ScanStopReason(@DoNotStrip @Keep val value: Int) {
      */
     fun fromString(value: String): ScanStopReason? =
       when (value) {
+        "failed" -> FAILED
         "stopped" -> STOPPED
         "replaced" -> REPLACED
         "timeout" -> TIMEOUT
-        "failed" -> FAILED
         else -> null
       }
   }

@@ -18,6 +18,12 @@ final class HybridBluetoothState: HybridBluetoothStateSpec {
     }
   }
 
+  static func requestEnable() throws -> any Promise<BluetoothAdapterState> {
+    Promise___NitroBleBonded__BluetoothAdapterState.async {
+      BluetoothAdapterState(await CompositionRoot.shared.requestBluetoothOn())
+    }
+  }
+
   static func removeStateListener(id: Double) throws {
     listeners.remove(id)
   }

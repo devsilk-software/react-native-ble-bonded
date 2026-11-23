@@ -5,6 +5,7 @@ import com.margelo.nitro.blebonded.features.bluetoothState.adapters.androidAdapt
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.getAdapterState.GetAdapterState
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.observeAdapterState.ObserveAdapterState
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.publishAdapterStateEvents.PublishAdapterStateEvents
+import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.requestBluetoothOn.RequestBluetoothOn
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.fileDiagnosticsStore.FileDiagnosticsStore
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.systemDiagnosticsEnvironment.SystemDiagnosticsEnvironment
 import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
@@ -17,6 +18,12 @@ import com.margelo.nitro.blebonded.features.permissions.application.useCases.get
 import com.margelo.nitro.blebonded.features.permissions.application.useCases.observePermission.ObservePermission
 import com.margelo.nitro.blebonded.features.permissions.application.useCases.publishPermissionEvents.PublishPermissionEvents
 import com.margelo.nitro.blebonded.features.permissions.application.useCases.requestPermission.RequestPermission
+import com.margelo.nitro.blebonded.features.scanning.adapters.androidScanSource.AndroidScanSource
+import com.margelo.nitro.blebonded.features.scanning.adapters.systemScanEnvironment.SystemScanEnvironment
+import com.margelo.nitro.blebonded.features.scanning.application.services.ScanCoordinator
+import com.margelo.nitro.blebonded.features.scanning.application.useCases.startScan.StartScan
+import com.margelo.nitro.blebonded.features.scanning.application.useCases.stopScan.StopScan
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothEnablePrompt
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothRadio
 import com.margelo.nitro.blebonded.infrastructure.lifecycle.AppForeground
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionPrompt
@@ -32,16 +39,17 @@ import kotlinx.coroutines.sync.withLock
 
 /**
  * Creates the shared Bluetooth client, the event bus and the adapters, and builds each use case with them. The Nitro
- * controllers get their use cases from here, passing the application context and the permission dialog,
+ * controllers get their use cases from here, passing the application context and the system dialogs,
  * which only the Nitro module can show, on first use.
  */
-class CompositionRoot private constructor(context: Context, prompt: PermissionPrompt) {
+class CompositionRoot private constructor(context: Context, prompt: PermissionPrompt, enablePrompt: BluetoothEnablePrompt) {
   private val radio = BluetoothRadio(context.applicationContext)
   private val foreground = AppForeground(context)
 
-  private val adapterStateSource = AndroidAdapterStateSource(radio, foreground)
+  private val adapterStateSource = AndroidAdapterStateSource(radio, foreground, enablePrompt)
   val getAdapterState = GetAdapterState(adapterStateSource)
   val observeAdapterState = ObserveAdapterState(adapterStateSource)
+  val requestBluetoothOn = RequestBluetoothOn(adapterStateSource)
 
   private val permissionSource = AndroidPermissionSource(radio, PermissionStore(context), prompt, foreground)
   val getPermissionStatus = GetPermissionStatus(permissionSource)
@@ -56,6 +64,10 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   val getDiagnostics = GetDiagnostics(recorder)
   val clearDiagnostics = ClearDiagnostics(recorder)
   val observeDiagnostics = ObserveDiagnostics(recorder)
+
+  private val scanner = ScanCoordinator(AndroidScanSource(radio), SystemScanEnvironment(foreground), bus, scope)
+  val startScan = StartScan(scanner)
+  val stopScan = StopScan(scanner)
 
   private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
   private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)
@@ -82,9 +94,9 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   companion object {
     @Volatile private var instance: CompositionRoot? = null
 
-    fun get(context: Context, prompt: PermissionPrompt): CompositionRoot =
+    fun get(context: Context, prompt: PermissionPrompt, enablePrompt: BluetoothEnablePrompt): CompositionRoot =
       instance ?: synchronized(this) {
-        instance ?: CompositionRoot(context, prompt).also { instance = it }
+        instance ?: CompositionRoot(context, prompt, enablePrompt).also { instance = it }
       }
   }
 }

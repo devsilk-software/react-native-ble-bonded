@@ -67,6 +67,8 @@ abstract class HybridBluetoothStateSpec: HybridObject() {
 
     fun addStateListener(onChange: Callback<(state: BluetoothAdapterState) -> Unit>): Double
 
+    fun requestEnable(): Promise<BluetoothAdapterState>
+
     fun removeStateListener(id: Double): Unit
   }
 
@@ -89,6 +91,13 @@ abstract class HybridBluetoothStateSpec: HybridObject() {
     @Keep
     private fun addStateListener_cxx(onChange: Callback<(state: BluetoothAdapterState) -> Unit>): Double {
       return HybridBluetoothState.addStateListener(onChange)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun requestEnable_cxx(): Promise<BluetoothAdapterState> {
+      return HybridBluetoothState.requestEnable()
     }
 
     @JvmStatic

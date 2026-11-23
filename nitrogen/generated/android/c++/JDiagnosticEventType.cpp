@@ -25,6 +25,8 @@ namespace margelo::nitro {
     switch (hashString(string)) {
       case hashString("stateChanged"): return 0;
       case hashString("permissionChanged"): return 1;
+      case hashString("scanStarted"): return 2;
+      case hashString("scanStopped"): return 3;
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert \"" + string + "\" to enum DiagnosticEventType - invalid value!");
     }
@@ -34,6 +36,8 @@ namespace margelo::nitro {
     switch (value->value()) {
       case 0: return createJSIString<"stateChanged">(runtime);
       case 1: return createJSIString<"permissionChanged">(runtime);
+      case 2: return createJSIString<"scanStarted">(runtime);
+      case 3: return createJSIString<"scanStopped">(runtime);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert DiagnosticEventType to JS - invalid value: " + std::to_string(value->value()) + "!");
     }
@@ -45,6 +49,8 @@ namespace margelo::nitro {
     switch (hashString(string)) {
       case hashString("stateChanged"): return true;
       case hashString("permissionChanged"): return true;
+      case hashString("scanStarted"): return true;
+      case hashString("scanStopped"): return true;
       default: return false;
     }
   }

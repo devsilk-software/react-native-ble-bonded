@@ -37,6 +37,21 @@ namespace NitroBleBonded { class DiagnosticsConfig; }
 namespace NitroBleBonded { class HybridPermissionsSpec_cxx; }
 // Forward declaration of `BluetoothPermission` to properly resolve imports.
 namespace NitroBleBonded { class BluetoothPermission; }
+// Forward declaration of `HybridScannerSpec_cxx` to properly resolve imports.
+namespace NitroBleBonded { class HybridScannerSpec_cxx; }
+// Forward declaration of `NativeScanOptions` to properly resolve imports.
+namespace NitroBleBonded { class NativeScanOptions; }
+#include <NitroModules/ArrayBuffer.hpp>
+// Forward declaration of `ManufacturerData` to properly resolve imports.
+namespace NitroBleBonded { class ManufacturerData; }
+// Forward declaration of `NativeServiceData` to properly resolve imports.
+namespace NitroBleBonded { class NativeServiceData; }
+// Forward declaration of `NativeScannedDevice` to properly resolve imports.
+namespace NitroBleBonded { class NativeScannedDevice; }
+// Forward declaration of `ScanStopReason` to properly resolve imports.
+namespace NitroBleBonded { class ScanStopReason; }
+// Forward declaration of `NativeScanStop` to properly resolve imports.
+namespace NitroBleBonded { class NativeScanStop; }
 #include <NitroModules/HybridObject.hpp>
 // Forward declaration of `HybridBluetoothStateSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridBluetoothStateSpecSwift; }
@@ -45,6 +60,8 @@ namespace margelo::nitro::blebonded { class HybridBluetoothStateSpecSwift; }
 namespace margelo::nitro::blebonded { class HybridDiagnosticsSpecSwift; }
 // Forward declaration of `HybridPermissionsSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridPermissionsSpecSwift; }
+// Forward declaration of `HybridScannerSpecSwift` to properly resolve imports.
+namespace margelo::nitro::blebonded { class HybridScannerSpecSwift; }
 
 namespace margelo::nitro::blebonded::swift_bridge {
   using std__shared_ptr_margelo__nitro__blebonded__HybridBluetoothStateSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridBluetoothStateSpecSwift>;
@@ -107,4 +124,21 @@ namespace margelo::nitro::blebonded::swift_bridge {
   Promise<void> callAsync_Callback_void___NitroBleBonded__BluetoothPermission(const Callback_void___NitroBleBonded__BluetoothPermission& callback, const void* NON_NULL param0);
   void callAndForget_Callback_void___NitroBleBonded__BluetoothPermission(const Callback_void___NitroBleBonded__BluetoothPermission& callback, const void* NON_NULL param0);
   Callback_void___NitroBleBonded__BluetoothPermission create_Callback_void___NitroBleBonded__BluetoothPermission(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
+  using std__shared_ptr_margelo__nitro__blebonded__HybridScannerSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridScannerSpecSwift>;
+  using std__weak_ptr_margelo__nitro__blebonded__HybridScannerSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridScannerSpecSwift>;
+  inline std__weak_ptr_margelo__nitro__blebonded__HybridScannerSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridScannerSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridScannerSpec_& value) {
+    return value;
+  }
+  std__shared_ptr_margelo__nitro__blebonded__HybridScannerSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridScannerSpec_(void* NON_NULL pointer);
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridScannerSpec_(const std::shared_ptr<HybridObject>& value);
+  using Callback_void___NitroBleBonded__NativeScannedDevice = Callback<void(const ::NitroBleBonded::NativeScannedDevice&)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__NativeScannedDevice(const Callback_void___NitroBleBonded__NativeScannedDevice& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void___NitroBleBonded__NativeScannedDevice(const Callback_void___NitroBleBonded__NativeScannedDevice& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void___NitroBleBonded__NativeScannedDevice(const Callback_void___NitroBleBonded__NativeScannedDevice& callback, const void* NON_NULL param0);
+  Callback_void___NitroBleBonded__NativeScannedDevice create_Callback_void___NitroBleBonded__NativeScannedDevice(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
+  using Callback_void___NitroBleBonded__NativeScanStop = Callback<void(const ::NitroBleBonded::NativeScanStop&)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__NativeScanStop(const Callback_void___NitroBleBonded__NativeScanStop& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void___NitroBleBonded__NativeScanStop(const Callback_void___NitroBleBonded__NativeScanStop& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void___NitroBleBonded__NativeScanStop(const Callback_void___NitroBleBonded__NativeScanStop& callback, const void* NON_NULL param0);
+  Callback_void___NitroBleBonded__NativeScanStop create_Callback_void___NitroBleBonded__NativeScanStop(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
 } // namespace margelo::nitro::blebonded::swift_bridge

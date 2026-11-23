@@ -12,6 +12,11 @@ public struct CoreBluetoothAdapterStateSource: AdapterStateSource {
     Self.adapterState(from: await central.managerState())
   }
 
+  /// iOS has no public way to turn Bluetooth on or to open its settings, so this only reports the state.
+  public func requestEnable() async -> AdapterState {
+    await currentState()
+  }
+
   public func stateChanges() -> AsyncStream<AdapterState> {
     let platformChanges = central.stateUpdates()
     let (stream, continuation) = AsyncStream<AdapterState>.makeStream()

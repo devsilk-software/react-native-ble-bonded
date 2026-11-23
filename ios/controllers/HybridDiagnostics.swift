@@ -38,10 +38,21 @@ final class HybridDiagnostics: HybridDiagnosticsSpec {
   }
 }
 
+extension DiagnosticEventType {
+  init(_ kind: BondedFeatures.DiagnosticEvent.Kind) {
+    switch kind {
+    case .stateChanged: self = .statechanged
+    case .permissionChanged: self = .permissionchanged
+    case .scanStarted: self = .scanstarted
+    case .scanStopped: self = .scanstopped
+    }
+  }
+}
+
 extension NitroBleBonded.DiagnosticEvent {
   init(_ event: BondedFeatures.DiagnosticEvent) {
     self.init(
-      type: event.kind == .stateChanged ? .statechanged : .permissionchanged,
+      type: DiagnosticEventType(event.kind),
       at: Double(event.at),
       appState: event.appActivity == .background ? .background : .foreground,
       deviceId: event.deviceId,

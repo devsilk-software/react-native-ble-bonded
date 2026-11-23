@@ -23,6 +23,37 @@ class AppForeground(context: Context) {
     return state.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
   }
 
+  /**
+   * True each time the app goes to the background (its last activity stops), false each time it returns (an
+   * activity starts after none was).
+   */
+  fun backgroundChanges(): Flow<Boolean> =
+    callbackFlow {
+      var started = if (isInForeground()) 1 else 0
+      val callbacks =
+        object : Application.ActivityLifecycleCallbacks {
+          override fun onActivityStarted(activity: Activity) {
+            if (started++ == 0) trySend(false)
+          }
+
+          override fun onActivityStopped(activity: Activity) {
+            if (started > 0 && --started == 0) trySend(true)
+          }
+
+          override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+          override fun onActivityResumed(activity: Activity) = Unit
+
+          override fun onActivityPaused(activity: Activity) = Unit
+
+          override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+          override fun onActivityDestroyed(activity: Activity) = Unit
+        }
+      application.registerActivityLifecycleCallbacks(callbacks)
+      awaitClose { application.unregisterActivityLifecycleCallbacks(callbacks) }
+    }
+
   /** One value each time an activity resumes, from now on. */
   fun resumes(): Flow<Unit> =
     callbackFlow {

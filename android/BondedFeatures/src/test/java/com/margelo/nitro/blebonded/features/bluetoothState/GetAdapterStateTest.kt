@@ -3,6 +3,7 @@ package com.margelo.nitro.blebonded.features.bluetoothState
 import android.bluetooth.BluetoothAdapter
 import com.margelo.nitro.blebonded.features.bluetoothState.adapters.androidAdapterStateSource.AndroidAdapterStateSource
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.getAdapterState.GetAdapterState
+import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.requestBluetoothOn.RequestBluetoothOn
 import com.margelo.nitro.blebonded.features.bluetoothState.domain.AdapterState
 import com.margelo.nitro.blebonded.mocks.FakeAdapterStateSource
 import io.kotest.core.spec.style.BehaviorSpec
@@ -15,6 +16,15 @@ class GetAdapterStateTest : BehaviorSpec({
         then("reports the radio's current state") {
           GetAdapterState(FakeAdapterStateSource(state))() shouldBe state
         }
+      }
+    }
+  }
+
+  given("Bluetooth switched off") {
+    `when`("the user agrees to turn it on") {
+      then("reports the state after asking to turn Bluetooth on") {
+        RequestBluetoothOn(FakeAdapterStateSource(AdapterState.POWERED_OFF, afterEnableRequest = AdapterState.POWERED_ON))() shouldBe
+          AdapterState.POWERED_ON
       }
     }
   }

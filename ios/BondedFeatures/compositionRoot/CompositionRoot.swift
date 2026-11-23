@@ -5,12 +5,15 @@ public final class CompositionRoot: Sendable {
 
   public let getAdapterState: GetAdapterState
   public let observeAdapterState: ObserveAdapterState
+  public let requestBluetoothOn: RequestBluetoothOn
   public let getPermissionStatus: GetPermissionStatus
   public let requestPermission: RequestPermission
   public let observePermission: ObservePermission
   public let getDiagnostics: GetDiagnostics
   public let clearDiagnostics: ClearDiagnostics
   public let observeDiagnostics: ObserveDiagnostics
+  public let startScan: StartScan
+  public let stopScan: StopScan
 
   private let configure: ConfigureDiagnostics
   private let publishers: EventPublishers
@@ -23,21 +26,31 @@ public final class CompositionRoot: Sendable {
     let adapterStateSource = CoreBluetoothAdapterStateSource(central: central)
     getAdapterState = GetAdapterState(source: adapterStateSource)
     observeAdapterState = ObserveAdapterState(source: adapterStateSource)
+    requestBluetoothOn = RequestBluetoothOn(source: adapterStateSource)
 
     let permissionSource = CoreBluetoothPermissionSource(central: central)
     getPermissionStatus = GetPermissionStatus(source: permissionSource)
     requestPermission = RequestPermission(source: permissionSource)
     observePermission = ObservePermission(source: permissionSource)
 
+    let activity = AppLifecycle()
     let recorder = DiagnosticsRecorder(
       bus: bus,
       store: FileDiagnosticsStore(),
-      environment: SystemDiagnosticsEnvironment(activity: AppActivity())
+      environment: SystemDiagnosticsEnvironment(activity: activity)
     )
     configure = ConfigureDiagnostics(recorder: recorder)
     getDiagnostics = GetDiagnostics(recorder: recorder)
     clearDiagnostics = ClearDiagnostics(recorder: recorder)
     observeDiagnostics = ObserveDiagnostics(recorder: recorder)
+
+    let scanner = ScanCoordinator(
+      source: CoreBluetoothScanSource(central: central),
+      environment: SystemScanEnvironment(activity: activity),
+      bus: bus
+    )
+    startScan = StartScan(coordinator: scanner)
+    stopScan = StopScan(coordinator: scanner)
 
     publishers = EventPublishers(
       adapterState: PublishAdapterStateEvents(observe: observeAdapterState, bus: bus),

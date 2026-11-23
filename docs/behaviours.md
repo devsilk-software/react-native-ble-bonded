@@ -13,6 +13,7 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - maps every platform state to an adapter state
 - reports the current state first, then each change
 - suppresses repeated states
+- reports the state after asking to turn Bluetooth on
 
 ## permissions
 
@@ -23,6 +24,23 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - suppresses repeated statuses
 - reports blocked only after the app has asked before — Android only
 - asks for scan and connect permissions from Android 12, location before — Android only
+
+## scanning
+
+- reports each device found with its advertisement
+- reports each device once unless duplicates are allowed
+- reports only devices whose name matches the filter
+- splits the company ID off the manufacturer data
+- includes the full advertisement only when asked
+- stops the scan after the timeout
+- replaces a running scan when a new one starts
+- refuses to scan while Bluetooth is off or without permission
+- refuses an unfiltered scan in the background
+- pauses an unfiltered scan in the background and resumes it in the foreground
+- reports a failure when Bluetooth goes off during a scan
+- publishes when a scan starts and stops
+- expands short service UUIDs to their full form
+- spaces scan starts to stay within Android's limit — Android only
 
 ## diagnostics
 

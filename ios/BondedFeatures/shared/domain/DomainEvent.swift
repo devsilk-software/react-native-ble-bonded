@@ -4,11 +4,13 @@ public struct DomainEvent: Sendable, Equatable {
   public enum Kind: String, Sendable, CaseIterable {
     case stateChanged
     case permissionChanged
+    case scanStarted
+    case scanStopped
   }
 
   public let kind: Kind
   public let deviceId: DeviceId?
-  /// The new value or other short detail, in Bonded's public words (`poweredOff`, `blocked`).
+  /// The new value or other short detail, in Bonded's public words (`poweredOff`, `blocked`, `timeout`).
   public let detail: String?
   public let errorCode: BleError.Code?
   public let platformCode: Int?

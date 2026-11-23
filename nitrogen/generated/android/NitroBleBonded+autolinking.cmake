@@ -18,6 +18,8 @@ target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_BluetoothAdapterState.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_BluetoothPermission.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_DiagnosticEvent.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_NativeScanStop.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_NativeScannedDevice.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticAppState.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticEvent.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticEventType.cpp"
@@ -25,6 +27,13 @@ target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridBluetoothStateSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridDiagnosticsSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridPermissionsSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridScannerSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JManufacturerData.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeScanOptions.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeScanStop.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeScannedDevice.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JNativeServiceData.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JScanStopReason.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../shared/c++/NitroBleBondedCxxModule.cpp"
 )
 

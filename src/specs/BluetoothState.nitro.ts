@@ -32,6 +32,12 @@ export declare class BluetoothState extends HybridObject {
    */
   static addStateListener(onChange: (state: BluetoothAdapterState) => void): number
 
+  /**
+   * Asks the user to turn Bluetooth on and resolves with the resulting state. Android shows the system dialog;
+   * iOS has no public way to, so it resolves with the current state without showing anything.
+   */
+  static requestEnable(): Promise<BluetoothAdapterState>
+
   /** Stops the listener `addStateListener` returned this ID for. */
   static removeStateListener(id: number): void
 }

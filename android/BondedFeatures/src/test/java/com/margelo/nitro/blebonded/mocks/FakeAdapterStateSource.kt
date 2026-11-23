@@ -9,8 +9,12 @@ import kotlinx.coroutines.flow.emptyFlow
 class FakeAdapterStateSource(
   private val state: AdapterState,
   private val changes: Flow<AdapterState> = emptyFlow(),
+  /** The state after the user answers the request to turn Bluetooth on. */
+  private val afterEnableRequest: AdapterState = state,
 ) : AdapterStateSource {
   override suspend fun currentState(): AdapterState = state
+
+  override suspend fun requestEnable(): AdapterState = afterEnableRequest
 
   override fun stateChanges(): Flow<AdapterState> = changes
 }

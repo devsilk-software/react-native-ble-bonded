@@ -6,7 +6,14 @@
 ///
 
 #pragma once
-
+// TODO: Remove once react-nitro's minimum Xcode includes https://github.com/swiftlang/swift/pull/93293.
+// Works around https://github.com/swiftlang/swift/issues/93289: NitroBleBonded-Swift.h calls hidden
+// Swift metadata accessors, so call the exported functions in NitroBleBonded+ForeignTypeMetadata.swift
+// instead. Must precede every -Swift.h include.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+#pragma redefine_extname $sSo7margeloO5nitroO11ArrayBufferVMa _nitro_NitroBleBonded_metadata_ArrayBuffer
+#pragma clang diagnostic pop
 // Private C++ implementation includes. Never import this umbrella from Swift.
 // Include Swift defined types. They define swift::Optional and swift::Array,
 // which the C++ helpers below only forward-declare for Swift's importer.
@@ -44,3 +51,11 @@
 #include <NitroBleBonded/private/DiagnosticsConfig-Swift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpec_cxx-Swift.hpp>
 #include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>
+#include <NitroBleBonded/private/HybridScannerSpec_cxx-Swift.hpp>
+#include <NitroBleBonded/private/NativeScanOptions-Swift.hpp>
+#include <NitroModules/ArrayBuffer.hpp>
+#include <NitroBleBonded/private/ManufacturerData-Swift.hpp>
+#include <NitroBleBonded/private/NativeServiceData-Swift.hpp>
+#include <NitroBleBonded/private/NativeScannedDevice-Swift.hpp>
+#include <NitroBleBonded/private/ScanStopReason-Swift.hpp>
+#include <NitroBleBonded/private/NativeScanStop-Swift.hpp>

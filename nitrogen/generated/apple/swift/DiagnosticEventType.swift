@@ -14,6 +14,8 @@
 public enum DiagnosticEventType: Int32, CaseIterable, Sendable, CustomStringConvertible {
   case `statechanged` = 0
   case `permissionchanged` = 1
+  case `scanstarted` = 2
+  case `scanstopped` = 3
 
   public static func fromRawValue(_ value: Int32) -> Self {
     return Self(rawValue: value)!
@@ -31,6 +33,10 @@ public extension DiagnosticEventType {
         self = .statechanged
       case "permissionChanged":
         self = .permissionchanged
+      case "scanStarted":
+        self = .scanstarted
+      case "scanStopped":
+        self = .scanstopped
       default:
         return nil
     }
@@ -45,6 +51,10 @@ public extension DiagnosticEventType {
         return "stateChanged"
       case .permissionchanged:
         return "permissionChanged"
+      case .scanstarted:
+        return "scanStarted"
+      case .scanstopped:
+        return "scanStopped"
     }
   }
 

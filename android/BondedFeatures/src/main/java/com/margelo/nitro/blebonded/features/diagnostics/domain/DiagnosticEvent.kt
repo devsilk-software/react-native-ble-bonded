@@ -11,7 +11,7 @@ data class DiagnosticEvent(
   val platformCode: Int? = null,
   val detail: String? = null,
 ) {
-  enum class Kind { STATE_CHANGED, PERMISSION_CHANGED }
+  enum class Kind { STATE_CHANGED, PERMISSION_CHANGED, SCAN_STARTED, SCAN_STOPPED }
 
   /** Whether the app was in the foreground or the background when the event happened. */
   enum class AppActivity { FOREGROUND, BACKGROUND }

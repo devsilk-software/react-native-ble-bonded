@@ -59,7 +59,7 @@ namespace margelo::nitro::blebonded {
     // Methods
     // Static methods
     static Promise<ArrayBuffer> read(const swift::String& id, const swift::String& service, const swift::String& characteristic, double timeoutMs);
-    static Promise<double> subscribe(const swift::String& id, const swift::String& service, const swift::String& characteristic, const Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>& onValues, const Callback<void(const swift::String&)>& onError);
+    static Promise<double> subscribe(const swift::String& id, const swift::String& service, const swift::String& characteristic, const Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>& onValues, const Callback<void(const swift::String&)>& onError, const Callback<void()>& onEnd);
     static Promise<void> unsubscribe(double subscription);
     static Promise<void> write(const swift::String& id, const swift::String& service, const swift::String& characteristic, const ArrayBuffer& value, bool withResponse, double timeoutMs);
 

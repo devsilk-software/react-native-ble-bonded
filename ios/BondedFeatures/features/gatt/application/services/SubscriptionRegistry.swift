@@ -92,6 +92,7 @@ public actor SubscriptionRegistry {
     case .forgotten:
       for (subscription, entry) in entries where entry.device == device {
         entries[subscription] = nil
+        entry.continuation.yield(.ended)
         entry.continuation.finish()
       }
     default:

@@ -182,6 +182,9 @@ namespace margelo::nitro::blebonded::swift_bridge {
   Promise<void> callAsync_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0);
   void callAndForget_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0);
   Callback_void_swift__String create_Callback_void_swift__String(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
+  using Callback_void = Callback<void()>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void(const Callback_void& callback) noexcept;
+  Callback_void create_Callback_void(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>()> closure);
   using std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
   using std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
   inline std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_& value) {

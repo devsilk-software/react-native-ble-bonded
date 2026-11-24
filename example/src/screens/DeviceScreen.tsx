@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button, Chip, Divider, List, Text } from 'react-native-paper'
 import type { Service } from 'react-native-ble-bonded'
@@ -202,15 +202,16 @@ export function DeviceScreen({ id }: { id: string }) {
   )
 }
 
-// The Mac test peripheral's counter, live. The subscription outlives disconnects while this stays on.
+// The Mac test peripheral's counter, live. The subscription outlives disconnects while this stays on, and ends
+// when the device is forgotten.
 function Notifications({ id, isConnected }: { id: string; isConnected: boolean }) {
   const [isOn, setIsOn] = useState(false)
-  // Subscribe only while connected; once on, it stays on across disconnects until Stop.
+  // Subscribe is offered only while connected; once on, it stays on across disconnects until Stop or Forget.
   if (!isOn && !isConnected) return null
   return (
     <Section title='Notifications'>
       {isOn ? (
-        <LiveValue id={id} />
+        <LiveValue id={id} onEnd={() => setIsOn(false)} />
       ) : (
         <Text variant='bodySmall' style={styles.hint}>
           The Mac test peripheral counts up every second.
@@ -225,14 +226,26 @@ function Notifications({ id, isConnected }: { id: string; isConnected: boolean }
   )
 }
 
-function LiveValue({ id }: { id: string }) {
+function LiveValue({ id, onEnd }: { id: string; onEnd: () => void }) {
   const device = useDevice(id)
-  const { value, error } = useNotifications(device, testService, testNotify)
+  const { isSubscribed, value, error } = useNotifications(device, testService, testNotify)
+  // The subscription ended without Stop: the device was forgotten.
+  const wasSubscribed = useRef(false)
+  useEffect(() => {
+    if (isSubscribed) wasSubscribed.current = true
+    else if (wasSubscribed.current) onEnd()
+  }, [isSubscribed, onEnd])
   return (
     <>
       <Text variant='headlineSmall' testID='notified-value'>
         {value == null ? 'Waiting for a value…' : String.fromCharCode(...new Uint8Array(value))}
       </Text>
+      {device.connectionState !== 'connected' && (
+        <Text variant='bodySmall' style={styles.hint} testID='notifications-paused'>
+          {device.connectionState === 'disconnected' ? 'Disconnected' : 'Not connected yet'}: notifications resume when the device
+          reconnects.
+        </Text>
+      )}
       {error != null && <OutcomeCard outcome={outcomeOf(error)} />}
     </>
   )

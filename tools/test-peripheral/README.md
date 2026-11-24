@@ -18,4 +18,4 @@ waits for the device, quit, tap Connect on the phone, then start the tool again.
 | Service | `b0ed0001-0000-4000-8000-00000000b0ed` | advertised, so a scan can filter on it |
 | Read | `b0ed0002-0000-4000-8000-00000000b0ed` | a counter that grows on every read |
 | Write | `b0ed0003-0000-4000-8000-00000000b0ed` | prints every write, with or without response |
-| Notify | `b0ed0004-0000-4000-8000-00000000b0ed` | a counter every second while subscribed |
+| Notify | `b0ed0004-0000-4000-8000-00000000b0ed` | every second while subscribed, the seconds since the tool started; it never resets |

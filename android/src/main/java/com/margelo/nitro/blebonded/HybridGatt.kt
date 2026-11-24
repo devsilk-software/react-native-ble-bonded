@@ -61,6 +61,7 @@ class HybridGatt : HybridGattSpec() {
       characteristic: String,
       onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>,
       onError: Callback<(message: String) -> Unit>,
+      onEnd: Callback<() -> Unit>,
     ): Promise<Double> {
       val address = address(service, characteristic)
       return Promise.async {
@@ -79,6 +80,10 @@ class HybridGatt : HybridGattSpec() {
               is SubscriptionEvent.Failed -> {
                 batch.flush()
                 onError(event.error.jsMessage)
+              }
+              SubscriptionEvent.Ended -> {
+                batch.flush()
+                onEnd()
               }
             }
           }

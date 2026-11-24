@@ -25,7 +25,9 @@ final class Peripheral: NSObject, @MainActor CBPeripheralManagerDelegate {
   private let name: String
   private var manager: CBPeripheralManager?
   private var readCount = 0
-  private var notifyCount = 0
+  // Seconds since the tool started: one counter that never resets, so a resumed subscription jumps ahead.
+  private let started = Date()
+  private var notifyCount: Int { Int(Date().timeIntervalSince(started)) }
   private var subscribers: [CBCentral] = []
   private var ticker: Timer?
   private let notifyCharacteristic = CBMutableCharacteristic(
@@ -138,7 +140,6 @@ final class Peripheral: NSObject, @MainActor CBPeripheralManagerDelegate {
   }
 
   private func tick() {
-    notifyCount += 1
     _ = manager?.updateValue(Data("tick \(notifyCount)".utf8), for: notifyCharacteristic, onSubscribedCentrals: nil)
   }
 }

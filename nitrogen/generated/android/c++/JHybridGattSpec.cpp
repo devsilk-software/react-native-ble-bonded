@@ -20,6 +20,7 @@
 #include <NitroModules/JNIConverter+Array.hpp>
 #include <NitroModules/JSIConverter+JArrayClass.hpp>
 #include <NitroBleBonded/private/JCallback_void_std__string.hpp>
+#include <NitroBleBonded/private/JCallback_void.hpp>
 
 namespace margelo::nitro::blebonded {
 
@@ -31,9 +32,9 @@ namespace margelo::nitro::blebonded {
     return __result;
   }
 
-  jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> JHybridGattSpec::subscribe(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>>& onValues, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>>& onError) {
-    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>> /* onValues */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>> /* onError */)>("subscribe_cxx");
-    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, onValues, onError);
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> JHybridGattSpec::subscribe(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>>& onValues, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>>& onError, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void::JavaPart>>& onEnd) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>> /* onValues */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>> /* onError */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void::JavaPart>> /* onEnd */)>("subscribe_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, onValues, onError, onEnd);
     return __result;
   }
 

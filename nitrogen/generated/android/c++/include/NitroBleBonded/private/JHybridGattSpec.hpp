@@ -26,6 +26,7 @@
 #include <NitroModules/JNIConverter+Array.hpp>
 #include <NitroModules/JSIConverter+JArrayClass.hpp>
 #include <NitroBleBonded/private/JCallback_void_std__string.hpp>
+#include <NitroBleBonded/private/JCallback_void.hpp>
 #include <NitroBleBonded/private/JHybridGattSpec.hpp>
 
 namespace margelo::nitro::blebonded {
@@ -81,7 +82,7 @@ namespace margelo::nitro::blebonded {
   public:
     // Constructor and static members
     static jni::local_ref<JTypedPromise<jni::local_ref<JArrayBuffer::JavaPart>>> read(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, jdouble timeoutMs);
-    static jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> subscribe(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>>& onValues, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>>& onError);
+    static jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> subscribe(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>>& onValues, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>>& onError, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void::JavaPart>>& onEnd);
     static jni::local_ref<JTypedPromise<void>> unsubscribe(jdouble subscription);
     static jni::local_ref<JTypedPromise<void>> write(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JArrayBuffer::JavaPart>& value, jboolean withResponse, jdouble timeoutMs);
 

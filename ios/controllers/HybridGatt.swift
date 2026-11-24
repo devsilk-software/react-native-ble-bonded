@@ -49,7 +49,8 @@ extension HybridGatt {
     service: String,
     characteristic: String,
     onValues: any Callback<([ArrayBuffer]), Void>,
-    onError: any Callback<(String), Void>
+    onError: any Callback<(String), Void>,
+    onEnd: any Callback<(), Void>
   ) throws -> any Promise<Double> {
     let address = try CharacteristicAddress(service, characteristic)
     return Promise_double.async {
@@ -73,6 +74,9 @@ extension HybridGatt {
           case let .failed(error):
             await batcher.flush()
             onError.callAndForget(error.jsMessage)
+          case .ended:
+            await batcher.flush()
+            onEnd.callAndForget()
           }
         }
         await batcher.flush()

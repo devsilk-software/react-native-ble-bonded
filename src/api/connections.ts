@@ -86,6 +86,8 @@ export interface SubscribeOptions {
    * error: connection listeners report it.
    */
   onError?: (error: BleError) => void
+  /** Called once when Bonded removed the subscription itself, because the app forgot the device. */
+  onEnd?: () => void
 }
 
 export interface WriteOptions extends OperationOptions {
@@ -383,6 +385,11 @@ export class Device {
         (message) => {
           const error = toBleError(new Error(message), 'subscribe', deviceId)
           if (!isRemoved && error instanceof BleError) options.onError?.(error)
+        },
+        () => {
+          if (isRemoved) return
+          isRemoved = true
+          options.onEnd?.()
         }
       )
     } catch (error) {

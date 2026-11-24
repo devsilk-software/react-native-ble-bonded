@@ -101,7 +101,12 @@ class SubscriptionRegistry(private val source: CharacteristicSource, private val
       DomainEvent.Kind.FORGOTTEN ->
         lock.withLock {
           entries.entries.removeAll { (_, entry) ->
-            (entry.device == device).also { if (it) entry.events.close() }
+            (entry.device == device).also {
+              if (it) {
+                entry.events.trySend(SubscriptionEvent.Ended)
+                entry.events.close()
+              }
+            }
           }
         }
       else -> Unit

@@ -116,7 +116,7 @@ struct SubscriptionTests {
     await bus.publish(DomainEvent(kind: .forgotten, deviceId: device))
     await eventually { await recorder.isFinished }
 
-    #expect(await recorder.events.isEmpty)
+    #expect(await recorder.events == [.ended])
     _ = try await registry.subscribe(to: testCharacteristic, on: device)
   }
 }

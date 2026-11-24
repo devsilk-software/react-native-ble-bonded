@@ -141,7 +141,9 @@ export function useConnectedDevices(): Device[] {
 }
 
 export interface NotificationsResult {
-  /** The latest value the characteristic notified; `undefined` until the first. */
+  /** Whether the subscription is on: from when the device switched notifications on until unmount or forget. */
+  isSubscribed: boolean
+  /** The latest value the characteristic notified; `undefined` until the first, and again after the device is forgotten. */
   value?: ArrayBuffer
   /** Why subscribing or switching notifications back on failed. */
   error?: BleError
@@ -151,11 +153,13 @@ export interface NotificationsResult {
  * The characteristic's latest notified value, for screens that show a live reading. Subscribes once the device is
  * connected and keeps the subscription while mounted, across disconnects; removes it on unmount. Re-renders at most
  * once per batch of values (about every 16 ms). One subscription per characteristic: using the hook twice for the
- * same characteristic puts `alreadySubscribed` in `error`; share the reading in your app instead.
+ * same characteristic puts `alreadySubscribed` in `error`; share the reading in your app instead. When the app
+ * forgets the device, the subscription ends: `isSubscribed` turns false and `value` clears.
  */
 export function useNotifications(device: Device | undefined, service: string, characteristic: string): NotificationsResult {
   const [value, setValue] = useState<ArrayBuffer>()
   const [error, setError] = useState<BleError>()
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const id = device?.id
   const isConnected = device?.connectionState === 'connected'
   // Subscribe once the device first connects; the subscription then outlives disconnects until unmount.
@@ -167,12 +171,23 @@ export function useNotifications(device: Device | undefined, service: string, ch
     let isActive = true
     let subscription: { remove(): void } | undefined
     setError(undefined)
+    const ended = () => {
+      if (!isActive) return
+      setIsSubscribed(false)
+      setValue(undefined)
+      // A forgotten device that connects again starts a fresh subscription.
+      setHasConnected(false)
+    }
     ble
       .device(id)
-      .subscribe(service, characteristic, (next) => isActive && setValue(next), { onError: (failure) => isActive && setError(failure) })
+      .subscribe(service, characteristic, (next) => isActive && setValue(next), {
+        onError: (failure) => isActive && setError(failure),
+        onEnd: ended,
+      })
       .then((started) => {
-        if (isActive) subscription = started
-        else started.remove()
+        if (!isActive) return started.remove()
+        subscription = started
+        setIsSubscribed(true)
       })
       .catch((failure: unknown) => {
         if (isActive) setError(failure instanceof BleError ? failure : new BleError('unknown', String(failure), { operation: 'subscribe' }))
@@ -180,10 +195,11 @@ export function useNotifications(device: Device | undefined, service: string, ch
     return () => {
       isActive = false
       subscription?.remove()
+      setIsSubscribed(false)
     }
   }, [id, service, characteristic, hasConnected])
 
-  return { value, error }
+  return { isSubscribed, value, error }
 }
 
 /** How often `useScan` re-renders at most while devices are reported. */

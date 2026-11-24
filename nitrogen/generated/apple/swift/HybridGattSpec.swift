@@ -23,7 +23,7 @@ public protocol HybridGattSpec_protocol: HybridGattSpec_base, HybridObject {
 
   // Static Methods
   static func read(id: String, service: String, characteristic: String, timeoutMs: Double) throws -> any Promise<ArrayBuffer>
-  static func subscribe(id: String, service: String, characteristic: String, onValues: any Callback<(/* values */ [ArrayBuffer]), Void>, onError: any Callback<(/* message */ String), Void>) throws -> any Promise<Double>
+  static func subscribe(id: String, service: String, characteristic: String, onValues: any Callback<(/* values */ [ArrayBuffer]), Void>, onError: any Callback<(/* message */ String), Void>, onEnd: any Callback<(), Void>) throws -> any Promise<Double>
   static func unsubscribe(subscription: Double) throws -> any Promise<Void>
   static func write(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Bool, timeoutMs: Double) throws -> any Promise<Void>
 }

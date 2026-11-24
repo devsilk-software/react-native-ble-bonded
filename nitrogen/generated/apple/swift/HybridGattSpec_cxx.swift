@@ -141,9 +141,9 @@ public final class HybridGattSpec_cxx {
     }
   }
 
-  public class func subscribe(id: String, service: String, characteristic: String, onValues: UnsafeRawPointer, onError: UnsafeRawPointer, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+  public class func subscribe(id: String, service: String, characteristic: String, onValues: UnsafeRawPointer, onError: UnsafeRawPointer, onEnd: UnsafeRawPointer, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
     do {
-      let value = try HybridGatt.subscribe(id: id, service: service, characteristic: characteristic, onValues: onValues.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_.self), onError: onError.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void_swift__String.self))
+      let value = try HybridGatt.subscribe(id: id, service: service, characteristic: characteristic, onValues: onValues.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_.self), onError: onError.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void_swift__String.self), onEnd: onEnd.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void.self))
       __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_double.self, repeating: value.toCpp(), count: 1)
       return bridge.Result_void.withValue()
     } catch {

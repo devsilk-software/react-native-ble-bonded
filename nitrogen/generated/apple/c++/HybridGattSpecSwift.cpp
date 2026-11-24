@@ -32,12 +32,14 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
-  Promise<double> HybridGattSpecSwift::subscribe(const swift::String& id, const swift::String& service, const swift::String& characteristic, const Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>& onValues, const Callback<void(const swift::String&)>& onError) {
+  Promise<double> HybridGattSpecSwift::subscribe(const swift::String& id, const swift::String& service, const swift::String& characteristic, const Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>& onValues, const Callback<void(const swift::String&)>& onError, const Callback<void()>& onEnd) {
     auto __result = ([&](const void* onValues) {
       return ([&](const void* onError) {
-        return withCxxResult<Promise<double>>([&](void* __outResult) {
-          return ::NitroBleBonded::HybridGattSpec_cxx::subscribe(id, service, characteristic, onValues, onError, __outResult);
-        });
+        return ([&](const void* onEnd) {
+          return withCxxResult<Promise<double>>([&](void* __outResult) {
+            return ::NitroBleBonded::HybridGattSpec_cxx::subscribe(id, service, characteristic, onValues, onError, onEnd, __outResult);
+          });
+        })(std::addressof(onEnd));
       })(std::addressof(onError));
     })(std::addressof(onValues));
     if (__result.hasError()) [[unlikely]] {

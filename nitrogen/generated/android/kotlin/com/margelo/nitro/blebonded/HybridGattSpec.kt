@@ -66,7 +66,7 @@ abstract class HybridGattSpec: HybridObject() {
     // Static Methods
     fun read(id: String, service: String, characteristic: String, timeoutMs: Double): Promise<ArrayBuffer>
 
-    fun subscribe(id: String, service: String, characteristic: String, onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>, onError: Callback<(message: String) -> Unit>): Promise<Double>
+    fun subscribe(id: String, service: String, characteristic: String, onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>, onError: Callback<(message: String) -> Unit>, onEnd: Callback<() -> Unit>): Promise<Double>
 
     fun unsubscribe(subscription: Double): Promise<Unit>
 
@@ -90,8 +90,8 @@ abstract class HybridGattSpec: HybridObject() {
     @JvmStatic
     @DoNotStrip
     @Keep
-    private fun subscribe_cxx(id: String, service: String, characteristic: String, onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>, onError: Callback<(message: String) -> Unit>): Promise<Double> {
-      return HybridGatt.subscribe(id, service, characteristic, onValues, onError)
+    private fun subscribe_cxx(id: String, service: String, characteristic: String, onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>, onError: Callback<(message: String) -> Unit>, onEnd: Callback<() -> Unit>): Promise<Double> {
+      return HybridGatt.subscribe(id, service, characteristic, onValues, onError, onEnd)
     }
 
     @JvmStatic

@@ -131,7 +131,7 @@ class SubscriptionTest : BehaviorSpec({
       val recorder = Recorder(registry.subscribe(testCharacteristic, device))
       bus.publish(DomainEvent(DomainEvent.Kind.FORGOTTEN, device))
       eventually { recorder.isFinished }
-      recorder.events shouldBe emptyList()
+      recorder.events shouldBe listOf(SubscriptionEvent.Ended)
       registry.subscribe(testCharacteristic, device)
     }
   }

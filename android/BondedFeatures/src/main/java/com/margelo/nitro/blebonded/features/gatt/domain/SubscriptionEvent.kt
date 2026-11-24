@@ -8,4 +8,7 @@ sealed interface SubscriptionEvent {
 
   /** Switching notifications back on after a reconnect failed; the subscription stays and tries again. */
   data class Failed(val error: BleError) : SubscriptionEvent
+
+  /** Bonded removed the subscription itself, because the app forgot the device; nothing follows. */
+  data object Ended : SubscriptionEvent
 }

@@ -16,6 +16,7 @@
 #include <NitroBleBonded/private/JHybridGattSpec.hpp>
 #include <NitroBleBonded/private/JCallback_void_std__vector_ArrayBuffer_.hpp>
 #include <NitroBleBonded/private/JCallback_void_std__string.hpp>
+#include <NitroBleBonded/private/JCallback_void.hpp>
 #include <NitroBleBonded/private/JHybridPermissionsSpec.hpp>
 #include <NitroBleBonded/private/JCallback_void_BluetoothPermission.hpp>
 #include <NitroBleBonded/private/JHybridScannerSpec.hpp>
@@ -33,6 +34,7 @@ namespace margelo::nitro::blebonded {
     margelo::nitro::blebonded::JHybridGattSpec::CxxPart::registerNatives();
     margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::registerNatives();
     margelo::nitro::blebonded::JCallback_void_std__string::registerNatives();
+    margelo::nitro::blebonded::JCallback_void::registerNatives();
     margelo::nitro::blebonded::JHybridPermissionsSpec::CxxPart::registerNatives();
     margelo::nitro::blebonded::JCallback_void_BluetoothPermission::registerNatives();
     margelo::nitro::blebonded::JHybridScannerSpec::CxxPart::registerNatives();

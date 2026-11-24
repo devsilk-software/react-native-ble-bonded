@@ -295,6 +295,24 @@ namespace margelo::nitro::blebonded::swift_bridge {
     });
   }
 
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void(const Callback_void& callback) noexcept {
+    try {
+      callback.callSync();
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withValue();
+    } catch (...) {
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withError(std::current_exception());
+    }
+  }
+
+  Callback_void create_Callback_void(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>()> closure) {
+    return Callback_void::make([closure = std::move(closure)]() -> void {
+      auto __result = closure();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    });
+  }
+
   std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(void* NON_NULL pointer) {
     return std::make_shared<margelo::nitro::blebonded::HybridPermissionsSpecSwift>(::NitroBleBonded::HybridPermissionsSpec_cxx::fromUnsafe(pointer));
   }

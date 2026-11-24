@@ -34,6 +34,8 @@ Outside components, `ble.onStateChange(cb)` and `ble.onPermissionChange(cb)` rep
 then every change, and return `{ remove() }`. On iOS the permission prompt appears only when you call
 `ble.requestPermissions()` (or, later, start scanning or connecting), so you can explain why first.
 
+New to Bluetooth? [`docs/glossary.md`](docs/glossary.md) explains the terms the API and docs use.
+
 ## Developing
 
 ```sh

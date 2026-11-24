@@ -71,7 +71,8 @@ jobs:
   # the repository is private, so this runs on pushes to master and on demand, not on pull requests.
   ios-example:
     name: iOS example app builds
-    # Nitro v1 needs Swift tools 6.4 (Xcode 27); GitHub's Xcode 27 image is in public preview.
+    # Nitro v1 needs Swift tools 6.4 (Xcode 27), which only GitHub's xcode-27 image has; macos-26 stops at Xcode 26.6.
+    # When no xcode-27 runner picks the job up, ci-retry.yml re-runs it.
     runs-on: xcode-27
     if: github.event_name != 'pull_request'
     needs: [typescript, ios-features]

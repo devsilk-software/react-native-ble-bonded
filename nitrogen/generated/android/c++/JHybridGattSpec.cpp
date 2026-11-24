@@ -50,12 +50,33 @@ namespace margelo::nitro::blebonded {
     return __result;
   }
 
+  jni::local_ref<JTypedPromise<void>> JHybridGattSpec::writeChunked(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JArrayBuffer::JavaPart>& value, jboolean withResponse, jdouble timeoutMs) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<void>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jni::alias_ref<JArrayBuffer::JavaPart> /* value */, jboolean /* withResponse */, jdouble /* timeoutMs */)>("writeChunked_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, value, withResponse, timeoutMs);
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> JHybridGattSpec::getMaxWriteLength(const jni::local_ref<jni::JString>& id) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>>(jni::alias_ref<jni::JString> /* id */)>("getMaxWriteLength_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id);
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> JHybridGattSpec::readRssi(const jni::local_ref<jni::JString>& id, jdouble timeoutMs) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>>(jni::alias_ref<jni::JString> /* id */, jdouble /* timeoutMs */)>("readRssi_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, timeoutMs);
+    return __result;
+  }
+
   const std::shared_ptr<const HybridClass>& JHybridGattSpec::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("read", &JHybridGattSpec::read);
       clazz.registerStaticHybridMethod("subscribe", &JHybridGattSpec::subscribe);
       clazz.registerStaticHybridMethod("unsubscribe", &JHybridGattSpec::unsubscribe);
       clazz.registerStaticHybridMethod("write", &JHybridGattSpec::write);
+      clazz.registerStaticHybridMethod("writeChunked", &JHybridGattSpec::writeChunked);
+      clazz.registerStaticHybridMethod("getMaxWriteLength", &JHybridGattSpec::getMaxWriteLength);
+      clazz.registerStaticHybridMethod("readRssi", &JHybridGattSpec::readRssi);
     });
     return hybridClass;
   }

@@ -5,7 +5,8 @@ import Foundation
 //
 // It advertises the name "Bonded Test" (or --name) and one service with three characteristics:
 // - read:   a counter that grows on every read, as text
-// - write:  accepts writes with and without response, and prints them
+// - write:  accepts writes with and without response and prints them; checks that the counting pattern the example
+//           app's chunked write sends (0, 1, 2, …) arrives in order
 // - notify: sends a counter every second while a phone is subscribed
 //
 // Type `quit` and Enter to stop. macOS may keep the radio link up after quitting, so the phone doesn't always see
@@ -113,12 +114,33 @@ final class Peripheral: NSObject, @MainActor CBPeripheralManagerDelegate {
 
   private func answerWrites(_ requests: [CBATTRequest]) {
     for request in requests {
-      let bytes = (request.value ?? Data()).map { String(format: "%02x", $0) }.joined(separator: " ")
-      log("Write \(request.characteristic.uuid): \(bytes)")
+      let value = [UInt8](request.value ?? Data())
+      let shown = value.count <= 32 ? value.map { String(format: "%02x", $0) }.joined(separator: " ") : "\(value.count) bytes"
+      let pattern = countPattern(value).map { "; \($0)" } ?? ""
+      log("Write \(request.characteristic.uuid): \(shown)\(pattern)")
     }
     if let first = requests.first {
       manager?.respond(to: first, withResult: .success)
     }
+  }
+
+  /// Bytes of the counting pattern (0, 1, 2, … 255, 0, …) taken in order so far.
+  private var patternBytes = 0
+
+  /// Follows the counting pattern across writes: a write that counts on from the last one adds to it, one that starts
+  /// at 0 starts again. Returns what to print, or `nil` for a write that isn't part of the pattern.
+  private func countPattern(_ value: [UInt8]) -> String? {
+    guard value.count >= 2, zip(value, value.dropFirst()).allSatisfy({ $1 == $0 &+ 1 }) else { return nil }
+    let expected = UInt8(truncatingIfNeeded: patternBytes)
+    if value[0] != expected {
+      guard value[0] == 0 else {
+        defer { patternBytes = 0 }
+        return "OUT OF ORDER: expected \(expected) after \(patternBytes) bytes, got \(value[0])"
+      }
+      patternBytes = 0
+    }
+    patternBytes += value.count
+    return "\(patternBytes) bytes of the counting pattern in order"
   }
 
   private func subscribed(_ central: CBCentral) {

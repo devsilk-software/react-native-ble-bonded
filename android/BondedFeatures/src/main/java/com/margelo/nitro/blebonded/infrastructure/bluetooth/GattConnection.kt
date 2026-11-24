@@ -15,6 +15,8 @@ import android.content.IntentFilter
 import android.os.Build
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
@@ -50,6 +52,7 @@ class GattConnection(
   private val written = AtomicReference<Pending<Unit>?>(null)
   private val mtuAnswer = AtomicReference<CompletableDeferred<Int>?>(null)
   private val descriptorWritten = AtomicReference<Pending<Unit>?>(null)
+  private val rssiAnswer = AtomicReference<CompletableDeferred<Int>?>(null)
 
   /** Android allows one GATT operation at a time per device; every operation holds this (decision A4). */
   private val operations = Mutex()
@@ -91,6 +94,7 @@ class GattConnection(
         readValue.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
         written.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
         descriptorWritten.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
+        rssiAnswer.getAndSet(null)?.completeExceptionally(GattStatusException(NOT_CONNECTED))
         mtuAnswer.getAndSet(null)?.cancel()
         val requested = disconnected.getAndSet(null)
         requested?.complete(Unit)
@@ -138,6 +142,11 @@ class GattConnection(
       override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
         if (status == BluetoothGatt.GATT_SUCCESS) this@GattConnection.mtu = mtu
         mtuAnswer.getAndSet(null)?.complete(this@GattConnection.mtu)
+      }
+
+      override fun onReadRemoteRssi(gatt: BluetoothGatt, rssi: Int, status: Int) {
+        val waiting = rssiAnswer.getAndSet(null) ?: return
+        if (status == BluetoothGatt.GATT_SUCCESS) waiting.complete(rssi) else waiting.completeExceptionally(GattStatusException(status))
       }
 
       override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
@@ -207,31 +216,76 @@ class GattConnection(
     perform<Unit> { result ->
       val client = gatt.get() ?: throw GattStatusException(NOT_CONNECTED)
       val type = if (withResponse) BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT else BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-      answer(written, characteristic) {
-        var attempt = 0
-        while (true) {
-          val code =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-              client.writeCharacteristic(characteristic, value, type)
-            } else {
-              @Suppress("DEPRECATION")
-              characteristic.writeType = type
-              @Suppress("DEPRECATION")
-              characteristic.value = value
-              @Suppress("DEPRECATION")
-              if (client.writeCharacteristic(characteristic)) BluetoothStatusCodes.SUCCESS else BluetoothGatt.GATT_FAILURE
-            }
-          when {
-            code == BluetoothStatusCodes.SUCCESS -> return@answer
-            code == BUSY && ++attempt < BUSY_RETRIES -> Thread.sleep(BUSY_DELAY_MS)
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> throw GattRequestRefusedException(code)
-            else -> throw GattStatusException(BluetoothGatt.GATT_FAILURE)
+      answer(written, characteristic) { send(client, characteristic, value, type) }
+      result.complete(Unit)
+    }
+  }
+
+  /**
+   * Writes [pieces] in order as one operation, so no other operation on the device runs between them. Each piece
+   * waits as [write] does; one that takes longer than [pieceTimeoutMs] fails for the caller at once, while the
+   * operation keeps its turn until the piece's answer. Throws [PieceException] naming the piece that failed; the
+   * pieces after it aren't sent.
+   */
+  suspend fun write(characteristic: BluetoothGattCharacteristic, pieces: List<ByteArray>, withResponse: Boolean, pieceTimeoutMs: Long) {
+    perform<Unit> { result ->
+      val client = gatt.get() ?: throw GattStatusException(NOT_CONNECTED)
+      val type = if (withResponse) BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT else BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+      for ((index, piece) in pieces.withIndex()) {
+        // The caller gave up, or an earlier piece failed: send nothing more.
+        if (result.isCompleted) return@perform
+        coroutineScope {
+          val answered = async { runCatching { answer(written, characteristic) { send(client, characteristic, piece, type) } } }
+          val outcome = withTimeoutOrNull(pieceTimeoutMs) { answered.await() }
+          if (outcome == null) {
+            result.completeExceptionally(PieceException(index, GattStatusException(TIMED_OUT)))
+            answered.await()
+          } else {
+            outcome.exceptionOrNull()?.let { result.completeExceptionally(PieceException(index, it)) }
           }
         }
       }
       result.complete(Unit)
     }
   }
+
+  /** Hands one value to Android, retrying briefly while Android 13+ reports its write buffer busy. */
+  private fun send(client: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray, type: Int) {
+    var attempt = 0
+    while (true) {
+      val code =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          client.writeCharacteristic(characteristic, value, type)
+        } else {
+          @Suppress("DEPRECATION")
+          characteristic.writeType = type
+          @Suppress("DEPRECATION")
+          characteristic.value = value
+          @Suppress("DEPRECATION")
+          if (client.writeCharacteristic(characteristic)) BluetoothStatusCodes.SUCCESS else BluetoothGatt.GATT_FAILURE
+        }
+      when {
+        code == BluetoothStatusCodes.SUCCESS -> return
+        code == BUSY && ++attempt < BUSY_RETRIES -> Thread.sleep(BUSY_DELAY_MS)
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> throw GattRequestRefusedException(code)
+        else -> throw GattStatusException(BluetoothGatt.GATT_FAILURE)
+      }
+    }
+  }
+
+  /** Reads the connected device's signal strength, in dBm. Android allows it only between other operations. */
+  suspend fun readRssi(): Int =
+    perform { result ->
+      val client = gatt.get() ?: throw GattStatusException(NOT_CONNECTED)
+      val waiting = CompletableDeferred<Int>()
+      rssiAnswer.set(waiting)
+      try {
+        if (!client.readRemoteRssi()) throw GattStatusException(BluetoothGatt.GATT_FAILURE)
+        result.complete(withTimeoutOrNull(ATT_TIMEOUT_MS) { waiting.await() } ?: throw GattStatusException(NO_ANSWER))
+      } finally {
+        rssiAnswer.compareAndSet(waiting, null)
+      }
+    }
 
   /**
    * Switches notifications, or with [indicate] indications, on or off: tells Android to deliver them and writes the
@@ -376,6 +430,7 @@ class GattConnection(
     readValue.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
     written.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
     descriptorWritten.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
+    rssiAnswer.getAndSet(null)?.completeExceptionally(GattStatusException(NOT_CONNECTED))
     mtuAnswer.getAndSet(null)?.cancel()
     scope.cancel()
     disconnected.getAndSet(null)?.complete(Unit)
@@ -416,6 +471,12 @@ const val NOT_CONNECTED = -1
 
 /** Not a GATT status: the device didn't answer within Bluetooth's 30 seconds. */
 const val NO_ANSWER = -2
+
+/** Not a GATT status: a piece of a chunked write took longer than the caller's limit. */
+const val TIMED_OUT = -3
+
+/** A piece of a chunked write failed: which one, counting from 0, and why. */
+class PieceException(val index: Int, override val cause: Throwable) : Exception("Piece $index failed", cause)
 
 /** Android refused to send the request at all; [code] is a `BluetoothStatusCodes` value, from Android 13. */
 class GattRequestRefusedException(val code: Int) : Exception("Android refused to send the request (code $code)")

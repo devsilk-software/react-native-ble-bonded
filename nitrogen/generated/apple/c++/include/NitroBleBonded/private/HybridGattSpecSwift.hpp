@@ -62,6 +62,9 @@ namespace margelo::nitro::blebonded {
     static Promise<double> subscribe(const swift::String& id, const swift::String& service, const swift::String& characteristic, const Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>& onValues, const Callback<void(const swift::String&)>& onError, const Callback<void()>& onEnd);
     static Promise<void> unsubscribe(double subscription);
     static Promise<void> write(const swift::String& id, const swift::String& service, const swift::String& characteristic, const ArrayBuffer& value, bool withResponse, double timeoutMs);
+    static Promise<void> writeChunked(const swift::String& id, const swift::String& service, const swift::String& characteristic, const ArrayBuffer& value, bool withResponse, double timeoutMs);
+    static Promise<double> getMaxWriteLength(const swift::String& id);
+    static Promise<double> readRssi(const swift::String& id, double timeoutMs);
 
   protected:
     const std::shared_ptr<const HybridClass>& getHybridClass() override {

@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button, Chip, Divider, List, Text } from 'react-native-paper'
 import type { Service } from 'react-native-ble-bonded'
-import { useDevice, useNotifications } from 'react-native-ble-bonded/hooks'
+import { useDevice, useNotifications, useRssi } from 'react-native-ble-bonded/hooks'
 import { OutcomeCard, outcomeOf, type Outcome } from '../components/Outcome'
 import { ButtonRow } from '../components/Row'
 import { Section } from '../components/Section'
 import { testNotify, testRead, testService, testWrite } from '../testPeripheral'
 
 const ascii = (text: string) => Uint8Array.from(text, (character) => character.charCodeAt(0))
+
+// 0, 1, 2, … 255, 0, …: the test peripheral checks that the chunks arrive in this order.
+const countingPattern = Uint8Array.from({ length: 2_000 }, (_, index) => index % 256)
 
 export function DeviceScreen({ id }: { id: string }) {
   const device = useDevice(id)
@@ -44,6 +47,7 @@ export function DeviceScreen({ id }: { id: string }) {
             {device.connectionState}
           </Chip>
           {device.isRemembered && <Chip compact>remembered</Chip>}
+          {isConnected && <SignalChip id={id} />}
         </View>
         {last != null && (
           <Text variant='bodySmall' style={styles.last} testID='last-disconnect'>
@@ -131,6 +135,31 @@ export function DeviceScreen({ id }: { id: string }) {
               testID='write-no-response'
             >
               Write without response
+            </Button>
+          </ButtonRow>
+          <Text variant='bodySmall' style={styles.subtitle}>
+            Longer than one write
+          </Text>
+          <ButtonRow>
+            <Button
+              mode='contained-tonal'
+              onPress={run('maxWriteLength', 'gatt', async () => `One write carries at most ${await device.getMaxWriteLength()} bytes`)}
+              loading={busy === 'maxWriteLength'}
+              testID='max-write-length'
+            >
+              Max write length
+            </Button>
+            <Button
+              mode='contained-tonal'
+              onPress={run('chunked', 'gatt', async () => {
+                const size = await device.getMaxWriteLength()
+                await device.writeChunked(testService, testWrite, countingPattern, { withoutResponse: true })
+                return `Wrote ${countingPattern.length} bytes in ${Math.ceil(countingPattern.length / size)} chunks of up to ${size}`
+              })}
+              loading={busy === 'chunked'}
+              testID='write-chunked'
+            >
+              Write 2,000 bytes in chunks
             </Button>
           </ButtonRow>
           <Text variant='bodySmall' style={styles.subtitle}>
@@ -223,6 +252,17 @@ function Notifications({ id, isConnected }: { id: string; isConnected: boolean }
         </Button>
       </ButtonRow>
     </Section>
+  )
+}
+
+// The signal strength, read every second while connected.
+function SignalChip({ id }: { id: string }) {
+  const { rssi } = useRssi(useDevice(id))
+  if (rssi == null) return null
+  return (
+    <Chip compact testID='rssi'>
+      {rssi} dBm
+    </Chip>
   )
 }
 

@@ -122,6 +122,9 @@ internal val BleError.jsMessage: String
     attError?.let { fields.put("attError", it) }
     length?.let { fields.put("length", it) }
     maxLength?.let { fields.put("maxLength", it) }
+    chunkIndex?.let { fields.put("chunkIndex", it) }
+    chunkCount?.let { fields.put("chunkCount", it) }
+    sentLength?.let { fields.put("sentLength", it) }
     val json = if (fields.length() == 0) "" else " $fields"
     return "[${code.publicName}${platformCode?.let { ":$it" } ?: ""}$json] $message"
   }

@@ -21,6 +21,9 @@ public final class CompositionRoot: Sendable {
   public let forgetDevice: ForgetDevice
   public let readCharacteristic: ReadCharacteristic
   public let writeCharacteristic: WriteCharacteristic
+  public let writeChunked: WriteChunked
+  public let getMaxWriteLength: GetMaxWriteLength
+  public let readRssi: ReadRssi
   public let subscribe: Subscribe
   public let unsubscribe: Unsubscribe
 
@@ -75,6 +78,9 @@ public final class CompositionRoot: Sendable {
     let characteristics = CoreBluetoothCharacteristicSource(central: central)
     readCharacteristic = ReadCharacteristic(source: characteristics, bus: bus)
     writeCharacteristic = WriteCharacteristic(source: characteristics, bus: bus)
+    writeChunked = WriteChunked(source: characteristics, bus: bus)
+    getMaxWriteLength = GetMaxWriteLength(source: characteristics)
+    readRssi = ReadRssi(source: characteristics)
     let subscriptions = SubscriptionRegistry(source: characteristics, bus: bus)
     subscribe = Subscribe(registry: subscriptions)
     unsubscribe = Unsubscribe(registry: subscriptions)

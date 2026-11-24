@@ -22,6 +22,9 @@ import com.margelo.nitro.blebonded.features.gatt.application.useCases.readCharac
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.subscribe.Subscribe
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.unsubscribe.Unsubscribe
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.writeCharacteristic.WriteCharacteristic
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.writeChunked.WriteChunked
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.getMaxWriteLength.GetMaxWriteLength
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.readRssi.ReadRssi
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.systemDiagnosticsEnvironment.SystemDiagnosticsEnvironment
 import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
 import com.margelo.nitro.blebonded.features.diagnostics.application.useCases.clearDiagnostics.ClearDiagnostics
@@ -103,6 +106,9 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   private val characteristics = AndroidCharacteristicSource(gattClients)
   val readCharacteristic = ReadCharacteristic(characteristics, bus)
   val writeCharacteristic = WriteCharacteristic(characteristics, bus)
+  val writeChunked = WriteChunked(characteristics, bus)
+  val getMaxWriteLength = GetMaxWriteLength(characteristics)
+  val readRssi = ReadRssi(characteristics)
   private val subscriptions = SubscriptionRegistry(characteristics, bus, scope)
   val subscribe = Subscribe(subscriptions)
   val unsubscribe = Unsubscribe(subscriptions)

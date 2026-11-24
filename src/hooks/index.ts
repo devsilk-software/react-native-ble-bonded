@@ -15,6 +15,7 @@ import { DeviceList, type ScanSort } from './deviceList'
 import { createExternalStore } from './externalStore'
 import { latestEvents } from './latestEvents'
 import { countConnection, shouldSubscribe, subscriptionKey, type Attempt, type ConnectionCount } from './notificationsArming'
+import { pollRssi } from './rssiPolling'
 
 const bluetoothState = createExternalStore<BluetoothAdapterState, 'unknown'>((onChange) => ble.onStateChange(onChange), 'unknown')
 const bluetoothPermission = createExternalStore<BluetoothPermission, undefined>((onChange) => ble.onPermissionChange(onChange), undefined)
@@ -233,6 +234,47 @@ export function useNotifications(device: Device | undefined, service: string, ch
   }, [id, key, service, characteristic, subscribed])
 
   return { isSubscribed, value, error }
+}
+
+export interface RssiOptions {
+  /** Milliseconds between the end of one reading and the next. Default 1,000. */
+  interval?: number
+}
+
+export interface RssiResult {
+  /** The latest signal strength in dBm; `undefined` until the first reading. Kept across a disconnect. */
+  rssi?: number
+  /** Why the last reading failed; cleared by the next one. */
+  error?: BleError
+}
+
+/**
+ * The device's signal strength in dBm, for a signal meter: read every `interval` milliseconds while the device is
+ * connected. After a disconnect it keeps the last reading and reads again once the device reconnects.
+ */
+export function useRssi(device: Device | undefined, { interval = 1_000 }: RssiOptions = {}): RssiResult {
+  if (!(Number.isFinite(interval) && interval > 0)) throw new RangeError(`interval must be more than 0 milliseconds, got ${interval}`)
+  const id = device?.id
+  const isConnected = device?.connectionState === 'connected'
+  // Kept with the device's ID, so another device never shows this one's reading.
+  const [reading, setReading] = useState<{ id: string; rssi?: number; error?: BleError }>()
+
+  useEffect(() => {
+    if (id == null || !isConnected) return
+    return pollRssi(
+      () => ble.device(id).readRssi(),
+      interval,
+      (rssi) => setReading({ id, rssi }),
+      (failure: unknown) => {
+        // A reading cut short by a disconnect isn't an error: the device's connection state says so.
+        if (failure instanceof BleError && failure.code === 'notConnected') return
+        const error = failure instanceof BleError ? failure : new BleError('unknown', String(failure), { operation: 'readRssi' })
+        setReading((previous) => ({ id, rssi: previous?.id === id ? previous.rssi : undefined, error }))
+      }
+    )
+  }, [id, isConnected, interval])
+
+  return reading != null && reading.id === id ? { rssi: reading.rssi, error: reading.error } : {}
 }
 
 /** How often `useScan` re-renders at most while devices are reported. */

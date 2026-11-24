@@ -17,6 +17,13 @@ class BleError(
   /** For [Code.VALUE_TOO_LONG]: the value's length and the most the operation allows, in bytes. */
   val length: Int? = null,
   val maxLength: Int? = null,
+  /**
+   * For a failed `writeChunked`: the chunk that failed, counting from 0, how many there were, and the bytes the device
+   * took before it.
+   */
+  val chunkIndex: Int? = null,
+  val chunkCount: Int? = null,
+  val sentLength: Int? = null,
 ) : Exception(message) {
   enum class Code {
     BLUETOOTH_OFF,

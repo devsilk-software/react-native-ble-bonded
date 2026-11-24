@@ -8,6 +8,8 @@ sealed interface SetupStep {
 
   data object HighPriority : SetupStep
 
+  data class RequestMtu(val size: Int) : SetupStep
+
   data object RefreshServiceCache : SetupStep
 
   data object DiscoverServices : SetupStep
@@ -19,12 +21,16 @@ sealed interface SetupStep {
 fun setupSteps(options: AndroidConnectionOptions, isBonded: Boolean, isBonding: Boolean): List<SetupStep> =
   buildList {
     if (options.highPriorityDuringSetup) add(SetupStep.HighPriority)
+    if (options.mtu > DEFAULT_MTU) add(SetupStep.RequestMtu(options.mtu))
     if (options.waitForBonding && isBonding) add(SetupStep.WaitForBonding)
     if ((isBonded || isBonding) && options.discoveryDelayMs > 0) add(SetupStep.Pause(options.discoveryDelayMs))
     if (options.refreshServiceCache == ServiceCacheRefresh.ALWAYS) add(SetupStep.RefreshServiceCache)
     add(SetupStep.DiscoverServices)
     if (options.highPriorityDuringSetup) add(SetupStep.BalancedPriority)
   }
+
+/** Bluetooth's MTU before any is requested. */
+const val DEFAULT_MTU = 23
 
 /**
  * GATT statuses that pass on their own: 133 (`GATT_ERROR`, Android's catch-all), 62 (connection failed to be

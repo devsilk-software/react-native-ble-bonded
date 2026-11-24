@@ -7,8 +7,10 @@ import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
 import com.margelo.nitro.blebonded.features.gatt.domain.DeviceRefusal
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattClients
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattConnection
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattRequestRefusedException
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattStatusException
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.NOT_CONNECTED
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.NO_ANSWER
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
@@ -26,6 +28,10 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
       connection(id).read(characteristic)
     } catch (failure: GattStatusException) {
       throw bleError(failure.status, CharacteristicOperation.READ, address, id)
+    } catch (failure: GattRequestRefusedException) {
+      throw refused(failure.code, CharacteristicOperation.READ, id)
+    } catch (failure: SecurityException) {
+      throw refused(MISSING_PERMISSION, CharacteristicOperation.READ, id)
     }
   }
 
@@ -36,6 +42,10 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
       connection(id).write(characteristic, value, withResponse)
     } catch (failure: GattStatusException) {
       throw bleError(failure.status, operation, address, id)
+    } catch (failure: GattRequestRefusedException) {
+      throw refused(failure.code, operation, id)
+    } catch (failure: SecurityException) {
+      throw refused(MISSING_PERMISSION, operation, id)
     }
   }
 
@@ -51,20 +61,70 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
     /** ATT's header in a write: a write without response carries MTU - 3 bytes. */
     private const val ATT_HEADER = 3
 
-    /** Android's GATT status in Bonded's words: the device's own ATT errors by name, Android's statuses as GATT errors. */
-    fun bleError(status: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId): BleError =
-      when {
+    /**
+     * Android's own GATT statuses, 0x80 to 0x8F, which share their numbers with the start of the firmware range: on
+     * Android those numbers mean Android, not the device.
+     */
+    private val androidStatuses =
+      mapOf(
+        0x80 to "noResources",
+        0x81 to "internalError",
+        0x82 to "wrongState",
+        0x83 to "databaseFull",
+        0x84 to "busy",
+        0x85 to "error",
+        0x86 to "commandStarted",
+        0x87 to "illegalParameter",
+        0x88 to "pending",
+        0x89 to "authenticationFailed",
+        0x8A to "more",
+        0x8B to "invalidConfiguration",
+        0x8C to "serviceStarted",
+        0x8D to "encryptedWithoutProtection",
+        0x8E to "notEncrypted",
+        0x8F to "congested",
+      )
+
+    /** Android statuses that mean the device wants a paired, encrypted connection first. */
+    private val androidPairing = setOf(0x89, 0x8D, 0x8E)
+
+    /** `BluetoothStatusCodes` values Android 13+ returns when it refuses to send a request. */
+    private const val BLUETOOTH_NOT_ENABLED = 1
+    private const val MISSING_PERMISSION = 6
+
+    /**
+     * Android's GATT status in Bonded's words: Bluetooth's named errors by name, Android's own statuses (0x80–0x8F)
+     * by theirs, the firmware range 0x90–0x9F as the device's own errors, a disconnect as `notConnected`.
+     */
+    fun bleError(status: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId): BleError {
+      val what = "the ${operation.publicName} of characteristic ${address.characteristic}"
+      return when {
         status == NOT_CONNECTED ->
-          BleError(BleError.Code.NOT_CONNECTED, "The device disconnected during the ${operation.publicName}", deviceId = id, operation = operation.publicName)
-        DeviceRefusal.isDeviceCode(status) -> DeviceRefusal.error(status, operation, address, id)
-        else ->
+          BleError(BleError.Code.NOT_CONNECTED, "The device disconnected during ${what}", deviceId = id, operation = operation.publicName)
+        status == NO_ANSWER ->
+          BleError(BleError.Code.TIMEOUT, "The device didn't answer ${what} within Bluetooth's 30 seconds", deviceId = id, operation = operation.publicName)
+        DeviceRefusal.isNamed(status) || status in 0x90..0x9F -> DeviceRefusal.error(status, operation, address, id)
+        status in androidStatuses ->
           BleError(
-            BleError.Code.GATT_ERROR,
-            "Android failed the ${operation.publicName} of characteristic ${address.characteristic} (GATT status $status)",
+            if (status in androidPairing) BleError.Code.PAIRING_REQUIRED else BleError.Code.GATT_ERROR,
+            "Android failed ${what}: ${androidStatuses.getValue(status)} (GATT status $status)" +
+              if (status in androidPairing) "; the characteristic needs a paired, encrypted connection." else ".",
             status,
             id,
             operation.publicName,
+            attError = androidStatuses.getValue(status),
           )
+        else -> BleError(BleError.Code.GATT_ERROR, "Android failed ${what} (GATT status $status).", status, id, operation.publicName)
+      }
+    }
+
+    /** Android 13+ refused to send the request at all, with a `BluetoothStatusCodes` value. */
+    fun refused(code: Int, operation: CharacteristicOperation, id: DeviceId): BleError =
+      when (code) {
+        MISSING_PERMISSION ->
+          BleError(BleError.Code.UNAUTHORIZED, "Bluetooth permission is not granted, so Android refused the ${operation.publicName}", code, id, operation.publicName)
+        BLUETOOTH_NOT_ENABLED -> BleError(BleError.Code.BLUETOOTH_OFF, "Bluetooth is off, so Android refused the ${operation.publicName}", code, id, operation.publicName)
+        else -> BleError(BleError.Code.GATT_ERROR, "Android refused to send the ${operation.publicName} (status code $code).", code, id, operation.publicName)
       }
 
     fun properties(bits: Int): List<CharacteristicProperty> =

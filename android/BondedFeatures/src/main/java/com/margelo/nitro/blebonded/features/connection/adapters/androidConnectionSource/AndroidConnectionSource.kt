@@ -116,6 +116,7 @@ class AndroidConnectionSource(
       for (step in setupSteps(options, isBonded, isBonding)) {
         when (step) {
           SetupStep.HighPriority -> connection.requestPriority(isHigh = true)
+          is SetupStep.RequestMtu -> connection.requestMtu(step.size)
           SetupStep.WaitForBonding -> connection.awaitBondingFinished(BONDING_TIMEOUT_MS)
           is SetupStep.Pause -> delay(step.ms)
           SetupStep.RefreshServiceCache -> connection.refreshServiceCache()

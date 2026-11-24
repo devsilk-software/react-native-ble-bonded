@@ -41,6 +41,11 @@ export interface AndroidConnectionOptions {
   highPriorityDuringSetup?: boolean
   /** When to refresh Android's cache of the device's services. Default `onFailure`. */
   refreshServiceCache?: ServiceCacheRefresh
+  /**
+   * The MTU to ask for once connected, so writes without response carry more than 20 bytes. Default 517, the most
+   * Bluetooth allows; `0` keeps 23. iOS negotiates by itself.
+   */
+  mtu?: number
 }
 
 export interface ConnectOptions extends PrepareOptions {
@@ -228,6 +233,10 @@ export function toNativeAndroid(options: AndroidConnectionOptions | undefined): 
   if (delay != null && !(Number.isFinite(delay) && delay >= 0)) {
     throw new RangeError(`android.discoveryDelay must be 0 or more milliseconds, got ${delay}`)
   }
+  const mtu = options.mtu
+  if (mtu != null && !(Number.isInteger(mtu) && (mtu === 0 || (mtu >= 23 && mtu <= 517)))) {
+    throw new RangeError(`android.mtu must be 0 or a whole number from 23 to 517, got ${mtu}`)
+  }
   return {
     retryTransientErrors: options.retryTransientErrors,
     closeGattOnDisconnect: options.closeGattOnDisconnect,
@@ -235,6 +244,7 @@ export function toNativeAndroid(options: AndroidConnectionOptions | undefined): 
     discoveryDelayMs: delay,
     highPriorityDuringSetup: options.highPriorityDuringSetup,
     refreshServiceCache: options.refreshServiceCache,
+    mtu: options.mtu,
   }
 }
 

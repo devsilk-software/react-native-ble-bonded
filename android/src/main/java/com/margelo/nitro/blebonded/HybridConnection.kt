@@ -67,6 +67,7 @@ class HybridConnection : HybridConnectionSpec() {
         waitForBonding = waitForBonding,
         discoveryDelayMs = discoveryDelayMs?.toLong(),
         highPriorityDuringSetup = highPriorityDuringSetup,
+        mtu = mtu?.toInt(),
         refreshServiceCache =
           when (refreshServiceCache) {
             ServiceCacheRefresh.ONFAILURE -> CacheRefresh.ON_FAILURE

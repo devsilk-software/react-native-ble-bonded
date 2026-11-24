@@ -32,8 +32,8 @@ object DeviceRefusal {
   /** Codes that mean the device wants a paired, encrypted connection first. */
   private val pairing = setOf(0x05, 0x0C, 0x0F)
 
-  /** Whether [code] is one the device sends, as opposed to one of Android's own statuses such as 133. */
-  fun isDeviceCode(code: Int): Boolean = code in names || code in 0x80..0x9F
+  /** Whether [code] is a Bluetooth error with a name, as opposed to a platform's own status. */
+  fun isNamed(code: Int): Boolean = code in names
 
   /** The [BleError] for an ATT error code the device answered [operation] with. */
   fun error(code: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId): BleError {

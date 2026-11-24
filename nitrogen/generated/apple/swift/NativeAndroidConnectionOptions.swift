@@ -16,19 +16,21 @@ public struct NativeAndroidConnectionOptions: Equatable, Hashable, Sendable {
   public let discoveryDelayMs: Double?
   public let highPriorityDuringSetup: Bool?
   public let refreshServiceCache: ServiceCacheRefresh?
+  public let mtu: Double?
 
-  public init(retryTransientErrors: Bool?, closeGattOnDisconnect: Bool?, waitForBonding: Bool?, discoveryDelayMs: Double?, highPriorityDuringSetup: Bool?, refreshServiceCache: ServiceCacheRefresh?) {
+  public init(retryTransientErrors: Bool?, closeGattOnDisconnect: Bool?, waitForBonding: Bool?, discoveryDelayMs: Double?, highPriorityDuringSetup: Bool?, refreshServiceCache: ServiceCacheRefresh?, mtu: Double?) {
     self.retryTransientErrors = retryTransientErrors
     self.closeGattOnDisconnect = closeGattOnDisconnect
     self.waitForBonding = waitForBonding
     self.discoveryDelayMs = discoveryDelayMs
     self.highPriorityDuringSetup = highPriorityDuringSetup
     self.refreshServiceCache = refreshServiceCache
+    self.mtu = mtu
   }
 
   @_spi(NitroCxx)
-  public static func init_cxx(_ retryTransientErrors: Bool?, _ closeGattOnDisconnect: Bool?, _ waitForBonding: Bool?, _ discoveryDelayMs: Double?, _ highPriorityDuringSetup: Bool?, _ refreshServiceCache: ServiceCacheRefresh?) -> Self {
-    return Self(retryTransientErrors: retryTransientErrors, closeGattOnDisconnect: closeGattOnDisconnect, waitForBonding: waitForBonding, discoveryDelayMs: discoveryDelayMs, highPriorityDuringSetup: highPriorityDuringSetup, refreshServiceCache: refreshServiceCache)
+  public static func init_cxx(_ retryTransientErrors: Bool?, _ closeGattOnDisconnect: Bool?, _ waitForBonding: Bool?, _ discoveryDelayMs: Double?, _ highPriorityDuringSetup: Bool?, _ refreshServiceCache: ServiceCacheRefresh?, _ mtu: Double?) -> Self {
+    return Self(retryTransientErrors: retryTransientErrors, closeGattOnDisconnect: closeGattOnDisconnect, waitForBonding: waitForBonding, discoveryDelayMs: discoveryDelayMs, highPriorityDuringSetup: highPriorityDuringSetup, refreshServiceCache: refreshServiceCache, mtu: mtu)
   }
 
   @_spi(NitroCxx)
@@ -59,5 +61,10 @@ public struct NativeAndroidConnectionOptions: Equatable, Hashable, Sendable {
   @_spi(NitroCxx)
   public borrowing func getRefreshServiceCache_cxx() -> ServiceCacheRefresh? {
     return self.refreshServiceCache
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getMtu_cxx() -> Double? {
+    return self.mtu
   }
 }

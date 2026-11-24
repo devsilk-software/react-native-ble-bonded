@@ -1,10 +1,12 @@
 package com.margelo.nitro.blebonded.features.gatt
 
+import com.margelo.nitro.blebonded.features.gatt.adapters.androidCharacteristicSource.AndroidCharacteristicSource
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.readCharacteristic.ReadCharacteristic
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.writeCharacteristic.WriteCharacteristic
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
 import com.margelo.nitro.blebonded.features.gatt.domain.DeviceRefusal
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.NOT_CONNECTED
 import com.margelo.nitro.blebonded.mocks.FakeCharacteristicSource
 import com.margelo.nitro.blebonded.mocks.readOnlyCharacteristic
 import com.margelo.nitro.blebonded.mocks.testCharacteristic
@@ -103,6 +105,28 @@ class GattTest : BehaviorSpec({
       events.all { it.kind == DomainEvent.Kind.GATT_OPERATION && it.deviceId == device } shouldBe true
       events[0].detail!! shouldStartWith "read 00002a37"
       events[2].errorCode shouldBe BleError.Code.UNSUPPORTED
+    }
+  }
+
+  given("Android's own GATT statuses") {
+    then("names Android's own statuses apart from the device's errors") {
+      val busy = AndroidCharacteristicSource.bleError(133, CharacteristicOperation.READ, testCharacteristic, device)
+      busy.code shouldBe BleError.Code.GATT_ERROR
+      busy.attError shouldBe "error"
+      busy.message shouldContain "Android failed"
+      AndroidCharacteristicSource.bleError(0x89, CharacteristicOperation.READ, testCharacteristic, device).code shouldBe BleError.Code.PAIRING_REQUIRED
+      AndroidCharacteristicSource.bleError(0x91, CharacteristicOperation.READ, testCharacteristic, device).attError shouldBe "applicationError"
+      AndroidCharacteristicSource.bleError(0x0D, CharacteristicOperation.WRITE, testCharacteristic, device).attError shouldBe "invalidAttributeValueLength"
+    }
+
+    then("reports a disconnect during an operation as not connected") {
+      AndroidCharacteristicSource.bleError(NOT_CONNECTED, CharacteristicOperation.READ, testCharacteristic, device).code shouldBe BleError.Code.NOT_CONNECTED
+    }
+
+    then("names the requests Android refuses to send") {
+      AndroidCharacteristicSource.refused(6, CharacteristicOperation.WRITE, device).code shouldBe BleError.Code.UNAUTHORIZED
+      AndroidCharacteristicSource.refused(1, CharacteristicOperation.WRITE, device).code shouldBe BleError.Code.BLUETOOTH_OFF
+      AndroidCharacteristicSource.refused(9, CharacteristicOperation.WRITE, device).code shouldBe BleError.Code.GATT_ERROR
     }
   }
 

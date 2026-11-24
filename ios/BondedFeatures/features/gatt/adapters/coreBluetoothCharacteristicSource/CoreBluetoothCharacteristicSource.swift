@@ -41,6 +41,8 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
       return Array(data)
     } catch let error as CentralError {
       throw Self.bleError(error, operation: .read, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(.read, id: id)
     }
   }
 
@@ -55,12 +57,18 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
       )
     } catch let error as CentralError {
       throw Self.bleError(error, operation: withResponse ? .write : .writeWithoutResponse, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(withResponse ? .write : .writeWithoutResponse, id: id)
     }
   }
 
   private static func identifier(_ id: DeviceId) throws -> UUID {
     guard let identifier = UUID(uuidString: id.rawValue) else { throw notConnected(id) }
     return identifier
+  }
+
+  private static func cancelled(_ operation: CharacteristicOperation, id: DeviceId) -> BleError {
+    BleError(code: .cancelled, message: "The \(operation.name) was cancelled", deviceId: id, operation: operation.name)
   }
 
   private static func notConnected(_ id: DeviceId) -> BleError {
@@ -76,6 +84,13 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
       return BleError(code: .gattError, message: info.message, platformCode: info.code, deviceId: id, operation: operation.name)
     case .notConnected, .notReady, .unknownPeripheral:
       return BleError(code: .notConnected, message: "The device disconnected during the \(operation.name)", deviceId: id, operation: operation.name)
+    case .noAnswer:
+      return BleError(
+        code: .timeout,
+        message: "The device didn't answer the \(operation.name) of characteristic \(address.characteristic) within Bluetooth's 30 seconds",
+        deviceId: id,
+        operation: operation.name
+      )
     }
   }
 

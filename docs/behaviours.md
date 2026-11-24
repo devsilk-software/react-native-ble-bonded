@@ -84,6 +84,9 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - names the error the device answered with
 - asks for pairing when the characteristic needs it
 - publishes each operation for diagnostics
+- names Android's own statuses apart from the device's errors — Android only
+- reports a disconnect during an operation as not connected — Android only
+- names the requests Android refuses to send — Android only
 
 ## diagnostics
 

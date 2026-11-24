@@ -42,11 +42,19 @@ final class HybridScanner: HybridScannerSpec {
 }
 
 extension BleError {
-  /// How a `BleError` crosses to JavaScript: `[code] message` or `[code:platformCode] message`, which
+  /// How a `BleError` crosses to JavaScript: `[code] message`, `[code:platformCode] message`, and the remaining fields
+  /// as JSON before the closing bracket when there are any (`[valueTooLong {"length":600,"maxLength":182}] …`), which
   /// `src/api` turns back into a `BleError`.
   var jsMessage: String {
     let platform = platformCode.map { ":\($0)" } ?? ""
-    return "[\(code.rawValue)\(platform)] \(message)"
+    var fields: [String: any Sendable] = [:]
+    if let attError { fields["attError"] = attError }
+    if let length { fields["length"] = length }
+    if let maxLength { fields["maxLength"] = maxLength }
+    let json = fields.isEmpty ? "" : (try? JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys]))
+      .flatMap { String(data: $0, encoding: .utf8) }
+      .map { " " + $0 } ?? ""
+    return "[\(code.rawValue)\(platform)\(json)] \(message)"
   }
 }
 

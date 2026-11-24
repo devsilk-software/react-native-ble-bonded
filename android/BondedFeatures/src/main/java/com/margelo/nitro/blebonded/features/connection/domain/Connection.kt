@@ -63,6 +63,8 @@ data class AndroidConnectionOptions(
   /** High connection priority until the device is ready, then balanced. */
   val highPriorityDuringSetup: Boolean = true,
   val refreshServiceCache: ServiceCacheRefresh = ServiceCacheRefresh.ON_FAILURE,
+  /** The MTU to ask for once connected, so writes without response carry more than 20 bytes; 0 to keep 23. */
+  val mtu: Int = 517,
 ) {
   fun with(overrides: AndroidConnectionOverrides): AndroidConnectionOptions =
     AndroidConnectionOptions(
@@ -72,6 +74,7 @@ data class AndroidConnectionOptions(
       discoveryDelayMs = overrides.discoveryDelayMs ?: discoveryDelayMs,
       highPriorityDuringSetup = overrides.highPriorityDuringSetup ?: highPriorityDuringSetup,
       refreshServiceCache = overrides.refreshServiceCache ?: refreshServiceCache,
+      mtu = overrides.mtu ?: mtu,
     )
 }
 
@@ -83,6 +86,7 @@ data class AndroidConnectionOverrides(
   val discoveryDelayMs: Long? = null,
   val highPriorityDuringSetup: Boolean? = null,
   val refreshServiceCache: ServiceCacheRefresh? = null,
+  val mtu: Int? = null,
 )
 
 /** How the platform looks for the device on one attempt: a fast direct connection, or one that waits for it. */

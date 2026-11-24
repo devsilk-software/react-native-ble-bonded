@@ -12,6 +12,11 @@ class BleError(
   val deviceId: DeviceId? = null,
   /** The operation that failed, such as `connect` or `read`. */
   val operation: String? = null,
+  /** The Bluetooth error the device answered with, by name, such as `invalidAttributeValueLength`. */
+  val attError: String? = null,
+  /** For [Code.VALUE_TOO_LONG]: the value's length and the most the operation allows, in bytes. */
+  val length: Int? = null,
+  val maxLength: Int? = null,
 ) : Exception(message) {
   enum class Code {
     BLUETOOTH_OFF,
@@ -26,6 +31,12 @@ class BleError(
     CANCELLED,
     UNSUPPORTED,
     UNKNOWN,
+
+    /** A value longer than the operation allows; `length` and `maxLength` say by how much. */
+    VALUE_TOO_LONG,
+
+    /** The device has no such service or characteristic. */
+    CHARACTERISTIC_NOT_FOUND,
     ;
 
     /** The code's public name, as JavaScript and iOS write it (`bluetoothOff`). */

@@ -4,7 +4,7 @@ import com.margelo.nitro.blebonded.features.connection.adapters.androidConnectio
 import com.margelo.nitro.blebonded.features.connection.application.services.ConnectionCoordinator
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOverrides
-import com.margelo.nitro.blebonded.features.connection.domain.CharacteristicProperty
+import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectMode
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectOptions
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionReadiness
@@ -351,9 +351,16 @@ class ConnectionTest : BehaviorSpec({
     then("plans the setup steps from the workarounds and the bond") {
       val defaults = AndroidConnectionOptions()
       setupSteps(defaults, isBonded = false, isBonding = false) shouldBe
-        listOf(SetupStep.HighPriority, SetupStep.DiscoverServices, SetupStep.BalancedPriority)
+        listOf(SetupStep.HighPriority, SetupStep.RequestMtu(517), SetupStep.DiscoverServices, SetupStep.BalancedPriority)
       setupSteps(defaults, isBonded = false, isBonding = true) shouldBe
-        listOf(SetupStep.HighPriority, SetupStep.WaitForBonding, SetupStep.Pause(600), SetupStep.DiscoverServices, SetupStep.BalancedPriority)
+        listOf(
+          SetupStep.HighPriority,
+          SetupStep.RequestMtu(517),
+          SetupStep.WaitForBonding,
+          SetupStep.Pause(600),
+          SetupStep.DiscoverServices,
+          SetupStep.BalancedPriority,
+        )
       val off =
         defaults.with(
           AndroidConnectionOverrides(
@@ -361,6 +368,7 @@ class ConnectionTest : BehaviorSpec({
             discoveryDelayMs = 0,
             highPriorityDuringSetup = false,
             refreshServiceCache = ServiceCacheRefresh.ALWAYS,
+            mtu = 0,
           ),
         )
       setupSteps(off, isBonded = true, isBonding = true) shouldBe listOf(SetupStep.RefreshServiceCache, SetupStep.DiscoverServices)

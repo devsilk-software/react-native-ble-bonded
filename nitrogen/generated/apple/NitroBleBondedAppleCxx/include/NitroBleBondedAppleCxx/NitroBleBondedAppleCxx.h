@@ -59,6 +59,9 @@ namespace NitroBleBonded { class DiagnosticAppState; }
 namespace NitroBleBonded { class DiagnosticEvent; }
 // Forward declaration of `DiagnosticsConfig` to properly resolve imports.
 namespace NitroBleBonded { class DiagnosticsConfig; }
+// Forward declaration of `HybridGattSpec_cxx` to properly resolve imports.
+namespace NitroBleBonded { class HybridGattSpec_cxx; }
+#include <NitroModules/ArrayBuffer.hpp>
 // Forward declaration of `HybridPermissionsSpec_cxx` to properly resolve imports.
 namespace NitroBleBonded { class HybridPermissionsSpec_cxx; }
 // Forward declaration of `BluetoothPermission` to properly resolve imports.
@@ -67,7 +70,6 @@ namespace NitroBleBonded { class BluetoothPermission; }
 namespace NitroBleBonded { class HybridScannerSpec_cxx; }
 // Forward declaration of `NativeScanOptions` to properly resolve imports.
 namespace NitroBleBonded { class NativeScanOptions; }
-#include <NitroModules/ArrayBuffer.hpp>
 // Forward declaration of `ManufacturerData` to properly resolve imports.
 namespace NitroBleBonded { class ManufacturerData; }
 // Forward declaration of `NativeServiceData` to properly resolve imports.
@@ -86,6 +88,8 @@ namespace margelo::nitro::blebonded { class HybridBluetoothStateSpecSwift; }
 namespace margelo::nitro::blebonded { class HybridConnectionSpecSwift; }
 // Forward declaration of `HybridDiagnosticsSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridDiagnosticsSpecSwift; }
+// Forward declaration of `HybridGattSpecSwift` to properly resolve imports.
+namespace margelo::nitro::blebonded { class HybridGattSpecSwift; }
 // Forward declaration of `HybridPermissionsSpecSwift` to properly resolve imports.
 namespace margelo::nitro::blebonded { class HybridPermissionsSpecSwift; }
 // Forward declaration of `HybridScannerSpecSwift` to properly resolve imports.
@@ -158,6 +162,14 @@ namespace margelo::nitro::blebonded::swift_bridge {
   Promise<void> callAsync_Callback_void___NitroBleBonded__DiagnosticEvent(const Callback_void___NitroBleBonded__DiagnosticEvent& callback, const void* NON_NULL param0);
   void callAndForget_Callback_void___NitroBleBonded__DiagnosticEvent(const Callback_void___NitroBleBonded__DiagnosticEvent& callback, const void* NON_NULL param0);
   Callback_void___NitroBleBonded__DiagnosticEvent create_Callback_void___NitroBleBonded__DiagnosticEvent(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
+  using std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridGattSpecSwift>;
+  using std__weak_ptr_margelo__nitro__blebonded__HybridGattSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridGattSpecSwift>;
+  inline std__weak_ptr_margelo__nitro__blebonded__HybridGattSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_& value) {
+    return value;
+  }
+  std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(void* NON_NULL pointer);
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(const std::shared_ptr<HybridObject>& value);
+  using Promise_ArrayBuffer = Promise<ArrayBuffer>;
   using std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
   using std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
   inline std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_& value) {

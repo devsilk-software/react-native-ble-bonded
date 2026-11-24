@@ -88,6 +88,7 @@ public struct CoreBluetoothConnectionSource: ConnectionSource {
     case .notReady: BleError(code: .bluetoothOff, message: "Bluetooth is off", deviceId: id, operation: "connect")
     case .unknownPeripheral: notFound(id)
     case .notConnected: BleError(code: .notConnected, message: "The device isn't connected", deviceId: id, operation: "connect")
+    case .noAnswer: BleError(code: .timeout, message: "The device didn't answer within Bluetooth's 30 seconds", deviceId: id, operation: "connect")
     case let .platform(info):
       BleError(code: .connectionFailed, message: info.message, platformCode: info.code, deviceId: id, operation: "connect")
     }

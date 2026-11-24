@@ -9,6 +9,7 @@ import {
   type NativeConnectionChange,
   type ServiceCacheRefresh,
 } from '../specs/Connection.nitro'
+import { Gatt } from '../specs/Gatt.nitro'
 import { BleError, toBleError, type BleErrorCode } from './BleError'
 import { prepare, type PrepareOptions } from './prepare'
 
@@ -40,6 +41,11 @@ export interface AndroidConnectionOptions {
   highPriorityDuringSetup?: boolean
   /** When to refresh Android's cache of the device's services. Default `onFailure`. */
   refreshServiceCache?: ServiceCacheRefresh
+  /**
+   * The MTU to ask for once connected, so writes without response carry more than 20 bytes. Default 517, the most
+   * Bluetooth allows; `0` keeps 23. iOS negotiates by itself.
+   */
+  mtu?: number
 }
 
 export interface ConnectOptions extends PrepareOptions {
@@ -64,6 +70,22 @@ export interface Service {
 }
 
 export const defaultConnectTimeout = 30_000
+
+/** How long a read or a write waits for the device by default. */
+export const defaultOperationTimeout = 10_000
+
+export interface OperationOptions {
+  /** Give up after this many milliseconds. Default 10,000. */
+  timeout?: number
+}
+
+export interface WriteOptions extends OperationOptions {
+  /**
+   * Write without asking the device to confirm. Faster; resolves once the phone has sent the value. A value longer
+   * than the device's maximum write length rejects with `valueTooLong`; Bonded never splits it.
+   */
+  withoutResponse?: boolean
+}
 
 /** One device's connection, as the store keeps it. Replaced, never changed, so hooks can compare it. */
 export interface DeviceConnection extends ConnectionChange {
@@ -211,6 +233,10 @@ export function toNativeAndroid(options: AndroidConnectionOptions | undefined): 
   if (delay != null && !(Number.isFinite(delay) && delay >= 0)) {
     throw new RangeError(`android.discoveryDelay must be 0 or more milliseconds, got ${delay}`)
   }
+  const mtu = options.mtu
+  if (mtu != null && !(Number.isInteger(mtu) && (mtu === 0 || (mtu >= 23 && mtu <= 517)))) {
+    throw new RangeError(`android.mtu must be 0 or a whole number from 23 to 517, got ${mtu}`)
+  }
   return {
     retryTransientErrors: options.retryTransientErrors,
     closeGattOnDisconnect: options.closeGattOnDisconnect,
@@ -218,6 +244,7 @@ export function toNativeAndroid(options: AndroidConnectionOptions | undefined): 
     discoveryDelayMs: delay,
     highPriorityDuringSetup: options.highPriorityDuringSetup,
     refreshServiceCache: options.refreshServiceCache,
+    mtu: options.mtu,
   }
 }
 
@@ -289,10 +316,61 @@ export class Device {
     }
   }
 
+  /**
+   * Reads a characteristic's value. The device must be connected; otherwise it rejects at once with `notConnected`.
+   * Rejects with `characteristicNotFound` for a UUID the device doesn't have, `unsupported` when the characteristic
+   * can't be read, `timeout` after 10 s by default, `pairingRequired` or `gattError` when the device refuses.
+   */
+  async read(service: string, characteristic: string, options: OperationOptions = {}): Promise<ArrayBuffer> {
+    this.requireConnected('read')
+    try {
+      return await Gatt.read(this.id, service, characteristic, operationTimeout(options))
+    } catch (error) {
+      throw toBleError(error, 'read', this.id)
+    }
+  }
+
+  /**
+   * Writes a value, waiting for the device to confirm unless `withoutResponse`. Values up to 512 bytes go as a long
+   * write when they need to. The device must be connected; otherwise it rejects at once with `notConnected`. Also
+   * rejects with `valueTooLong`, `characteristicNotFound`, `unsupported`, `timeout`, `pairingRequired` or `gattError`.
+   */
+  async write(service: string, characteristic: string, value: ArrayBuffer | Uint8Array, options: WriteOptions = {}): Promise<void> {
+    const operation = options.withoutResponse === true ? 'write without response' : 'write'
+    this.requireConnected(operation)
+    const buffer = value instanceof Uint8Array ? copyToBuffer(value) : value
+    try {
+      await Gatt.write(this.id, service, characteristic, buffer, options.withoutResponse !== true, operationTimeout(options))
+    } catch (error) {
+      throw toBleError(error, operation, this.id)
+    }
+  }
+
+  private requireConnected(operation: string): void {
+    if (this.connectionState === 'connected') return
+    throw new BleError('notConnected', `The device is ${this.connectionState}; connect it before you ${operation}.`, {
+      deviceId: this.id,
+      operation,
+    })
+  }
+
   /** Calls `onChange` with the device's current connection, then every change. In components, prefer `useDevice()`. */
   onConnectionStateChange(onChange: (change: ConnectionChange) => void): { remove(): void } {
     return connectionStore.subscribe((connection) => {
       if (connection.id === this.id) onChange({ state: connection.state, lastDisconnect: connection.lastDisconnect })
     })
   }
+}
+
+function operationTimeout(options: OperationOptions): number {
+  const timeout = options.timeout ?? defaultOperationTimeout
+  if (!(Number.isFinite(timeout) && timeout > 0)) throw new RangeError(`timeout must be more than 0 milliseconds, got ${timeout}`)
+  return Math.round(timeout)
+}
+
+/** The bytes a view covers, as their own buffer: a view can cover part of a larger one. */
+function copyToBuffer(view: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(view.byteLength)
+  copy.set(view)
+  return copy.buffer
 }

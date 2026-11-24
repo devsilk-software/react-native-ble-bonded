@@ -9,6 +9,8 @@ public actor DiagnosticsRecorder {
   private let saveDelay: Duration
   private var log = EventLog()
   private var isRecording = false
+  /// Whether GATT operations are recorded too; off by default, since they can be many.
+  private var isRecordingGatt = false
   private var hasLoaded = false
   private var recording: Task<Void, Never>?
   private var pendingSave: Task<Void, Never>?
@@ -32,7 +34,10 @@ public actor DiagnosticsRecorder {
   public var isEnabled: Bool { isRecording }
 
   /// Changes the settings; `nil` keeps the current value. Turning off deletes the stored events.
-  public func configure(enabled: Bool?, capacity: Int?) async {
+  public func configure(enabled: Bool?, capacity: Int?, gatt: Bool? = nil) async {
+    if let gatt {
+      isRecordingGatt = gatt
+    }
     if let capacity {
       log.setCapacity(capacity)
       if isRecording { scheduleSave() }
@@ -103,6 +108,7 @@ public actor DiagnosticsRecorder {
 
   private func record(_ domainEvent: DomainEvent) async {
     guard isRecording, let kind = DiagnosticEvent.Kind(rawValue: domainEvent.kind.rawValue) else { return }
+    if kind == .gattOperation, !isRecordingGatt { return }
     let at = environment.now()
     let appActivity = await environment.appActivity()
     // Diagnostics may have been turned off while the app's state was being read.

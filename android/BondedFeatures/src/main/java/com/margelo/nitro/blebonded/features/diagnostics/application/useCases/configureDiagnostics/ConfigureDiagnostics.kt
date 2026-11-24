@@ -4,5 +4,5 @@ import com.margelo.nitro.blebonded.features.diagnostics.application.services.Dia
 
 /** Turns diagnostics on or off and sets how many events to keep. Turning off deletes the stored events. */
 class ConfigureDiagnostics(private val recorder: DiagnosticsRecorder) {
-  suspend operator fun invoke(enabled: Boolean?, capacity: Int?) = recorder.configure(enabled, capacity)
+  suspend operator fun invoke(enabled: Boolean?, capacity: Int?, gatt: Boolean? = null) = recorder.configure(enabled, capacity, gatt)
 }

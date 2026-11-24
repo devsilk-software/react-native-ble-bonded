@@ -46,7 +46,7 @@ The Nitro module compiles `android/BondedFeatures/src/main/java` into itself, be
 autolinking includes one Gradle project per package. On iOS the module's `Package.swift` depends on the
 `BondedFeatures` package.
 
-Features: `bluetoothState`, `permissions`, `diagnostics`, `scanning` and `connection` (done), then `gatt`,
+Features: `bluetoothState`, `permissions`, `diagnostics`, `scanning`, `connection` and `gatt` (done), then
 `bonding` and `background`. A feature's folders appear with its first use case.
 
 ## The dependency rule

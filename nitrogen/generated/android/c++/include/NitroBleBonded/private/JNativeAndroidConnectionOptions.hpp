@@ -23,10 +23,10 @@ namespace margelo::nitro::blebonded {
   struct JNativeAndroidConnectionOptions final : public jni::JavaClass<JNativeAndroidConnectionOptions> {
     static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/blebonded/NativeAndroidConnectionOptions;";
 
-    static jni::local_ref<JNativeAndroidConnectionOptions> create(jni::alias_ref<JOptional<jni::JBoolean>> retryTransientErrors, jni::alias_ref<JOptional<jni::JBoolean>> closeGattOnDisconnect, jni::alias_ref<JOptional<jni::JBoolean>> waitForBonding, jni::alias_ref<JOptional<jni::JDouble>> discoveryDelayMs, jni::alias_ref<JOptional<jni::JBoolean>> highPriorityDuringSetup, jni::alias_ref<JOptional<JServiceCacheRefresh>> refreshServiceCache) {
+    static jni::local_ref<JNativeAndroidConnectionOptions> create(jni::alias_ref<JOptional<jni::JBoolean>> retryTransientErrors, jni::alias_ref<JOptional<jni::JBoolean>> closeGattOnDisconnect, jni::alias_ref<JOptional<jni::JBoolean>> waitForBonding, jni::alias_ref<JOptional<jni::JDouble>> discoveryDelayMs, jni::alias_ref<JOptional<jni::JBoolean>> highPriorityDuringSetup, jni::alias_ref<JOptional<JServiceCacheRefresh>> refreshServiceCache, jni::alias_ref<JOptional<jni::JDouble>> mtu) {
       static const auto clazz = javaClassStatic();
-      static const auto create = clazz->getStaticMethod<JNativeAndroidConnectionOptions(jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<jni::JDouble>>, jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<JServiceCacheRefresh>>)>("fromCpp");
-      return create(clazz, retryTransientErrors, closeGattOnDisconnect, waitForBonding, discoveryDelayMs, highPriorityDuringSetup, refreshServiceCache);
+      static const auto create = clazz->getStaticMethod<JNativeAndroidConnectionOptions(jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<jni::JDouble>>, jni::alias_ref<JOptional<jni::JBoolean>>, jni::alias_ref<JOptional<JServiceCacheRefresh>>, jni::alias_ref<JOptional<jni::JDouble>>)>("fromCpp");
+      return create(clazz, retryTransientErrors, closeGattOnDisconnect, waitForBonding, discoveryDelayMs, highPriorityDuringSetup, refreshServiceCache, mtu);
     }
 
     jni::local_ref<JOptional<jni::JBoolean>> getRetryTransientErrors() const {
@@ -56,6 +56,11 @@ namespace margelo::nitro::blebonded {
 
     jni::local_ref<JOptional<JServiceCacheRefresh>> getRefreshServiceCache() const {
       static const auto field = javaClassStatic()->getField<JOptional<JServiceCacheRefresh>>("refreshServiceCache");
+      return getFieldValue(field);
+    }
+
+    jni::local_ref<JOptional<jni::JDouble>> getMtu() const {
+      static const auto field = javaClassStatic()->getField<JOptional<jni::JDouble>>("mtu");
       return getFieldValue(field);
     }
   };

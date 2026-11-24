@@ -95,6 +95,20 @@ struct DiagnosticsTests {
     #expect(await store.deleteCount == 2)
   }
 
+  @Test("records GATT operations only when asked to")
+  func recordsGattOperationsOnlyWhenAskedTo() async {
+    let (recorder, bus) = recorder()
+    await recorder.configure(enabled: true, capacity: nil)
+    let operation = DomainEvent(kind: .gattOperation, detail: "read 2a37: 3 bytes in 8 ms")
+
+    await publish([operation, DomainEvent(kind: .stateChanged, detail: "poweredOn")], on: bus, until: recorder, count: 1)
+    #expect(await recorder.events(since: nil).map(\.kind) == [.stateChanged])
+
+    await recorder.configure(enabled: nil, capacity: nil, gatt: true)
+    await publish([operation], on: bus, until: recorder, count: 2)
+    #expect(await recorder.events(since: nil).map(\.kind) == [.stateChanged, .gattOperation])
+  }
+
   @Test("saves the recorded events so they survive the app being killed")
   func savesTheRecordedEventsSoTheySurviveTheAppBeingKilled() async {
     let store = FakeDiagnosticsStore()

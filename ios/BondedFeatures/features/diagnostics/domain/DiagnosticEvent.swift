@@ -9,6 +9,7 @@ public struct DiagnosticEvent: Sendable, Equatable, Codable {
     case connected
     case disconnected
     case connectionRetried
+    case gattOperation
   }
 
   /// Whether the app was in the foreground or the background when the event happened.

@@ -33,6 +33,14 @@ public actor BluetoothCentral {
   private var serviceWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
   private var characteristicWaiters: [UUID: (remaining: Int, continuation: CheckedContinuation<Void, any Error>)] = [:]
   private var disconnectionObservers: [UUID: AsyncStream<CentralDisconnect>.Continuation] = [:]
+  /// The last operation on each peripheral; each new one waits for it and its answer.
+  private var operations: [UUID: Task<Void, Never>] = [:]
+  /// Callers waiting for an operation's result, by token, so a cancel reaches only its own operation.
+  private var readCallers: [UUID: (identifier: UUID, continuation: CheckedContinuation<Data, any Error>)] = [:]
+  private var writeCallers: [UUID: (identifier: UUID, continuation: CheckedContinuation<Void, any Error>)] = [:]
+  /// The request each peripheral is waiting on, and for which characteristic.
+  private var answerWaiters: [UUID: (request: UUID, key: String, continuation: CheckedContinuation<Result<Data?, any Error>, Never>)] = [:]
+  private var readyWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
 
   public init() {}
 
@@ -210,6 +218,7 @@ public actor BluetoothCentral {
 
   /// Ends every wait on this peripheral with `error`.
   private func fail(_ identifier: UUID, with error: any Error) {
+    failOperations(identifier, with: CentralError.notConnected)
     connectWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
     serviceWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
     characteristicWaiters.removeValue(forKey: identifier)?.continuation.resume(throwing: error)
@@ -270,6 +279,191 @@ public actor BluetoothCentral {
     }
   }
 
+  // MARK: - Characteristics
+
+  /// The characteristic's property bits, or `nil` when the connected peripheral has no such characteristic.
+  /// `service` and `characteristic` are full lowercase UUIDs.
+  public func characteristicProperties(_ identifier: UUID, service: String, characteristic: String) throws -> UInt? {
+    try self.characteristic(on: identifier, service: service, characteristic: characteristic)?.properties.rawValue
+  }
+
+  /// The longest value one write without response may carry.
+  public func maximumWriteLength(_ identifier: UUID) throws -> Int {
+    try connectedPeripheral(identifier).maximumWriteValueLength(for: .withoutResponse)
+  }
+
+  /// Reads the characteristic's value. Cancelling stops waiting at once; the peripheral's next operation still waits
+  /// for this one's answer, so an answer never reaches the wrong caller.
+  public func read(_ identifier: UUID, service: String, characteristic: String) async throws -> Data {
+    let token = UUID()
+    return try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Data, any Error>) in
+        readCallers[token] = (identifier, caller)
+        enqueue(on: identifier) { await self.runRead(token, identifier, service: service, characteristic: characteristic) }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
+  /// Writes `data`. With response, returns once the peripheral confirmed; without, once Core Bluetooth took it,
+  /// waiting for room when its buffer is full. Cancelling stops waiting at once.
+  public func write(_ data: Data, to identifier: UUID, service: String, characteristic: String, withResponse: Bool) async throws {
+    let token = UUID()
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Void, any Error>) in
+        writeCallers[token] = (identifier, caller)
+        enqueue(on: identifier) {
+          await self.runWrite(token, data, to: identifier, service: service, characteristic: characteristic, withResponse: withResponse)
+        }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
+  /// One operation runs at a time per peripheral, each after the one before has its answer.
+  private func enqueue(on identifier: UUID, _ operation: @escaping @Sendable () async -> Void) {
+    let previous = operations[identifier]
+    operations[identifier] = Task {
+      await previous?.value
+      await operation()
+    }
+  }
+
+  private func runRead(_ token: UUID, _ identifier: UUID, service: String, characteristic: String) async {
+    // A caller that gave up while queued is never sent.
+    guard readCallers[token] != nil else { return }
+    let result: Result<Data, any Error>
+    do {
+      let peripheral = try connectedPeripheral(identifier)
+      guard let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic) else {
+        throw CentralError.notConnected
+      }
+      let key = Self.key(service, characteristic)
+      result = await answer(on: identifier, key: key) { peripheral.readValue(for: target) }.map { $0 ?? Data() }
+    } catch {
+      result = .failure(error)
+    }
+    readCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+  }
+
+  private func runWrite(_ token: UUID, _ data: Data, to identifier: UUID, service: String, characteristic: String, withResponse: Bool) async {
+    guard writeCallers[token] != nil else { return }
+    let result: Result<Void, any Error>
+    do {
+      let peripheral = try connectedPeripheral(identifier)
+      guard let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic) else {
+        throw CentralError.notConnected
+      }
+      if withResponse {
+        result = await answer(on: identifier, key: Self.key(service, characteristic)) {
+          peripheral.writeValue(data, for: target, type: .withResponse)
+        }.map { _ in () }
+      } else {
+        while !peripheral.canSendWriteWithoutResponse {
+          try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            readyWaiters[identifier] = continuation
+          }
+          // The caller may have given up while waiting for room.
+          guard writeCallers[token] != nil else { return }
+        }
+        peripheral.writeValue(data, for: target, type: .withoutResponse)
+        result = .success(())
+      }
+    } catch {
+      result = .failure(error)
+    }
+    writeCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+  }
+
+  /// Sends a request and waits for the answer for this characteristic, at most Bluetooth's own 30 seconds, or until
+  /// the peripheral disconnects. Answers for other characteristics don't end the wait.
+  private func answer(on identifier: UUID, key: String, send: () -> Void) async -> Result<Data?, any Error> {
+    await withCheckedContinuation { (continuation: CheckedContinuation<Result<Data?, any Error>, Never>) in
+      let request = UUID()
+      answerWaiters[identifier] = (request, key, continuation)
+      send()
+      Task {
+        try? await Task.sleep(for: .seconds(30))
+        self.expire(identifier, request: request)
+      }
+    }
+  }
+
+  private func expire(_ identifier: UUID, request: UUID) {
+    guard let waiter = answerWaiters[identifier], waiter.request == request else { return }
+    answerWaiters[identifier] = nil
+    waiter.continuation.resume(returning: .failure(CentralError.noAnswer))
+  }
+
+  /// The caller gave up: it gets `CancellationError` now; the operation, if already sent, keeps its slot until the
+  /// answer arrives.
+  private func abandon(_ token: UUID) {
+    readCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
+    writeCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
+  }
+
+  private func connectedPeripheral(_ identifier: UUID) throws -> CBPeripheral {
+    guard let peripheral = peripherals[identifier], peripheral.state == .connected else { throw CentralError.notConnected }
+    return peripheral
+  }
+
+  private func characteristic(on identifier: UUID, service: String, characteristic: String) throws -> CBCharacteristic? {
+    let peripheral = try connectedPeripheral(identifier)
+    return peripheral.services?
+      .first { Self.fullUuid($0.uuid) == service }?
+      .characteristics?
+      .first { Self.fullUuid($0.uuid) == characteristic }
+  }
+
+  /// A Core Bluetooth UUID in its full 128-bit lowercase form.
+  static func fullUuid(_ uuid: CBUUID) -> String {
+    let text = uuid.uuidString.lowercased()
+    switch text.count {
+    case 4: return "0000\(text)-0000-1000-8000-00805f9b34fb"
+    case 8: return "\(text)-0000-1000-8000-00805f9b34fb"
+    default: return text
+    }
+  }
+
+  /// Which characteristic an answer belongs to.
+  static func key(_ service: String, _ characteristic: String) -> String {
+    "\(service)|\(characteristic)"
+  }
+
+  /// The peripheral disconnected: every waiting caller and request on it fails.
+  private func failOperations(_ identifier: UUID, with error: any Error) {
+    for (token, caller) in readCallers where caller.identifier == identifier {
+      readCallers[token] = nil
+      caller.continuation.resume(throwing: error)
+    }
+    for (token, caller) in writeCallers where caller.identifier == identifier {
+      writeCallers[token] = nil
+      caller.continuation.resume(throwing: error)
+    }
+    answerWaiters.removeValue(forKey: identifier)?.continuation.resume(returning: .failure(error))
+    readyWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
+  }
+
+  private func handleOperation(_ event: CentralEvent) {
+    switch event {
+    case let .valueUpdated(identifier, key, value, error):
+      // Only the answer for the characteristic asked about ends the wait; notifications come here too.
+      guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
+      answerWaiters[identifier] = nil
+      waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(value))
+    case let .wrote(identifier, key, error):
+      guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
+      answerWaiters[identifier] = nil
+      waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(nil))
+    case let .readyToWrite(identifier):
+      readyWaiters.removeValue(forKey: identifier)?.resume()
+    default:
+      break
+    }
+  }
+
   // MARK: - Manager
 
   private func activate() {
@@ -302,6 +496,8 @@ public actor BluetoothCentral {
       discoveries?.yield(discovery)
     case .connected, .failedToConnect, .disconnected, .servicesDiscovered, .characteristicsDiscovered:
       handleConnection(event)
+    case .valueUpdated, .wrote, .readyToWrite:
+      handleOperation(event)
     case let .stateChanged(newState):
       state = newState
       if newState != .poweredOn {
@@ -393,6 +589,9 @@ enum CentralEvent: Sendable {
   case disconnected(UUID, PlatformErrorInfo?)
   case servicesDiscovered(UUID, PlatformErrorInfo?)
   case characteristicsDiscovered(UUID, PlatformErrorInfo?)
+  case valueUpdated(UUID, String, Data?, PlatformErrorInfo?)
+  case wrote(UUID, String, PlatformErrorInfo?)
+  case readyToWrite(UUID)
 }
 
 /// A Core Bluetooth error, copied into values that can cross actors.
@@ -418,6 +617,8 @@ public enum CentralError: Error, Sendable {
   case notReady
   case unknownPeripheral
   case notConnected
+  /// The peripheral didn't answer within Bluetooth's 30 seconds.
+  case noAnswer
   case platform(PlatformErrorInfo)
 }
 
@@ -512,5 +713,23 @@ private final class CentralDelegate: NSObject, CBCentralManagerDelegate, CBPerip
 
   func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
     events.yield(.characteristicsDiscovered(peripheral.identifier, error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: (any Error)?) {
+    events.yield(.valueUpdated(peripheral.identifier, Self.key(characteristic), characteristic.value, error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: (any Error)?) {
+    events.yield(.wrote(peripheral.identifier, Self.key(characteristic), error.map(PlatformErrorInfo.init)))
+  }
+
+  /// Which characteristic an answer belongs to, as `BluetoothCentral.key` writes it.
+  static func key(_ characteristic: CBCharacteristic) -> String {
+    let service = characteristic.service.map { BluetoothCentral.fullUuid($0.uuid) } ?? ""
+    return BluetoothCentral.key(service, BluetoothCentral.fullUuid(characteristic.uuid))
+  }
+
+  func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
+    events.yield(.readyToWrite(peripheral.identifier))
   }
 }

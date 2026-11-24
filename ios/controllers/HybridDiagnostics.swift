@@ -8,7 +8,7 @@ final class HybridDiagnostics: HybridDiagnosticsSpec {
 
   static func configure(config: DiagnosticsConfig) throws -> any Promise<Void> {
     Promise_void.async {
-      await CompositionRoot.shared.configureDiagnostics(enabled: config.enabled, capacity: config.capacity.map { Int($0) })
+      await CompositionRoot.shared.configureDiagnostics(enabled: config.enabled, capacity: config.capacity.map { Int($0) }, gatt: config.gatt)
     }
   }
 
@@ -49,6 +49,7 @@ extension DiagnosticEventType {
     case .connected: self = .connected
     case .disconnected: self = .disconnected
     case .connectionRetried: self = .connectionretried
+    case .gattOperation: self = .gattoperation
     }
   }
 }

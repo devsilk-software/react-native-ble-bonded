@@ -10,6 +10,8 @@ public struct DomainEvent: Sendable, Equatable {
     case connected
     case disconnected
     case connectionRetried
+    /// A read or write of a characteristic, recorded only when diagnostics include GATT operations.
+    case gattOperation
   }
 
   public let kind: Kind

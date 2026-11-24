@@ -19,6 +19,8 @@ public final class CompositionRoot: Sendable {
   public let getServices: GetServices
   public let observeConnections: ObserveConnections
   public let forgetDevice: ForgetDevice
+  public let readCharacteristic: ReadCharacteristic
+  public let writeCharacteristic: WriteCharacteristic
 
   private let configure: ConfigureDiagnostics
   private let publishers: EventPublishers
@@ -68,6 +70,10 @@ public final class CompositionRoot: Sendable {
     observeConnections = ObserveConnections(coordinator: connections)
     forgetDevice = ForgetDevice(coordinator: connections)
 
+    let characteristics = CoreBluetoothCharacteristicSource(central: central)
+    readCharacteristic = ReadCharacteristic(source: characteristics, bus: bus)
+    writeCharacteristic = WriteCharacteristic(source: characteristics, bus: bus)
+
     publishers = EventPublishers(
       adapterState: PublishAdapterStateEvents(observe: observeAdapterState, bus: bus),
       permission: PublishPermissionEvents(observe: observePermission, bus: bus)
@@ -78,11 +84,11 @@ public final class CompositionRoot: Sendable {
   /// listener, so the record is complete; while off, nothing observes for diagnostics.
   /// Calls are applied one after another, in the order they arrive, so the recorder and the publishers always
   /// end in the same state.
-  public func configureDiagnostics(enabled: Bool?, capacity: Int?) async {
+  public func configureDiagnostics(enabled: Bool?, capacity: Int?, gatt: Bool? = nil) async {
     let configure = self.configure
     let publishers = self.publishers
     await transitions.run {
-      await configure(enabled: enabled, capacity: capacity)
+      await configure(enabled: enabled, capacity: capacity, gatt: gatt)
       if let enabled {
         await publishers.setRunning(enabled)
       }

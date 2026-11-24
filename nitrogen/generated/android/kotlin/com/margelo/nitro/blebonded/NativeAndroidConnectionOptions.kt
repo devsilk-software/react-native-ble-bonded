@@ -34,7 +34,10 @@ data class NativeAndroidConnectionOptions(
   val highPriorityDuringSetup: Boolean?,
   @DoNotStrip
   @Keep
-  val refreshServiceCache: ServiceCacheRefresh?
+  val refreshServiceCache: ServiceCacheRefresh?,
+  @DoNotStrip
+  @Keep
+  val mtu: Double?
 ) {
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
@@ -45,6 +48,7 @@ data class NativeAndroidConnectionOptions(
       && (this.discoveryDelayMs == null && other.discoveryDelayMs == null || this.discoveryDelayMs != null && other.discoveryDelayMs != null && this.discoveryDelayMs.toBits() == other.discoveryDelayMs.toBits())
       && (this.highPriorityDuringSetup == null && other.highPriorityDuringSetup == null || this.highPriorityDuringSetup != null && other.highPriorityDuringSetup != null && this.highPriorityDuringSetup == other.highPriorityDuringSetup)
       && (this.refreshServiceCache == null && other.refreshServiceCache == null || this.refreshServiceCache != null && other.refreshServiceCache != null && this.refreshServiceCache == other.refreshServiceCache)
+      && (this.mtu == null && other.mtu == null || this.mtu != null && other.mtu != null && this.mtu.toBits() == other.mtu.toBits())
   }
 
   override fun hashCode(): Int {
@@ -54,6 +58,7 @@ data class NativeAndroidConnectionOptions(
     result = 31 * result + (if (this.discoveryDelayMs != null) this.discoveryDelayMs.hashCode() else 0)
     result = 31 * result + (if (this.highPriorityDuringSetup != null) this.highPriorityDuringSetup.hashCode() else 0)
     result = 31 * result + (if (this.refreshServiceCache != null) this.refreshServiceCache.hashCode() else 0)
+    result = 31 * result + (if (this.mtu != null) this.mtu.hashCode() else 0)
     return result
   }
 
@@ -65,8 +70,8 @@ data class NativeAndroidConnectionOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(retryTransientErrors: Boolean?, closeGattOnDisconnect: Boolean?, waitForBonding: Boolean?, discoveryDelayMs: Double?, highPriorityDuringSetup: Boolean?, refreshServiceCache: ServiceCacheRefresh?): NativeAndroidConnectionOptions {
-      return NativeAndroidConnectionOptions(retryTransientErrors, closeGattOnDisconnect, waitForBonding, discoveryDelayMs, highPriorityDuringSetup, refreshServiceCache)
+    private fun fromCpp(retryTransientErrors: Boolean?, closeGattOnDisconnect: Boolean?, waitForBonding: Boolean?, discoveryDelayMs: Double?, highPriorityDuringSetup: Boolean?, refreshServiceCache: ServiceCacheRefresh?, mtu: Double?): NativeAndroidConnectionOptions {
+      return NativeAndroidConnectionOptions(retryTransientErrors, closeGattOnDisconnect, waitForBonding, discoveryDelayMs, highPriorityDuringSetup, refreshServiceCache, mtu)
     }
   }
 }

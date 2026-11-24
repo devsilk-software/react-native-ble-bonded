@@ -25,6 +25,7 @@ export interface NativeAndroidConnectionOptions {
   discoveryDelayMs?: number
   highPriorityDuringSetup?: boolean
   refreshServiceCache?: ServiceCacheRefresh
+  mtu?: number
 }
 
 /** How a device was found, kept with a remembered device to find it again when its ID changes. */

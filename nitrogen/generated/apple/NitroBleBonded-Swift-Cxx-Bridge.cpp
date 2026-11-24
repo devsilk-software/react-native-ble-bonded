@@ -30,6 +30,7 @@
 #include <NitroBleBonded/private/DiagnosticAppState-Swift.hpp>
 #include <NitroBleBonded/private/DiagnosticEvent-Swift.hpp>
 #include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_-Swift.hpp>
+#include <NitroBleBonded/private/HybridGattSpecSwift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpecSwift.hpp>
 #include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>
 #include <NitroBleBonded/private/HybridScannerSpecSwift.hpp>
@@ -225,6 +226,16 @@ namespace margelo::nitro::blebonded::swift_bridge {
         std::rethrow_exception(__result.error());
       }
     });
+  }
+
+  std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(void* NON_NULL pointer) {
+    return std::make_shared<margelo::nitro::blebonded::HybridGattSpecSwift>(::NitroBleBonded::HybridGattSpec_cxx::fromUnsafe(pointer));
+  }
+
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(const std::shared_ptr<HybridObject>& value) {
+    auto wrapper = std::dynamic_pointer_cast<margelo::nitro::blebonded::HybridGattSpecSwift>(value);
+    if (!wrapper) throw std::runtime_error("HybridGattSpec is not implemented in Swift");
+    return wrapper->getSwiftPart().toUnsafe();
   }
 
   std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(void* NON_NULL pointer) {

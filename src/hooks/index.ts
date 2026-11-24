@@ -14,6 +14,7 @@ import { onDiagnosticsReset, subscribeToDiagnostics } from '../api/diagnostics'
 import { DeviceList, type ScanSort } from './deviceList'
 import { createExternalStore } from './externalStore'
 import { latestEvents } from './latestEvents'
+import { countConnection, shouldSubscribe, subscriptionKey, type Attempt, type ConnectionCount } from './notificationsArming'
 
 const bluetoothState = createExternalStore<BluetoothAdapterState, 'unknown'>((onChange) => ble.onStateChange(onChange), 'unknown')
 const bluetoothPermission = createExternalStore<BluetoothPermission, undefined>((onChange) => ble.onPermissionChange(onChange), undefined)
@@ -145,59 +146,91 @@ export interface NotificationsResult {
   isSubscribed: boolean
   /** The latest value the characteristic notified; `undefined` until the first, and again after the device is forgotten. */
   value?: ArrayBuffer
-  /** Why subscribing or switching notifications back on failed. */
+  /** Why subscribing or switching notifications back on failed; cleared when values arrive again. */
   error?: BleError
 }
+
+/**
+ * A subscription still starting or stopping, per characteristic, so the next one waits for it. React may mount,
+ * unmount and mount again before the first subscribe resolves (Strict Mode does in development).
+ */
+const settling = new Map<string, Promise<void>>()
 
 /**
  * The characteristic's latest notified value, for screens that show a live reading. Subscribes once the device is
  * connected and keeps the subscription while mounted, across disconnects; removes it on unmount. Re-renders at most
  * once per batch of values (about every 16 ms). One subscription per characteristic: using the hook twice for the
- * same characteristic puts `alreadySubscribed` in `error`; share the reading in your app instead. When the app
- * forgets the device, the subscription ends: `isSubscribed` turns false and `value` clears.
+ * same characteristic puts `alreadySubscribed` in `error`; share the reading in your app instead. When subscribing
+ * fails, `error` says why and the hook tries again on the next connection. When the app forgets the device, the
+ * subscription ends: `isSubscribed` turns false and `value` clears.
  */
 export function useNotifications(device: Device | undefined, service: string, characteristic: string): NotificationsResult {
   const [value, setValue] = useState<ArrayBuffer>()
   const [error, setError] = useState<BleError>()
   const [isSubscribed, setIsSubscribed] = useState(false)
   const id = device?.id
-  const isConnected = device?.connectionState === 'connected'
-  // Subscribe once the device first connects; the subscription then outlives disconnects until unmount.
-  const [hasConnected, setHasConnected] = useState(false)
-  if (isConnected && !hasConnected) setHasConnected(true)
+  const key = id == null ? undefined : subscriptionKey(id, service, characteristic)
+  const [connection, setConnection] = useState<ConnectionCount>({ isConnected: false, count: 0 })
+  const nextConnection = countConnection(connection, device?.connectionState === 'connected')
+  if (nextConnection !== connection) setConnection(nextConnection)
+  // The subscription the hook keeps, and the last one that failed or ended: that one waits for the next connection.
+  const [subscribed, setSubscribed] = useState<Attempt>()
+  const [stopped, setStopped] = useState<Attempt>()
+  if (shouldSubscribe(key, nextConnection, subscribed, stopped)) setSubscribed({ key, connection: nextConnection.count })
 
   useEffect(() => {
-    if (id == null || !hasConnected) return
+    if (id == null || subscribed == null || subscribed.key !== key) return
     let isActive = true
     let subscription: { remove(): void } | undefined
     setError(undefined)
+    const stop = () => {
+      setSubscribed(undefined)
+      setStopped(subscribed)
+    }
     const ended = () => {
       if (!isActive) return
       setIsSubscribed(false)
       setValue(undefined)
-      // A forgotten device that connects again starts a fresh subscription.
-      setHasConnected(false)
+      stop()
     }
-    ble
-      .device(id)
-      .subscribe(service, characteristic, (next) => isActive && setValue(next), {
-        onError: (failure) => isActive && setError(failure),
-        onEnd: ended,
-      })
-      .then((started) => {
-        if (!isActive) return started.remove()
-        subscription = started
+    const started = (settling.get(key) ?? Promise.resolve()).then(() =>
+      isActive
+        ? ble.device(id).subscribe(
+            service,
+            characteristic,
+            (next) => {
+              if (!isActive) return
+              setValue(next)
+              setError(undefined)
+            },
+            { onError: (failure) => isActive && setError(failure), onEnd: ended }
+          )
+        : undefined
+    )
+    const settled = started.then(
+      (next) => {
+        if (next == null) return
+        if (!isActive) return next.remove()
+        subscription = next
         setIsSubscribed(true)
-      })
-      .catch((failure: unknown) => {
-        if (isActive) setError(failure instanceof BleError ? failure : new BleError('unknown', String(failure), { operation: 'subscribe' }))
-      })
+      },
+      (failure: unknown) => {
+        if (!isActive) return
+        setError(failure instanceof BleError ? failure : new BleError('unknown', String(failure), { operation: 'subscribe' }))
+        stop()
+      }
+    )
+    settling.set(key, settled)
+    void settled.then(() => {
+      if (settling.get(key) === settled) settling.delete(key)
+    })
     return () => {
       isActive = false
       subscription?.remove()
       setIsSubscribed(false)
+      setValue(undefined)
     }
-  }, [id, service, characteristic, hasConnected])
+  }, [id, key, service, characteristic, subscribed])
 
   return { isSubscribed, value, error }
 }

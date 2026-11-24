@@ -8,10 +8,12 @@ import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 
 /** A [CharacteristicSource] with the characteristics the test gives it, values it returns, and writes it records. */
 class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAddress, List<CharacteristicProperty>>) : CharacteristicSource {
@@ -28,8 +30,30 @@ class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAd
   val notificationSwitches = CopyOnWriteArrayList<Pair<Boolean, Boolean>>()
   private val notified = MutableSharedFlow<CharacteristicNotification>(extraBufferCapacity = 64)
 
+  /** While set, switching notifications on waits until [releaseSwitches]; [held] lists what waits. */
+  @Volatile private var hold: CompletableDeferred<Unit>? = null
+  val held = CopyOnWriteArrayList<CharacteristicAddress>()
+
+  /** Every time notifications were switched, including the ones that failed. */
+  val switchAttempts = AtomicInteger()
+
+  fun holdSwitches() {
+    hold = CompletableDeferred()
+  }
+
+  fun releaseSwitches() {
+    hold?.complete(Unit)
+    hold = null
+  }
+
   override suspend fun setNotifications(isOn: Boolean, indicate: Boolean, address: CharacteristicAddress, id: DeviceId) {
+    switchAttempts.incrementAndGet()
     if (isOn) switchFailure?.let { throw it }
+    val waiting = hold
+    if (isOn && waiting != null) {
+      held.add(address)
+      waiting.await()
+    }
     notificationSwitches.add(isOn to indicate)
   }
 

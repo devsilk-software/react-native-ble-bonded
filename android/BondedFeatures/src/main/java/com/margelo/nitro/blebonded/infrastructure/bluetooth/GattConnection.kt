@@ -287,16 +287,20 @@ class GattConnection(
    */
   private suspend fun <T> perform(operation: suspend (CompletableDeferred<T>) -> Unit): T {
     val result = CompletableDeferred<T>()
-    scope.launch {
-      operations.withLock {
-        if (result.isCompleted) return@withLock // the caller gave up while queued: never sent
-        try {
-          operation(result)
-        } catch (failure: Throwable) {
-          result.completeExceptionally(failure)
+    val job =
+      scope.launch {
+        operations.withLock {
+          if (result.isCompleted) return@withLock // the caller gave up while queued: never sent
+          try {
+            operation(result)
+          } catch (failure: Throwable) {
+            // Closing the connection cancels its scope mid-operation: to the caller, the device disconnected.
+            result.completeExceptionally(if (failure is CancellationException) GattStatusException(NOT_CONNECTED) else failure)
+          }
         }
       }
-    }
+    // Closed before the operation got its turn: it never runs, and the caller must not wait forever.
+    job.invokeOnCompletion { result.completeExceptionally(GattStatusException(NOT_CONNECTED)) }
     return try {
       result.await()
     } catch (cancelled: CancellationException) {

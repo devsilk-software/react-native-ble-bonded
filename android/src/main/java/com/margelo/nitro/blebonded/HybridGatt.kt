@@ -126,13 +126,13 @@ internal class ValueBatch(private val scope: CoroutineScope, private val deliver
       }
   }
 
+  /** Delivers under the lock, so the timer's flush and the collector's can't hand batches over out of order. */
+  @Synchronized
   fun flush() {
-    val values =
-      synchronized(this) {
-        scheduled = null
-        if (pending.isEmpty()) return
-        ArrayList(pending).also { pending.clear() }
-      }
+    scheduled = null
+    if (pending.isEmpty()) return
+    val values = ArrayList(pending)
+    pending.clear()
     deliver(values)
   }
 

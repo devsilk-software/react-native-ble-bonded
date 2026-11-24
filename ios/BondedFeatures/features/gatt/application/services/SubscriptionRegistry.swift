@@ -34,7 +34,7 @@ public actor SubscriptionRegistry {
       throw failure
     }
     let isIndication = properties?.contains(.notify) != true
-    try await source.setNotifications(true, indicate: isIndication, on: address, of: id)
+    try await switchNotifications(true, indicate: isIndication, on: address, of: id)
     // Another call may have subscribed while this one waited for the device.
     if entries.values.contains(where: { $0.device == id && $0.address == address }) {
       throw Self.alreadySubscribed(address, id)
@@ -50,7 +50,7 @@ public actor SubscriptionRegistry {
   public func remove(_ subscription: Int) async {
     guard let entry = entries.removeValue(forKey: subscription) else { return }
     entry.continuation.finish()
-    try? await source.setNotifications(false, indicate: entry.isIndication, on: entry.address, of: entry.device)
+    try? await switchNotifications(false, indicate: entry.isIndication, on: entry.address, of: entry.device)
   }
 
   private func listen() async {
@@ -81,11 +81,15 @@ public actor SubscriptionRegistry {
     switch event.kind {
     case .connected:
       for (subscription, entry) in entries where entry.device == device {
+        // The app may have removed it while an earlier one was switched on.
+        guard entries[subscription] != nil else { continue }
         do {
-          try await source.setNotifications(true, indicate: entry.isIndication, on: entry.address, of: device)
+          try await switchNotifications(true, indicate: entry.isIndication, on: entry.address, of: device)
         } catch {
           let failure = error as? BleError
             ?? BleError(code: .unknown, message: String(describing: error), deviceId: device, operation: "subscribe")
+          // A disconnect isn't an error: the next reconnect switches notifications on again.
+          guard failure.code != .notConnected else { continue }
           entries[subscription]?.continuation.yield(.failed(failure))
         }
       }
@@ -97,6 +101,21 @@ public actor SubscriptionRegistry {
       }
     default:
       break
+    }
+  }
+
+  /// Switches notifications on or off, giving up after 10 seconds like a read or write.
+  private func switchNotifications(_ isOn: Bool, indicate: Bool, on address: CharacteristicAddress, of id: DeviceId) async throws {
+    let timeout = Duration.seconds(10)
+    let expired = BleError(
+      code: .timeout,
+      message: "The device didn't switch notifications \(isOn ? "on" : "off") for characteristic \(address.characteristic) within \(timeout)",
+      deviceId: id,
+      operation: "subscribe"
+    )
+    let source = source
+    try await withOperationTimeout(timeout, timeout: expired) {
+      try await source.setNotifications(isOn, indicate: indicate, on: address, of: id)
     }
   }
 

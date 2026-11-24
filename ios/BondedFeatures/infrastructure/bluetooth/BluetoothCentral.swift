@@ -501,13 +501,15 @@ public actor BluetoothCentral {
   private func handleOperation(_ event: CentralEvent) {
     switch event {
     case let .valueUpdated(identifier, key, value, error):
-      // Notifications and read answers both arrive here: every value goes to the notification observers, and the
-      // one a read waits for also ends that read.
-      if error == nil, let value {
-        let notification = CentralNotification(identifier: identifier, key: key, value: value)
-        notificationObservers.values.forEach { $0.yield(notification) }
+      // Notifications and read answers both arrive here, and Core Bluetooth doesn't say which. While a read of the
+      // characteristic waits, the value is its answer; otherwise it's a notification. Android keeps them apart too.
+      guard let waiter = answerWaiters[identifier], waiter.key == key else {
+        if error == nil, let value {
+          let notification = CentralNotification(identifier: identifier, key: key, value: value)
+          notificationObservers.values.forEach { $0.yield(notification) }
+        }
+        return
       }
-      guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
       answerWaiters[identifier] = nil
       waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(value))
     case let .notificationStateUpdated(identifier, key, error):

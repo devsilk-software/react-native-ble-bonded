@@ -92,6 +92,8 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - refuses to subscribe to a characteristic that neither notifies nor indicates
 - uses notifications when it can and indications otherwise
 - switches notifications back on after a reconnect
+- doesn't report a disconnect while switching notifications back on
+- doesn't switch notifications back on for a subscription removed meanwhile
 - reports when notifications can't be switched back on
 - stops notifications when the subscription is removed
 - removes a forgotten device's subscriptions

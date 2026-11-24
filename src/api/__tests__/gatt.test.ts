@@ -146,6 +146,22 @@ describe('Subscriptions', () => {
     await expect(ble.device('A').subscribe(service, '2a37', jest.fn())).rejects.toMatchObject({ code: 'alreadySubscribed' })
   })
 
+  it('subscribes again only once the previous subscription to the characteristic is removed', async () => {
+    subscribing()
+    let finishRemoval: () => void = () => {}
+    native.unsubscribe.mockReturnValue(new Promise<void>((resolve) => (finishRemoval = resolve)))
+
+    const first = await ble.device('A').subscribe(service, '2a37', jest.fn())
+    first.remove()
+    const second = ble.device('A').subscribe(service, '2A37', jest.fn())
+    await Promise.resolve()
+    expect(native.subscribe).toHaveBeenCalledTimes(1)
+
+    finishRemoval()
+    await second
+    expect(native.subscribe).toHaveBeenCalledTimes(2)
+  })
+
   it('rejects at once with notConnected when the device is not connected', async () => {
     report({ id: 'A', state: 'disconnected' })
 

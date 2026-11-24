@@ -91,6 +91,45 @@ struct SubscriptionTests {
     #expect(await recorder.events == [.failed(refusal), .value([3])])
   }
 
+  @Test("doesn't report a disconnect while switching notifications back on")
+  func doesntReportADisconnectWhileSwitchingNotificationsBackOn() async throws {
+    let source = source()
+    let bus = EventBus()
+    let registry = SubscriptionRegistry(source: source, bus: bus)
+    let subscription = try await registry.subscribe(to: testCharacteristic, on: device)
+    let recorder = SubscriptionRecorder(subscription.events)
+
+    await source.failSwitchingOn(with: BleError(code: .notConnected, message: "disconnected"))
+    await bus.publish(DomainEvent(kind: .connected, deviceId: device))
+    await eventually { await source.switchAttempts == 2 }
+    await source.failSwitchingOn(with: nil)
+    await bus.publish(DomainEvent(kind: .connected, deviceId: device))
+    await eventually { await source.notificationSwitches.count == 2 }
+    await source.notify([3], at: testCharacteristic, on: device)
+    await eventually { await recorder.events.count == 1 }
+
+    #expect(await recorder.events == [.value([3])])
+  }
+
+  @Test("doesn't switch notifications back on for a subscription removed meanwhile")
+  func doesntSwitchNotificationsBackOnForASubscriptionRemovedMeanwhile() async throws {
+    let source = source()
+    let bus = EventBus()
+    let registry = SubscriptionRegistry(source: source, bus: bus)
+    let first = try await registry.subscribe(to: testCharacteristic, on: device)
+    let second = try await registry.subscribe(to: indicateOnlyCharacteristic, on: device)
+
+    await source.holdSwitches()
+    await bus.publish(DomainEvent(kind: .connected, deviceId: device))
+    await eventually { await source.held.count == 1 }
+    await registry.remove(await source.held == [testCharacteristic] ? second.id : first.id)
+    await source.releaseSwitches()
+    await eventually { await source.notificationSwitches.count == 4 }
+    try await Task.sleep(for: .milliseconds(100))
+
+    #expect(await source.notificationSwitches.map(\.isOn) == [true, true, false, true])
+  }
+
   @Test("stops notifications when the subscription is removed")
   func stopsNotificationsWhenTheSubscriptionIsRemoved() async throws {
     let source = source()

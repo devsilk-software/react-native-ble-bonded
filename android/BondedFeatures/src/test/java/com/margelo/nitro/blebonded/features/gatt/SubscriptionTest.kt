@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -107,6 +108,35 @@ class SubscriptionTest : BehaviorSpec({
       source.notificationSwitches.map { it.first } shouldBe listOf(true, true)
     }
 
+    then("doesn't report a disconnect while switching notifications back on") {
+      val source = source()
+      val bus = EventBus()
+      val recorder = Recorder(registry(source, bus).subscribe(testCharacteristic, device))
+      source.switchFailure = BleError(BleError.Code.NOT_CONNECTED, "disconnected")
+      bus.publish(DomainEvent(DomainEvent.Kind.CONNECTED, device))
+      eventually { source.switchAttempts.get() == 2 }
+      source.switchFailure = null
+      bus.publish(DomainEvent(DomainEvent.Kind.CONNECTED, device))
+      eventually { source.notificationSwitches.size == 2 }
+      source.notify(byteArrayOf(3), testCharacteristic, device)
+      eventually { recorder.events.size == 1 }
+      recorder.values shouldBe listOf(listOf<Byte>(3))
+    }
+    then("doesn't switch notifications back on for a subscription removed meanwhile") {
+      val source = source()
+      val bus = EventBus()
+      val registry = registry(source, bus)
+      val first = registry.subscribe(testCharacteristic, device)
+      val second = registry.subscribe(indicateOnlyCharacteristic, device)
+      source.holdSwitches()
+      bus.publish(DomainEvent(DomainEvent.Kind.CONNECTED, device))
+      eventually { source.held.size == 1 }
+      registry.remove(if (source.held.single() == testCharacteristic) second.id else first.id)
+      source.releaseSwitches()
+      eventually { source.notificationSwitches.size == 4 }
+      delay(100)
+      source.notificationSwitches.map { it.first } shouldBe listOf(true, true, false, true)
+    }
     then("reports when notifications can't be switched back on") {
       val source = source()
       val bus = EventBus()

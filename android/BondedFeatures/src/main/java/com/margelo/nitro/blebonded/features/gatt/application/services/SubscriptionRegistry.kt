@@ -13,12 +13,14 @@ import com.margelo.nitro.blebonded.shared.domain.DomainEvent
 import com.margelo.nitro.blebonded.shared.domain.EventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 
 /**
  * The app's subscriptions: one per characteristic, kept until removed, across disconnects. Switches notifications
@@ -48,7 +50,7 @@ class SubscriptionRegistry(private val source: CharacteristicSource, private val
     val properties = source.properties(address, id)
     OperationCheck.failure(CharacteristicOperation.SUBSCRIBE, address, id, properties)?.let { throw it }
     val isIndication = properties?.contains(CharacteristicProperty.NOTIFY) != true
-    source.setNotifications(true, isIndication, address, id)
+    switch(true, isIndication, address, id)
     return lock.withLock {
       // Another call may have subscribed while this one waited for the device.
       if (isSubscribed(address, id)) throw alreadySubscribed(address, id)
@@ -63,7 +65,21 @@ class SubscriptionRegistry(private val source: CharacteristicSource, private val
   suspend fun remove(subscription: Int) {
     val entry = lock.withLock { entries.remove(subscription) } ?: return
     entry.events.close()
-    runCatching { source.setNotifications(false, entry.isIndication, entry.address, entry.device) }
+    runCatching { switch(false, entry.isIndication, entry.address, entry.device) }
+  }
+
+  /** Switches notifications on or off, giving up after [SWITCH_TIMEOUT_MS] like a read or write. */
+  private suspend fun switch(isOn: Boolean, isIndication: Boolean, address: CharacteristicAddress, id: DeviceId) {
+    try {
+      withTimeout(SWITCH_TIMEOUT_MS) { source.setNotifications(isOn, isIndication, address, id) }
+    } catch (expired: TimeoutCancellationException) {
+      throw BleError(
+        BleError.Code.TIMEOUT,
+        "The device didn't switch notifications ${if (isOn) "on" else "off"} for characteristic ${address.characteristic} within $SWITCH_TIMEOUT_MS ms",
+        deviceId = id,
+        operation = "subscribe",
+      )
+    }
   }
 
   private fun isSubscribed(address: CharacteristicAddress, id: DeviceId) = entries.values.any { it.device == id && it.address == address }
@@ -91,10 +107,13 @@ class SubscriptionRegistry(private val source: CharacteristicSource, private val
       DomainEvent.Kind.CONNECTED -> {
         val forDevice = lock.withLock { entries.values.filter { it.device == device } }
         for (entry in forDevice) {
+          // The app may have removed it while an earlier one was switched on.
+          if (lock.withLock { entry !in entries.values }) continue
           try {
-            source.setNotifications(true, entry.isIndication, entry.address, device)
+            switch(true, entry.isIndication, entry.address, device)
           } catch (failure: BleError) {
-            entry.events.trySend(SubscriptionEvent.Failed(failure))
+            // A disconnect isn't an error: the next reconnect switches notifications on again.
+            if (failure.code != BleError.Code.NOT_CONNECTED) entry.events.trySend(SubscriptionEvent.Failed(failure))
           }
         }
       }
@@ -111,6 +130,10 @@ class SubscriptionRegistry(private val source: CharacteristicSource, private val
         }
       else -> Unit
     }
+  }
+
+  private companion object {
+    const val SWITCH_TIMEOUT_MS = 10_000L
   }
 
   private fun alreadySubscribed(address: CharacteristicAddress, id: DeviceId) =

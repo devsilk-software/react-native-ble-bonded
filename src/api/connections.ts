@@ -259,6 +259,9 @@ export function toNativeAndroid(options: AndroidConnectionOptions | undefined): 
   }
 }
 
+/** Subscriptions being removed natively, per device and characteristic. */
+const unsubscribing = new Map<string, Promise<void>>()
+
 /**
  * A device, addressed by its ID. The handle holds only the ID and reads the live state, so it never goes stale
  * and every handle for an ID agrees. Create one anywhere with `ble.device(id)`.
@@ -372,9 +375,12 @@ export class Device {
   ): Promise<{ remove(): void }> {
     this.requireConnected('subscribe')
     const deviceId = this.id
+    const key = `${deviceId}\n${service.toLowerCase()}\n${characteristic.toLowerCase()}`
     let isRemoved = false
     let id: number
     try {
+      // Removing a subscription finishes natively a moment later; subscribing again waits for it.
+      await unsubscribing.get(key)
       id = await Gatt.subscribe(
         deviceId,
         service,
@@ -399,7 +405,11 @@ export class Device {
       remove() {
         if (isRemoved) return
         isRemoved = true
-        void Gatt.unsubscribe(id)
+        const removal = Gatt.unsubscribe(id).catch(() => {})
+        unsubscribing.set(key, removal)
+        void removal.then(() => {
+          if (unsubscribing.get(key) === removal) unsubscribing.delete(key)
+        })
       },
     }
   }

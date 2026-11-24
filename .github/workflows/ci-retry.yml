@@ -1,0 +1,38 @@
+name: CI retry
+
+# GitHub sometimes has no xcode-27 runner free for a while; the iOS job then waits about 15 minutes and is
+# cancelled with "The job was not acquired by Runner of type hosted even after multiple attempts". This re-runs
+# that job, up to three attempts in all. A job cancelled for any other reason, such as a newer push, is left alone.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  actions: write
+  checks: read
+
+jobs:
+  rerun-ios:
+    if: github.event.workflow_run.conclusion != 'success' && github.event.workflow_run.run_attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-run the iOS job when no runner picked it up
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          job=$(gh api "repos/$REPO/actions/runs/$RUN_ID/attempts/$ATTEMPT/jobs" \
+            --jq '.jobs[] | select(.name == "iOS example app builds" and .conclusion == "cancelled") | .id')
+          if [ -z "$job" ]; then
+            echo "The iOS job wasn't cancelled; nothing to do."
+            exit 0
+          fi
+          if ! gh api "repos/$REPO/check-runs/$job/annotations" --jq '.[].message' | grep -q "not acquired"; then
+            echo "The iOS job was cancelled for another reason; leaving it."
+            exit 0
+          fi
+          echo "No xcode-27 runner picked up the iOS job; re-running it (attempt $((ATTEMPT + 1)) of 3)."
+          gh run rerun "$RUN_ID" --failed --repo "$REPO"

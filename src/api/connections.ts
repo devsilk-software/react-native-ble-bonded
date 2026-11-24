@@ -79,6 +79,15 @@ export interface OperationOptions {
   timeout?: number
 }
 
+export interface SubscribeOptions {
+  /**
+   * Called when switching notifications back on after a reconnect failed, such as when the device now wants
+   * pairing. The subscription stays and Bonded tries again after the next reconnect. A disconnect itself isn't an
+   * error: connection listeners report it.
+   */
+  onError?: (error: BleError) => void
+}
+
 export interface WriteOptions extends OperationOptions {
   /**
    * Write without asking the device to confirm. Faster; resolves once the phone has sent the value. A value longer
@@ -343,6 +352,48 @@ export class Device {
       await Gatt.write(this.id, service, characteristic, buffer, options.withoutResponse !== true, operationTimeout(options))
     } catch (error) {
       throw toBleError(error, operation, this.id)
+    }
+  }
+
+  /**
+   * Subscribes to the characteristic's notifications (or indications; Bonded picks) and resolves once the device
+   * switched them on. `onValue` gets each value in order. The subscription lives until `remove()`, across
+   * disconnects: after every reconnect Bonded switches notifications back on, and `onValue` keeps firing. One
+   * subscription per characteristic: a second rejects with `alreadySubscribed`. The device must be connected;
+   * otherwise it rejects at once with `notConnected`. `forget()` removes the device's subscriptions.
+   */
+  async subscribe(
+    service: string,
+    characteristic: string,
+    onValue: (value: ArrayBuffer) => void,
+    options: SubscribeOptions = {}
+  ): Promise<{ remove(): void }> {
+    this.requireConnected('subscribe')
+    const deviceId = this.id
+    let isRemoved = false
+    let id: number
+    try {
+      id = await Gatt.subscribe(
+        deviceId,
+        service,
+        characteristic,
+        (values) => {
+          if (!isRemoved) values.forEach(onValue)
+        },
+        (message) => {
+          const error = toBleError(new Error(message), 'subscribe', deviceId)
+          if (!isRemoved && error instanceof BleError) options.onError?.(error)
+        }
+      )
+    } catch (error) {
+      throw toBleError(error, 'subscribe', deviceId)
+    }
+    return {
+      remove() {
+        if (isRemoved) return
+        isRemoved = true
+        void Gatt.unsubscribe(id)
+      },
     }
   }
 

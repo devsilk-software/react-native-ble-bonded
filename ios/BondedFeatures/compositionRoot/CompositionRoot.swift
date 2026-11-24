@@ -21,6 +21,8 @@ public final class CompositionRoot: Sendable {
   public let forgetDevice: ForgetDevice
   public let readCharacteristic: ReadCharacteristic
   public let writeCharacteristic: WriteCharacteristic
+  public let subscribe: Subscribe
+  public let unsubscribe: Unsubscribe
 
   private let configure: ConfigureDiagnostics
   private let publishers: EventPublishers
@@ -73,6 +75,9 @@ public final class CompositionRoot: Sendable {
     let characteristics = CoreBluetoothCharacteristicSource(central: central)
     readCharacteristic = ReadCharacteristic(source: characteristics, bus: bus)
     writeCharacteristic = WriteCharacteristic(source: characteristics, bus: bus)
+    let subscriptions = SubscriptionRegistry(source: characteristics, bus: bus)
+    subscribe = Subscribe(registry: subscriptions)
+    unsubscribe = Unsubscribe(registry: subscriptions)
 
     publishers = EventPublishers(
       adapterState: PublishAdapterStateEvents(observe: observeAdapterState, bus: bus),

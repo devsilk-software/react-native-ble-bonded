@@ -24,7 +24,8 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
   SCANSTARTED(5),
   SCANSTOPPED(6),
   CONNECTIONRETRIED(7),
-  GATTOPERATION(8);
+  GATTOPERATION(8),
+  FORGOTTEN(9);
 
   /**
    * Get the String value this DiagnosticEventType represents.
@@ -41,6 +42,7 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
         SCANSTOPPED -> "scanStopped"
         CONNECTIONRETRIED -> "connectionRetried"
         GATTOPERATION -> "gattOperation"
+        FORGOTTEN -> "forgotten"
       }
 
   override fun toString(): String = stringValue
@@ -61,6 +63,7 @@ enum class DiagnosticEventType(@DoNotStrip @Keep val value: Int) {
         "scanStopped" -> SCANSTOPPED
         "connectionRetried" -> CONNECTIONRETRIED
         "gattOperation" -> GATTOPERATION
+        "forgotten" -> FORGOTTEN
         else -> null
       }
   }

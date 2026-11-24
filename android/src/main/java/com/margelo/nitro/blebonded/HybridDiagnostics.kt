@@ -39,6 +39,7 @@ class HybridDiagnostics : HybridDiagnosticsSpec() {
             RecordedEvent.Kind.DISCONNECTED -> DiagnosticEventType.DISCONNECTED
             RecordedEvent.Kind.CONNECTION_RETRIED -> DiagnosticEventType.CONNECTIONRETRIED
             RecordedEvent.Kind.GATT_OPERATION -> DiagnosticEventType.GATTOPERATION
+            RecordedEvent.Kind.FORGOTTEN -> DiagnosticEventType.FORGOTTEN
           },
         at = at.toDouble(),
         appState =

@@ -64,6 +64,7 @@
 #include <NitroBleBonded/private/DiagnosticsConfig-Swift.hpp>
 #include <NitroBleBonded/private/HybridGattSpec_cxx-Swift.hpp>
 #include <NitroModules/ArrayBuffer.hpp>
+#include <NitroBleBonded/private/SwiftContainer_swift__Array_ArrayBuffer_-Swift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpec_cxx-Swift.hpp>
 #include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>
 #include <NitroBleBonded/private/HybridScannerSpec_cxx-Swift.hpp>

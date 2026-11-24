@@ -50,6 +50,7 @@ extension DiagnosticEventType {
     case .disconnected: self = .disconnected
     case .connectionRetried: self = .connectionretried
     case .gattOperation: self = .gattoperation
+    case .forgotten: self = .forgotten
     }
   }
 }

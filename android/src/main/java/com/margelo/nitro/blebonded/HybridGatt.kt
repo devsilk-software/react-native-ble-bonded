@@ -5,8 +5,18 @@ import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
+import com.margelo.nitro.blebonded.features.gatt.domain.SubscriptionEvent
 import com.margelo.nitro.core.ArrayBuffer
+import com.margelo.nitro.core.Callback
 import com.margelo.nitro.core.Promise
+import com.margelo.nitro.core.invoke
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * The `Gatt` HybridObject: calls the `gatt` feature's use cases and maps between them and the generated Nitro types.
@@ -45,6 +55,43 @@ class HybridGatt : HybridGattSpec() {
       }
     }
 
+    override fun subscribe(
+      id: String,
+      service: String,
+      characteristic: String,
+      onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>,
+      onError: Callback<(message: String) -> Unit>,
+    ): Promise<Double> {
+      val address = address(service, characteristic)
+      return Promise.async {
+        val subscription =
+          try {
+            root().subscribe(address, DeviceId(id))
+          } catch (error: BleError) {
+            throw Exception(error.jsMessage)
+          }
+        // The flow ends when the subscription is removed or the device is forgotten; so does this collection.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+          val batch = ValueBatch(scope) { values -> onValues(values.map { ArrayBuffer.copy(it) }.toTypedArray()) }
+          subscription.events.collect { event ->
+            when (event) {
+              is SubscriptionEvent.Value -> batch.add(event.value)
+              is SubscriptionEvent.Failed -> {
+                batch.flush()
+                onError(event.error.jsMessage)
+              }
+            }
+          }
+          batch.flush()
+        }
+        subscription.id.toDouble()
+      }
+    }
+
+    override fun unsubscribe(subscription: Double): Promise<Unit> = Promise.async { root().unsubscribe(subscription.toInt()) }
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     /** From the UUIDs JavaScript passed, short or full; a malformed one rejects with a message naming it. */
     private fun address(service: String, characteristic: String): CharacteristicAddress {
       val serviceUuid = ServiceUuid.parse(service) ?: throw Exception(BleError(BleError.Code.UNKNOWN, "Not a service UUID: $service").jsMessage)
@@ -52,5 +99,39 @@ class HybridGatt : HybridGattSpec() {
         CharacteristicUuid.parse(characteristic) ?: throw Exception(BleError(BleError.Code.UNKNOWN, "Not a characteristic UUID: $characteristic").jsMessage)
       return CharacteristicAddress(serviceUuid, characteristicUuid)
     }
+  }
+}
+
+/**
+ * Collects notified values and hands them to JavaScript in one call about every 16 ms (decision A4), in order, so a
+ * fast device doesn't flood the bridge.
+ */
+internal class ValueBatch(private val scope: CoroutineScope, private val deliver: (List<ByteArray>) -> Unit) {
+  private val pending = ArrayList<ByteArray>()
+  private var scheduled: Job? = null
+
+  @Synchronized
+  fun add(value: ByteArray) {
+    pending.add(value)
+    if (scheduled != null) return
+    scheduled =
+      scope.launch {
+        delay(BATCH_MS)
+        flush()
+      }
+  }
+
+  fun flush() {
+    val values =
+      synchronized(this) {
+        scheduled = null
+        if (pending.isEmpty()) return
+        ArrayList(pending).also { pending.clear() }
+      }
+    deliver(values)
+  }
+
+  private companion object {
+    const val BATCH_MS = 16L
   }
 }

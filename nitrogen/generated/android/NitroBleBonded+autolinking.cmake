@@ -21,6 +21,8 @@ target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_NativeConnectionChange.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_NativeScanStop.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_NativeScannedDevice.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_std__string.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCallback_void_std__vector_ArrayBuffer_.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JCharacteristicProperty.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JConnectionState.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JDiagnosticAppState.cpp"

@@ -13,6 +13,7 @@ import com.facebook.proguard.annotations.DoNotStrip
 import dalvik.annotation.optimization.FastNative
 import com.margelo.nitro.core.ArrayBuffer
 import com.margelo.nitro.core.Promise
+import com.margelo.nitro.core.Callback
 import com.margelo.nitro.blebonded.HybridGatt
 import com.margelo.nitro.core.HybridObject
 
@@ -65,6 +66,10 @@ abstract class HybridGattSpec: HybridObject() {
     // Static Methods
     fun read(id: String, service: String, characteristic: String, timeoutMs: Double): Promise<ArrayBuffer>
 
+    fun subscribe(id: String, service: String, characteristic: String, onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>, onError: Callback<(message: String) -> Unit>): Promise<Double>
+
+    fun unsubscribe(subscription: Double): Promise<Unit>
+
     fun write(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Boolean, timeoutMs: Double): Promise<Unit>
   }
 
@@ -80,6 +85,20 @@ abstract class HybridGattSpec: HybridObject() {
     @Keep
     private fun read_cxx(id: String, service: String, characteristic: String, timeoutMs: Double): Promise<ArrayBuffer> {
       return HybridGatt.read(id, service, characteristic, timeoutMs)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun subscribe_cxx(id: String, service: String, characteristic: String, onValues: Callback<(values: Array<ArrayBuffer>) -> Unit>, onError: Callback<(message: String) -> Unit>): Promise<Double> {
+      return HybridGatt.subscribe(id, service, characteristic, onValues, onError)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun unsubscribe_cxx(subscription: Double): Promise<Unit> {
+      return HybridGatt.unsubscribe(subscription)
     }
 
     @JvmStatic

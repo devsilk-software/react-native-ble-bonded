@@ -18,6 +18,8 @@ public struct BleError: Error, Equatable, Sendable {
     case valueTooLong
     /// The device has no such service or characteristic.
     case characteristicNotFound
+    /// The characteristic already has a subscription; there's one at a time.
+    case alreadySubscribed
   }
 
   public let code: Code

@@ -87,6 +87,14 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - names Android's own statuses apart from the device's errors — Android only
 - reports a disconnect during an operation as not connected — Android only
 - names the requests Android refuses to send — Android only
+- subscribes and delivers each notification
+- refuses a second subscription to the same characteristic
+- refuses to subscribe to a characteristic that neither notifies nor indicates
+- uses notifications when it can and indications otherwise
+- switches notifications back on after a reconnect
+- reports when notifications can't be switched back on
+- stops notifications when the subscription is removed
+- removes a forgotten device's subscriptions
 
 ## diagnostics
 

@@ -12,6 +12,8 @@ public struct DomainEvent: Sendable, Equatable {
     case connectionRetried
     /// A read or write of a characteristic, recorded only when diagnostics include GATT operations.
     case gattOperation
+    /// The app forgot a device; features drop what they keep for it.
+    case forgotten
   }
 
   public let kind: Kind

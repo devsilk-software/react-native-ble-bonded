@@ -46,7 +46,7 @@ import {
 
 export type { BluetoothAdapterState, BluetoothPermission, DiagnosticAppState, DiagnosticEvent, DiagnosticEventType, DiagnosticsConfig }
 export type { BleErrorDetails } from './BleError'
-export type { OperationOptions, WriteOptions } from './connections'
+export type { OperationOptions, SubscribeOptions, WriteOptions } from './connections'
 export type { BleErrorCode, ManufacturerData, Scan, ScanNameFilter, ScannedDevice, ScanOptions, ScanStop, ScanStopReason }
 export type {
   AndroidConnectionOptions,

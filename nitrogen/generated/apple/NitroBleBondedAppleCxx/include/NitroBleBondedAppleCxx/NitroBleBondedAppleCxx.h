@@ -62,6 +62,8 @@ namespace NitroBleBonded { class DiagnosticsConfig; }
 // Forward declaration of `HybridGattSpec_cxx` to properly resolve imports.
 namespace NitroBleBonded { class HybridGattSpec_cxx; }
 #include <NitroModules/ArrayBuffer.hpp>
+// Forward declaration of `SwiftContainer_swift__Array_ArrayBuffer_` to properly resolve imports.
+namespace NitroBleBonded { class SwiftContainer_swift__Array_ArrayBuffer_; }
 // Forward declaration of `HybridPermissionsSpec_cxx` to properly resolve imports.
 namespace NitroBleBonded { class HybridPermissionsSpec_cxx; }
 // Forward declaration of `BluetoothPermission` to properly resolve imports.
@@ -170,6 +172,16 @@ namespace margelo::nitro::blebonded::swift_bridge {
   std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(void* NON_NULL pointer);
   void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridGattSpec_(const std::shared_ptr<HybridObject>& value);
   using Promise_ArrayBuffer = Promise<ArrayBuffer>;
+  using Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_ = Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(const Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(const Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(const Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_& callback, const void* NON_NULL param0);
+  Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_ create_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
+  using Callback_void_swift__String = Callback<void(const swift::String&)>;
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0) noexcept;
+  Promise<void> callAsync_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0);
+  void callAndForget_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0);
+  Callback_void_swift__String create_Callback_void_swift__String(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure);
   using std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::shared_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
   using std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ = std::weak_ptr<margelo::nitro::blebonded::HybridPermissionsSpecSwift>;
   inline std__weak_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ weakify_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(const std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_& value) {

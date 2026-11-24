@@ -14,13 +14,15 @@ public enum CharacteristicOperation: Sendable, Equatable {
   case read
   case write
   case writeWithoutResponse
+  case subscribe
 
-  /// The property the characteristic needs for this operation.
-  public var property: CharacteristicProperty {
+  /// The properties of which the characteristic needs one for this operation.
+  public var properties: [CharacteristicProperty] {
     switch self {
-    case .read: .read
-    case .write: .write
-    case .writeWithoutResponse: .writeWithoutResponse
+    case .read: [.read]
+    case .write: [.write]
+    case .writeWithoutResponse: [.writeWithoutResponse]
+    case .subscribe: [.notify, .indicate]
     }
   }
 
@@ -29,6 +31,7 @@ public enum CharacteristicOperation: Sendable, Equatable {
     case .read: "read"
     case .write: "write"
     case .writeWithoutResponse: "write without response"
+    case .subscribe: "subscribe"
     }
   }
 }
@@ -56,7 +59,7 @@ public enum OperationCheck {
         operation: operation.name
       )
     }
-    guard properties.contains(operation.property) else {
+    guard operation.properties.contains(where: properties.contains) else {
       let allowed = properties.isEmpty ? "nothing" : properties.map(\.rawValue).joined(separator: ", ")
       return BleError(
         code: .unsupported,
@@ -66,7 +69,7 @@ public enum OperationCheck {
       )
     }
     switch operation {
-    case .read:
+    case .read, .subscribe:
       return nil
     case .write where length > maxAttributeLength:
       return BleError(

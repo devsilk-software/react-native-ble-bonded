@@ -76,6 +76,11 @@ namespace margelo::nitro::blebonded {
           static const auto instance_GATTOPERATION = jni::make_global(clazz->getStaticFieldValue(field_GATTOPERATION));
           return instance_GATTOPERATION;
         }
+        case 9: {
+          static const auto field_FORGOTTEN = clazz->getStaticField<JDiagnosticEventType>("FORGOTTEN");
+          static const auto instance_FORGOTTEN = jni::make_global(clazz->getStaticFieldValue(field_FORGOTTEN));
+          return instance_FORGOTTEN;
+        }
         default: [[unlikely]]
           throw std::invalid_argument("Invalid DiagnosticEventType value: " + std::to_string(value));
       }

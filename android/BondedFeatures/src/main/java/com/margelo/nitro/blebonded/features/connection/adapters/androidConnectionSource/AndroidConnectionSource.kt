@@ -64,7 +64,7 @@ class AndroidConnectionSource(
     if (radio.radioState() != BluetoothAdapter.STATE_ON) throw bluetoothOff(id)
     connections.remove(id.rawValue)?.close()
     lateinit var connection: GattConnection
-    connection = GattConnection(context, device) { status -> dropped(id, connection, status, options) }
+    connection = GattConnection(context, device, connections::notify) { status -> dropped(id, connection, status, options) }
     connections[id.rawValue] = connection
     try {
       whileBluetoothOn(id) { setUp(connection, device, mode, options) }.let { return it }

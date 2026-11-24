@@ -141,6 +141,26 @@ public final class HybridGattSpec_cxx {
     }
   }
 
+  public class func subscribe(id: String, service: String, characteristic: String, onValues: UnsafeRawPointer, onError: UnsafeRawPointer, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+    do {
+      let value = try HybridGatt.subscribe(id: id, service: service, characteristic: characteristic, onValues: onValues.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_.self), onError: onError.load(as: margelo.nitro.blebonded.swift_bridge.Callback_void_swift__String.self))
+      __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_double.self, repeating: value.toCpp(), count: 1)
+      return bridge.Result_void.withValue()
+    } catch {
+      return bridge.Result_void.withError(error.toCpp())
+    }
+  }
+
+  public class func unsubscribe(subscription: Double, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+    do {
+      let value = try HybridGatt.unsubscribe(subscription: subscription)
+      __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_void.self, repeating: value.toCpp(), count: 1)
+      return bridge.Result_void.withValue()
+    } catch {
+      return bridge.Result_void.withError(error.toCpp())
+    }
+  }
+
   public class func write(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Bool, timeoutMs: Double, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
     do {
       let value = try HybridGatt.write(id: id, service: service, characteristic: characteristic, value: value, withResponse: withResponse, timeoutMs: timeoutMs)

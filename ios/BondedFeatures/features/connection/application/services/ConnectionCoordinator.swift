@@ -46,6 +46,7 @@ public actor ConnectionCoordinator {
   public func forget(_ id: DeviceId) async {
     await loadRemembered()
     await disconnect(id)
+    await bus.publish(DomainEvent(kind: .forgotten, deviceId: id))
     guard remembered.removeValue(forKey: id) != nil else { return }
     emit(id)
     await persist()

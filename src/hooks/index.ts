@@ -140,6 +140,52 @@ export function useConnectedDevices(): Device[] {
   )
 }
 
+export interface NotificationsResult {
+  /** The latest value the characteristic notified; `undefined` until the first. */
+  value?: ArrayBuffer
+  /** Why subscribing or switching notifications back on failed. */
+  error?: BleError
+}
+
+/**
+ * The characteristic's latest notified value, for screens that show a live reading. Subscribes once the device is
+ * connected and keeps the subscription while mounted, across disconnects; removes it on unmount. Re-renders at most
+ * once per batch of values (about every 16 ms). One subscription per characteristic: using the hook twice for the
+ * same characteristic puts `alreadySubscribed` in `error`; share the reading in your app instead.
+ */
+export function useNotifications(device: Device | undefined, service: string, characteristic: string): NotificationsResult {
+  const [value, setValue] = useState<ArrayBuffer>()
+  const [error, setError] = useState<BleError>()
+  const id = device?.id
+  const isConnected = device?.connectionState === 'connected'
+  // Subscribe once the device first connects; the subscription then outlives disconnects until unmount.
+  const [hasConnected, setHasConnected] = useState(false)
+  if (isConnected && !hasConnected) setHasConnected(true)
+
+  useEffect(() => {
+    if (id == null || !hasConnected) return
+    let isActive = true
+    let subscription: { remove(): void } | undefined
+    setError(undefined)
+    ble
+      .device(id)
+      .subscribe(service, characteristic, (next) => isActive && setValue(next), { onError: (failure) => isActive && setError(failure) })
+      .then((started) => {
+        if (isActive) subscription = started
+        else started.remove()
+      })
+      .catch((failure: unknown) => {
+        if (isActive) setError(failure instanceof BleError ? failure : new BleError('unknown', String(failure), { operation: 'subscribe' }))
+      })
+    return () => {
+      isActive = false
+      subscription?.remove()
+    }
+  }, [id, service, characteristic, hasConnected])
+
+  return { value, error }
+}
+
 /** How often `useScan` re-renders at most while devices are reported. */
 const scanRenderInterval = 250
 

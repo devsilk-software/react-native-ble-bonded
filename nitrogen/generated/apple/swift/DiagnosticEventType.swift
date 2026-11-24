@@ -21,6 +21,7 @@ public enum DiagnosticEventType: Int32, CaseIterable, Sendable, CustomStringConv
   case `scanstopped` = 6
   case `connectionretried` = 7
   case `gattoperation` = 8
+  case `forgotten` = 9
 
   public static func fromRawValue(_ value: Int32) -> Self {
     return Self(rawValue: value)!
@@ -52,6 +53,8 @@ public extension DiagnosticEventType {
         self = .connectionretried
       case "gattOperation":
         self = .gattoperation
+      case "forgotten":
+        self = .forgotten
       default:
         return nil
     }
@@ -80,6 +83,8 @@ public extension DiagnosticEventType {
         return "connectionRetried"
       case .gattoperation:
         return "gattOperation"
+      case .forgotten:
+        return "forgotten"
     }
   }
 

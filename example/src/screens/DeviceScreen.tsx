@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Button, Chip, Divider, List, Text } from 'react-native-paper'
 import type { Service } from 'react-native-ble-bonded'
-import { useDevice } from 'react-native-ble-bonded/hooks'
+import { useDevice, useNotifications } from 'react-native-ble-bonded/hooks'
 import { OutcomeCard, outcomeOf, type Outcome } from '../components/Outcome'
 import { ButtonRow } from '../components/Row'
 import { Section } from '../components/Section'
-import { testRead, testService, testWrite } from '../testPeripheral'
+import { testNotify, testRead, testService, testWrite } from '../testPeripheral'
 
 const ascii = (text: string) => Uint8Array.from(text, (character) => character.charCodeAt(0))
 
@@ -160,6 +160,8 @@ export function DeviceScreen({ id }: { id: string }) {
         </Section>
       )}
 
+      <Notifications id={id} isConnected={isConnected} />
+
       <Section
         title='Services'
         right={
@@ -197,6 +199,42 @@ export function DeviceScreen({ id }: { id: string }) {
         )}
       </Section>
     </View>
+  )
+}
+
+// The Mac test peripheral's counter, live. The subscription outlives disconnects while this stays on.
+function Notifications({ id, isConnected }: { id: string; isConnected: boolean }) {
+  const [isOn, setIsOn] = useState(false)
+  // Subscribe only while connected; once on, it stays on across disconnects until Stop.
+  if (!isOn && !isConnected) return null
+  return (
+    <Section title='Notifications'>
+      {isOn ? (
+        <LiveValue id={id} />
+      ) : (
+        <Text variant='bodySmall' style={styles.hint}>
+          The Mac test peripheral counts up every second.
+        </Text>
+      )}
+      <ButtonRow>
+        <Button mode={isOn ? 'outlined' : 'contained-tonal'} onPress={() => setIsOn(!isOn)} testID='notifications-toggle'>
+          {isOn ? 'Stop' : 'Subscribe'}
+        </Button>
+      </ButtonRow>
+    </Section>
+  )
+}
+
+function LiveValue({ id }: { id: string }) {
+  const device = useDevice(id)
+  const { value, error } = useNotifications(device, testService, testNotify)
+  return (
+    <>
+      <Text variant='headlineSmall' testID='notified-value'>
+        {value == null ? 'Waiting for a value…' : String.fromCharCode(...new Uint8Array(value))}
+      </Text>
+      {error != null && <OutcomeCard outcome={outcomeOf(error)} />}
+    </>
   )
 }
 

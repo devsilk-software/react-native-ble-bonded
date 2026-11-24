@@ -37,6 +37,9 @@ class BleError(
 
     /** The device has no such service or characteristic. */
     CHARACTERISTIC_NOT_FOUND,
+
+    /** The characteristic already has a subscription; there's one at a time. */
+    ALREADY_SUBSCRIBED,
     ;
 
     /** The code's public name, as JavaScript and iOS write it (`bluetoothOff`). */

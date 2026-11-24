@@ -10,10 +10,11 @@ import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 data class CharacteristicAddress(val service: ServiceUuid, val characteristic: CharacteristicUuid)
 
 /** What the app asks of a characteristic. */
-enum class CharacteristicOperation(val publicName: String, val property: CharacteristicProperty) {
-  READ("read", CharacteristicProperty.READ),
-  WRITE("write", CharacteristicProperty.WRITE),
-  WRITE_WITHOUT_RESPONSE("write without response", CharacteristicProperty.WRITE_WITHOUT_RESPONSE),
+enum class CharacteristicOperation(val publicName: String, val properties: List<CharacteristicProperty>) {
+  READ("read", listOf(CharacteristicProperty.READ)),
+  WRITE("write", listOf(CharacteristicProperty.WRITE)),
+  WRITE_WITHOUT_RESPONSE("write without response", listOf(CharacteristicProperty.WRITE_WITHOUT_RESPONSE)),
+  SUBSCRIBE("subscribe", listOf(CharacteristicProperty.NOTIFY, CharacteristicProperty.INDICATE)),
 }
 
 /** The longest value a write with response may carry: Bluetooth's limit for a characteristic's value. */
@@ -39,7 +40,7 @@ object OperationCheck {
         operation = operation.publicName,
       )
     }
-    if (operation.property !in properties) {
+    if (operation.properties.none { it in properties }) {
       val allowed = if (properties.isEmpty()) "nothing" else properties.joinToString(", ") { it.publicName }
       return BleError(
         BleError.Code.UNSUPPORTED,

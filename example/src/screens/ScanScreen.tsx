@@ -42,11 +42,12 @@ function Remembered({ onSelect }: { onSelect: (id: string) => void }) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [outcome, setOutcome] = useState<Outcome>()
 
-  const connect = async () => {
+  // With one remembered device, ble.connect() without arguments, as a one-device app calls it at startup.
+  const connect = async (id: string) => {
     setIsConnecting(true)
     setOutcome(undefined)
     try {
-      const device = await ble.connect()
+      const device = remembered.length === 1 ? await ble.connect() : await ble.connect({ id })
       onSelect(device.id)
     } catch (error) {
       setOutcome(outcomeOf(error))
@@ -57,22 +58,29 @@ function Remembered({ onSelect }: { onSelect: (id: string) => void }) {
 
   return (
     <Section title='Remembered'>
-      <Text variant='bodyMedium' testID='remembered-count'>
-        {remembered.length === 0
-          ? 'None yet: a device is remembered once it connects.'
-          : remembered.map((device) => device.name ?? device.id).join(', ')}
-      </Text>
-      <ButtonRow>
-        <Button
-          mode='contained'
-          onPress={connect}
-          loading={isConnecting}
-          disabled={remembered.length === 0 || isConnecting}
-          testID='connect-remembered'
-        >
-          Connect remembered
-        </Button>
-      </ButtonRow>
+      {remembered.length === 0 && (
+        <Text variant='bodyMedium' testID='remembered-count'>
+          None yet: a device is remembered once it connects.
+        </Text>
+      )}
+      {remembered.map((device, index) => (
+        <View key={device.id}>
+          {index > 0 && <Divider />}
+          <List.Item
+            title={device.name ?? device.id}
+            description={device.connectionState}
+            onPress={() => onSelect(device.id)}
+            testID={`remembered-${device.name ?? device.id}`}
+            right={() =>
+              device.connectionState === 'disconnected' ? (
+                <Button mode='contained' compact onPress={() => connect(device.id)} loading={isConnecting} testID='connect-remembered'>
+                  Connect
+                </Button>
+              ) : null
+            }
+          />
+        </View>
+      ))}
       {outcome != null && <OutcomeCard outcome={outcome} />}
     </Section>
   )
@@ -84,9 +92,11 @@ function Devices({ onSelect, services }: { onSelect: (id: string) => void; servi
     <Section
       title={isScanning ? `Scanning: ${devices.length} found` : `Stopped: ${devices.length} found`}
       right={
-        <Button compact onPress={restart} disabled={isScanning} testID='scan-restart'>
-          Restart
-        </Button>
+        !isScanning && (
+          <Button compact onPress={restart} testID='scan-restart'>
+            Restart
+          </Button>
+        )
       }
     >
       {error != null && <OutcomeCard outcome={outcomeOf(error)} testID='scan-status' />}

@@ -24,15 +24,23 @@ export function DiagnosticsScreen() {
   return (
     <View>
       <Section title='Diagnostics' right={<Switch value={isEnabled} onValueChange={toggle} testID='diagnostics-toggle' />}>
-        <View style={styles.setting}>
-          <Text variant='bodyMedium'>Record reads and writes too</Text>
-          <Switch value={isGatt} onValueChange={toggleGatt} disabled={!isEnabled} />
-        </View>
-        <ButtonRow>
-          <Button mode='outlined' onPress={() => ble.clearDiagnostics()} disabled={!isEnabled}>
-            Clear
-          </Button>
-        </ButtonRow>
+        {isEnabled ? (
+          <>
+            <View style={styles.setting}>
+              <Text variant='bodyMedium'>Record reads and writes too</Text>
+              <Switch value={isGatt} onValueChange={toggleGatt} />
+            </View>
+            <ButtonRow>
+              <Button mode='outlined' onPress={() => ble.clearDiagnostics()}>
+                Clear
+              </Button>
+            </ButtonRow>
+          </>
+        ) : (
+          <Text variant='bodySmall' style={styles.hint}>
+            Off: nothing is recorded. Turn it on to record what happens, for a bug report.
+          </Text>
+        )}
       </Section>
       <Section title='Events'>
         <Events />

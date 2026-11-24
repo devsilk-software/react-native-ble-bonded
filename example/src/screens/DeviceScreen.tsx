@@ -13,17 +13,18 @@ const ascii = (text: string) => Uint8Array.from(text, (character) => character.c
 export function DeviceScreen({ id }: { id: string }) {
   const device = useDevice(id)
   const [services, setServices] = useState<Service[]>()
-  const [outcome, setOutcome] = useState<Outcome>()
+  // Where the last action's outcome shows: next to the buttons that caused it.
+  const [outcome, setOutcome] = useState<{ section: 'connection' | 'gatt' | 'services'; outcome: Outcome }>()
   const [busy, setBusy] = useState<string>()
 
-  const run = (name: string, action: () => Promise<string | undefined>) => async () => {
+  const run = (name: string, section: 'connection' | 'gatt' | 'services', action: () => Promise<string | undefined>) => async () => {
     setBusy(name)
     setOutcome(undefined)
     try {
       const text = await action()
-      if (text != null) setOutcome({ kind: 'result', text })
+      if (text != null) setOutcome({ section, outcome: { kind: 'result', text } })
     } catch (error) {
-      setOutcome(outcomeOf(error))
+      setOutcome({ section, outcome: outcomeOf(error) })
     } finally {
       setBusy(undefined)
     }
@@ -52,104 +53,129 @@ export function DeviceScreen({ id }: { id: string }) {
               : ''}
           </Text>
         )}
+        {/* Only the actions that can work now: no Connect while connected, no Disconnect while disconnected. */}
         <ButtonRow>
-          <Button
-            mode='contained'
-            onPress={run('connect', async () => (await device.connect(), 'Connected'))}
-            loading={busy === 'connect'}
-            testID='connect'
-          >
-            Connect
-          </Button>
-          <Button mode='outlined' onPress={run('disconnect', async () => (await device.disconnect(), 'Disconnected'))} testID='disconnect'>
-            Disconnect
-          </Button>
-          <Button
-            mode='outlined'
-            onPress={run('forget', async () => (await device.forget(), 'Forgotten'))}
-            disabled={!device.isRemembered}
-            testID='forget'
-          >
-            Forget
-          </Button>
+          {device.connectionState === 'disconnected' && (
+            <Button
+              mode='contained'
+              onPress={run('connect', 'connection', async () => (await device.connect(), 'Connected'))}
+              testID='connect'
+            >
+              Connect
+            </Button>
+          )}
+          {device.connectionState === 'connecting' && (
+            <Button
+              mode='outlined'
+              onPress={run('disconnect', 'connection', async () => (await device.disconnect(), 'Cancelled'))}
+              testID='disconnect'
+            >
+              Cancel connecting
+            </Button>
+          )}
+          {isConnected && (
+            <Button
+              mode='outlined'
+              onPress={run('disconnect', 'connection', async () => (await device.disconnect(), 'Disconnected'))}
+              testID='disconnect'
+            >
+              Disconnect
+            </Button>
+          )}
+          {device.isRemembered && device.connectionState !== 'disconnecting' && (
+            <Button mode='outlined' onPress={run('forget', 'connection', async () => (await device.forget(), 'Forgotten'))} testID='forget'>
+              Forget
+            </Button>
+          )}
         </ButtonRow>
+        {outcome?.section === 'connection' && <OutcomeCard outcome={outcome.outcome} testID='connection-outcome' />}
       </Section>
 
-      <Section title='Read and write'>
-        <Text variant='bodySmall' style={styles.hint}>
-          Against the Mac test peripheral.
-        </Text>
-        <ButtonRow>
-          <Button
-            mode='contained-tonal'
-            onPress={run('read', async () => `Read "${String.fromCharCode(...new Uint8Array(await device.read(testService, testRead)))}"`)}
-            loading={busy === 'read'}
-            testID='read'
-          >
-            Read
-          </Button>
-          <Button
-            mode='contained-tonal'
-            onPress={run('write', async () => (await device.write(testService, testWrite, ascii('hello')), 'Wrote "hello"'))}
-            loading={busy === 'write'}
-            testID='write'
-          >
-            Write
-          </Button>
-          <Button
-            mode='contained-tonal'
-            onPress={run(
-              'writeNoResponse',
-              async () => (
-                await device.write(testService, testWrite, ascii('no response'), { withoutResponse: true }),
-                'Wrote "no response" without response'
-              )
-            )}
-            loading={busy === 'writeNoResponse'}
-            testID='write-no-response'
-          >
-            Write without response
-          </Button>
-        </ButtonRow>
-        <Text variant='bodySmall' style={styles.subtitle}>
-          Errors on purpose
-        </Text>
-        <ButtonRow>
-          <Button
-            mode='outlined'
-            onPress={run(
-              'tooLong',
-              async () => (await device.write(testService, testWrite, new Uint8Array(600), { withoutResponse: true }), undefined)
-            )}
-            testID='write-too-long'
-          >
-            600 bytes without response
-          </Button>
-          <Button
-            mode='outlined'
-            onPress={run('wrongOp', async () => (await device.read(testService, testWrite), undefined))}
-            testID='read-write-only'
-          >
-            Read a write-only characteristic
-          </Button>
-        </ButtonRow>
-        {outcome != null && <OutcomeCard outcome={outcome} testID='operation-result' />}
-      </Section>
+      {isConnected && (
+        <Section title='Read and write'>
+          <Text variant='bodySmall' style={styles.hint}>
+            Against the Mac test peripheral.
+          </Text>
+          <ButtonRow>
+            <Button
+              mode='contained-tonal'
+              onPress={run(
+                'read',
+                'gatt',
+                async () => `Read "${String.fromCharCode(...new Uint8Array(await device.read(testService, testRead)))}"`
+              )}
+              loading={busy === 'read'}
+              testID='read'
+            >
+              Read
+            </Button>
+            <Button
+              mode='contained-tonal'
+              onPress={run('write', 'gatt', async () => (await device.write(testService, testWrite, ascii('hello')), 'Wrote "hello"'))}
+              loading={busy === 'write'}
+              testID='write'
+            >
+              Write
+            </Button>
+            <Button
+              mode='contained-tonal'
+              onPress={run(
+                'writeNoResponse',
+                'gatt',
+                async () => (
+                  await device.write(testService, testWrite, ascii('no response'), { withoutResponse: true }),
+                  'Wrote "no response" without response'
+                )
+              )}
+              loading={busy === 'writeNoResponse'}
+              testID='write-no-response'
+            >
+              Write without response
+            </Button>
+          </ButtonRow>
+          <Text variant='bodySmall' style={styles.subtitle}>
+            Errors on purpose
+          </Text>
+          <ButtonRow>
+            <Button
+              mode='outlined'
+              onPress={run(
+                'tooLong',
+                'gatt',
+                async () => (await device.write(testService, testWrite, new Uint8Array(600), { withoutResponse: true }), undefined)
+              )}
+              testID='write-too-long'
+            >
+              600 bytes without response
+            </Button>
+            <Button
+              mode='outlined'
+              onPress={run('wrongOp', 'gatt', async () => (await device.read(testService, testWrite), undefined))}
+              testID='read-write-only'
+            >
+              Read a write-only characteristic
+            </Button>
+          </ButtonRow>
+          {outcome?.section === 'gatt' && <OutcomeCard outcome={outcome.outcome} testID='operation-result' />}
+        </Section>
+      )}
 
       <Section
         title='Services'
         right={
-          <Button
-            compact
-            onPress={run('services', async () => (setServices(await device.getServices()), undefined))}
-            disabled={!isConnected}
-            testID='services'
-          >
-            Load
-          </Button>
+          isConnected && (
+            <Button
+              compact
+              onPress={run('services', 'services', async () => (setServices(await device.getServices()), undefined))}
+              testID='services'
+            >
+              Load
+            </Button>
+          )
         }
       >
-        {services?.map((service) => (
+        {outcome?.section === 'services' && <OutcomeCard outcome={outcome.outcome} />}
+        {(isConnected ? services : undefined)?.map((service) => (
           <View key={service.uuid}>
             <Divider />
             <List.Item title={service.uuid} titleNumberOfLines={2} titleStyle={styles.mono} />
@@ -166,7 +192,7 @@ export function DeviceScreen({ id }: { id: string }) {
           </View>
         )) ?? (
           <Text variant='bodySmall' style={styles.hint}>
-            {isConnected ? 'Load them to see what the device offers.' : 'Connect to see what the device offers.'}
+            {isConnected ? 'Load them to see what the device offers.' : 'Connect to see what the device offers and to read and write.'}
           </Text>
         )}
       </Section>

@@ -1,23 +1,23 @@
 import { useState } from 'react'
-import { ScrollView, StatusBar, StyleSheet, useColorScheme, View } from 'react-native'
-import { Appbar, Button, Chip, MD3DarkTheme, MD3LightTheme, PaperProvider, SegmentedButtons, useTheme } from 'react-native-paper'
+import { ScrollView, StatusBar, StyleSheet, View } from 'react-native'
+import { Appbar, Button, Chip, PaperProvider, SegmentedButtons, useTheme } from 'react-native-paper'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { ble } from 'react-native-ble-bonded'
 import { useBluetoothPermission, useBluetoothState } from 'react-native-ble-bonded/hooks'
 import { DeviceScreen } from './screens/DeviceScreen'
 import { DiagnosticsScreen } from './screens/DiagnosticsScreen'
 import { ScanScreen } from './screens/ScanScreen'
+import { theme } from './theme'
 
 type Tab = 'scan' | 'device' | 'diagnostics'
 
 // The device-test app: every feature gets a screen here as it lands, for the manual checks on a phone.
 export default function App() {
-  const isDark = useColorScheme() === 'dark'
   return (
     <SafeAreaProvider>
       {/* No icon font: the app shows text only, so nothing needs registering natively. */}
-      <PaperProvider theme={isDark ? MD3DarkTheme : MD3LightTheme} settings={{ icon: () => null }}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <PaperProvider theme={theme} settings={{ icon: () => null }}>
+        <StatusBar barStyle='dark-content' />
         <Main />
       </PaperProvider>
     </SafeAreaProvider>
@@ -36,7 +36,7 @@ function Main() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: theme.colors.background }]} edges={['left', 'right', 'bottom']}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={[styles.header, { borderColor: theme.colors.outline }]}>
         <Appbar.Content title='Bonded' />
       </Appbar.Header>
       <Status />
@@ -92,6 +92,7 @@ function Status() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  header: { borderBottomWidth: StyleSheet.hairlineWidth },
   status: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
   tabs: { marginHorizontal: 16, marginTop: 12 },
   content: { padding: 16, paddingBottom: 48 },

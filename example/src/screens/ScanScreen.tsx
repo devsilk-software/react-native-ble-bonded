@@ -14,17 +14,22 @@ export function ScanScreen({ onSelect }: { onSelect: (id: string) => void }) {
   return (
     <View style={styles.screen}>
       <Remembered onSelect={onSelect} />
-      <Section title='Scan' right={<Switch value={isScanning} onValueChange={setIsScanning} testID='scan-toggle' />}>
+      <Section title='Scan'>
         <View style={styles.setting}>
           <Text variant='bodyMedium'>Mac test peripheral only</Text>
           <Switch value={isTestOnly} onValueChange={setIsTestOnly} testID='scan-test-only' />
         </View>
+        <ButtonRow>
+          <Button mode={isScanning ? 'outlined' : 'contained'} onPress={() => setIsScanning(!isScanning)} testID='scan-toggle'>
+            {isScanning ? 'Stop' : 'Scan'}
+          </Button>
+        </ButtonRow>
       </Section>
       {isScanning ? (
         <Devices onSelect={onSelect} services={isTestOnly ? [testService] : []} />
       ) : (
         <Text variant='bodyMedium' style={styles.hint}>
-          Turn on Scan to look for devices.
+          Tap Scan to look for devices.
         </Text>
       )}
     </View>

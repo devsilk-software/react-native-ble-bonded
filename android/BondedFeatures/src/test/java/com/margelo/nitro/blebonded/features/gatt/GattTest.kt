@@ -10,12 +10,12 @@ import com.margelo.nitro.blebonded.infrastructure.bluetooth.NOT_CONNECTED
 import com.margelo.nitro.blebonded.mocks.FakeCharacteristicSource
 import com.margelo.nitro.blebonded.mocks.readOnlyCharacteristic
 import com.margelo.nitro.blebonded.mocks.testCharacteristic
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec

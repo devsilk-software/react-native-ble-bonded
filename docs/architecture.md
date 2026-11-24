@@ -24,6 +24,7 @@ ios/
 ├── controllers/                        # Nitro HybridObject implementations (Hybrid{Feature}.swift)
 └── BondedFeatures/                     # Swift package; `swift test` runs on the Mac
     ├── shared/domain/                  # the shared kernel: DeviceId, BleError, domain events
+    ├── shared/application/             # the event bus and the listener rule every feature uses
     ├── features/{feature}/
     │   ├── domain/                     # states, rules, values; base library only
     │   ├── application/
@@ -39,7 +40,7 @@ android/
 ├── src/main/java/com/margelo/nitro/blebonded/Hybrid{Feature}.kt   # controllers
 └── BondedFeatures/                     # Android library with its own Gradle build, for tests and checks
     └── src/main/java/com/margelo/nitro/blebonded/
-        ├── shared/domain/  features/{feature}/…  infrastructure/{bluetooth,lifecycle}/  compositionRoot/
+        ├── shared/{domain,application}/  features/{feature}/…  infrastructure/{bluetooth,lifecycle}/  compositionRoot/
 ```
 
 The Nitro module compiles `android/BondedFeatures/src/main/java` into itself, because React Native's
@@ -55,16 +56,17 @@ Dependencies point inward only.
 
 | Layer | Holds | May import |
 |---|---|---|
-| `shared/domain` | the types every feature speaks, and the listener rule (current value first, then changes, repeats suppressed) | the base library only; on Android also `kotlinx.coroutines` |
+| `shared/domain` | the types every feature speaks | the base library only |
+| `shared/application` | the event bus and the listener rule (current value first, then changes, repeats suppressed) | `shared/domain`; on Android also `kotlinx.coroutines` |
 | `domain` | states, rules, values | the base library, `shared/domain` |
-| `application` | use cases and the interfaces they need | `domain`, `shared/domain`; on Android also `kotlinx.coroutines` |
+| `application` | use cases and the interfaces they need | `domain`, `shared/domain`, `shared/application`; on Android also `kotlinx.coroutines` |
 | `adapters` | implementations of those interfaces | `application`, `domain`, `infrastructure`, the platform's Bluetooth framework |
 | `infrastructure` | talks to a technology for anyone; knows no feature | the platform only |
 | `compositionRoot` | wiring | anything in the package |
 | controllers | Nitro boundary | `compositionRoot`, use cases, domain types, Nitro |
 
-- **Features never use each other's code.** They share only `shared/domain` and the Bluetooth client in
-  `infrastructure`. A reaction across features (for example restoring subscriptions after a reconnect) goes
+- **Features never use each other's code.** They share only `shared/domain`, `shared/application` and the
+  Bluetooth client in `infrastructure`. A reaction across features (for example restoring subscriptions after a reconnect) goes
   through a domain event on the event bus the composition root creates.
 - **Nothing in `BondedFeatures` imports Nitro or React Native.** Only the controllers do.
 

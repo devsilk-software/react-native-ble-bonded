@@ -2,7 +2,7 @@ package com.margelo.nitro.blebonded.features.permissions.application.useCases.ob
 
 import com.margelo.nitro.blebonded.features.permissions.application.interfaces.PermissionSource
 import com.margelo.nitro.blebonded.features.permissions.domain.PermissionStatus
-import com.margelo.nitro.blebonded.shared.domain.currentThenChanges
+import com.margelo.nitro.blebonded.shared.application.currentThenChanges
 import kotlinx.coroutines.flow.Flow
 
 /** Follows the app's Bluetooth permission: the current status at once, then each change, repeats suppressed. */

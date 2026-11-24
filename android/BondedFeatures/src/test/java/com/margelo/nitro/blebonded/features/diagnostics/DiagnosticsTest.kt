@@ -5,8 +5,8 @@ import com.margelo.nitro.blebonded.features.diagnostics.domain.DiagnosticEvent
 import com.margelo.nitro.blebonded.mocks.FakeDiagnosticsEnvironment
 import com.margelo.nitro.blebonded.mocks.FakeDiagnosticsStore
 import com.margelo.nitro.blebonded.mocks.publish
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe

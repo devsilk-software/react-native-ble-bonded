@@ -16,6 +16,7 @@ class ArchitectureTest : FunSpec({
   fun layerOf(packageName: String): String? =
     when {
       packageName.startsWith("$base.shared.domain") -> "shared/domain"
+      packageName.startsWith("$base.shared.application") -> "shared/application"
       packageName.contains(".domain") -> "domain"
       packageName.contains(".application") -> "application"
       packageName.contains(".adapters") -> "adapters"
@@ -37,11 +38,13 @@ class ArchitectureTest : FunSpec({
           val ownCode = import.startsWith(base)
           val importedLayer = layerOf(import)
           when (layer) {
-            "shared/domain" -> !import.startsWith("kotlin")
+            "shared/domain" -> !import.startsWith("kotlin.")
+            "shared/application" ->
+              !(import.startsWith("kotlin.") || import.startsWith("kotlinx.coroutines") || importedLayer == "shared/domain")
             "domain" -> !(import.startsWith("kotlin") || importedLayer in setOf("domain", "shared/domain"))
             "application" ->
               !(import.startsWith("kotlin") || import.startsWith("kotlinx.coroutines") ||
-                importedLayer in setOf("domain", "application", "shared/domain"))
+                importedLayer in setOf("domain", "application", "shared/domain", "shared/application"))
             "adapters", "infrastructure" -> ownCode && importedLayer == null
             else -> false
           }

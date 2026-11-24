@@ -4,6 +4,7 @@ import com.margelo.nitro.blebonded.features.connection.adapters.androidConnectio
 import com.margelo.nitro.blebonded.features.connection.application.services.ConnectionCoordinator
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOverrides
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectMode
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectOptions
@@ -28,7 +29,6 @@ import com.margelo.nitro.blebonded.mocks.transientFailure
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe

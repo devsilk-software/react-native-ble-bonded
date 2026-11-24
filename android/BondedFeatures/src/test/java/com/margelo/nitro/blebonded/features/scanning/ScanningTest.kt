@@ -14,10 +14,10 @@ import com.margelo.nitro.blebonded.mocks.FakeScanSource
 import com.margelo.nitro.blebonded.mocks.ScanRecorder
 import com.margelo.nitro.blebonded.mocks.advertisement
 import com.margelo.nitro.blebonded.mocks.eventually
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec

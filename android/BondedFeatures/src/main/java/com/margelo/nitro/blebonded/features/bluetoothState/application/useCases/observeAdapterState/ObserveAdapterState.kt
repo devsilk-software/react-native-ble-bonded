@@ -2,7 +2,7 @@ package com.margelo.nitro.blebonded.features.bluetoothState.application.useCases
 
 import com.margelo.nitro.blebonded.features.bluetoothState.application.interfaces.AdapterStateSource
 import com.margelo.nitro.blebonded.features.bluetoothState.domain.AdapterState
-import com.margelo.nitro.blebonded.shared.domain.currentThenChanges
+import com.margelo.nitro.blebonded.shared.application.currentThenChanges
 import kotlinx.coroutines.flow.Flow
 
 /** Follows the phone's Bluetooth radio: the current state at once, then each change, repeats suppressed. */

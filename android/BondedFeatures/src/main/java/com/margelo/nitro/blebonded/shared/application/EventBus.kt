@@ -1,5 +1,6 @@
-package com.margelo.nitro.blebonded.shared.domain
+package com.margelo.nitro.blebonded.shared.application
 
+import com.margelo.nitro.blebonded.shared.domain.DomainEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 

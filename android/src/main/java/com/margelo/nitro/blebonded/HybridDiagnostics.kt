@@ -14,7 +14,7 @@ class HybridDiagnostics : HybridDiagnosticsSpec() {
     private val listeners = ListenerRegistry()
 
     override fun configure(config: DiagnosticsConfig): Promise<Unit> =
-      Promise.async { root().configureDiagnostics(config.enabled, config.capacity?.toInt()) }
+      Promise.async { root().configureDiagnostics(config.enabled, config.capacity?.toInt(), config.gatt) }
 
     override fun getEvents(since: Double?): Promise<Array<DiagnosticEvent>> =
       Promise.async { root().getDiagnostics(since?.toLong()).map { it.toSpec() }.toTypedArray() }
@@ -38,6 +38,7 @@ class HybridDiagnostics : HybridDiagnosticsSpec() {
             RecordedEvent.Kind.CONNECTED -> DiagnosticEventType.CONNECTED
             RecordedEvent.Kind.DISCONNECTED -> DiagnosticEventType.DISCONNECTED
             RecordedEvent.Kind.CONNECTION_RETRIED -> DiagnosticEventType.CONNECTIONRETRIED
+            RecordedEvent.Kind.GATT_OPERATION -> DiagnosticEventType.GATTOPERATION
           },
         at = at.toDouble(),
         appState =

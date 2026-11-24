@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, FlatList, Pressable, SafeAreaView, StatusBar, StyleSheet, Switch, Text, View } from 'react-native'
-import { ble, type DiagnosticEvent, type ScannedDevice, type Service } from 'react-native-ble-bonded'
+import { ble, BleError, type DiagnosticEvent, type ScannedDevice, type Service } from 'react-native-ble-bonded'
 import {
   useBluetoothPermission,
   useBluetoothState,
@@ -62,6 +62,8 @@ export default function App() {
 
 // The service the Mac test peripheral advertises (tools/test-peripheral).
 const testService = 'b0ed0001-0000-4000-8000-00000000b0ed'
+const testRead = 'b0ed0002-0000-4000-8000-00000000b0ed'
+const testWrite = 'b0ed0003-0000-4000-8000-00000000b0ed'
 
 // useScan scans while mounted, so the list mounts only while scanning is wanted.
 function Scanning({ onSelect }: { onSelect: (id: string) => void }) {
@@ -153,14 +155,33 @@ function Connection({ id }: { id: string }) {
   const device = useDevice(id)
   const [services, setServices] = useState<Service[]>()
   const [failure, setFailure] = useState<string>()
+  const [result, setResult] = useState<string>()
 
   const run = async (action: () => Promise<unknown>) => {
     setFailure(undefined)
+    setResult(undefined)
     try {
       await action()
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : String(error))
+      const code = error instanceof BleError ? `${error.code}: ` : ''
+      setFailure(code + (error instanceof Error ? error.message : String(error)))
     }
+  }
+
+  const read = async () => {
+    const value = await device.read(testService, testRead)
+    setResult(`read "${String.fromCharCode(...new Uint8Array(value))}"`)
+  }
+
+  const write = async (withoutResponse: boolean) => {
+    const text = withoutResponse ? 'no response' : 'hello'
+    await device.write(
+      testService,
+      testWrite,
+      Uint8Array.from(text, (character) => character.charCodeAt(0)),
+      { withoutResponse }
+    )
+    setResult(`wrote "${text}"`)
   }
 
   const last = device.lastDisconnect
@@ -191,6 +212,22 @@ function Connection({ id }: { id: string }) {
         <Button title='Services' onPress={() => run(async () => setServices(await device.getServices()))} testID='services' />
         <Button title='Forget' onPress={() => run(() => device.forget())} disabled={!device.isRemembered} testID='forget' />
       </View>
+      <View style={styles.row}>
+        <Button title='Read' onPress={() => run(read)} testID='read' />
+        <Button title='Write' onPress={() => run(() => write(false))} testID='write' />
+        <Button title='Write NR' onPress={() => run(() => write(true))} testID='write-no-response' />
+        <Button
+          title='Too long'
+          onPress={() => run(() => device.write(testService, testWrite, new Uint8Array(600), { withoutResponse: true }))}
+          testID='write-too-long'
+        />
+        <Button title='Wrong op' onPress={() => run(() => device.read(testService, testWrite))} testID='read-write-only' />
+      </View>
+      {result != null && (
+        <Text style={styles.note} testID='operation-result'>
+          {result}
+        </Text>
+      )}
       <FlatList
         data={services ?? []}
         keyExtractor={(service) => service.uuid}

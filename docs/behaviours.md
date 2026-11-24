@@ -73,6 +73,18 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - applies a connection's own workarounds over the ones set for every connection — Android only
 - retries nothing when retrying transient errors is switched off — Android only
 
+## gatt
+
+- reads a characteristic's value
+- writes a value with and without response
+- refuses an operation on a characteristic the device doesn't have
+- refuses an operation the characteristic doesn't allow
+- refuses a value longer than the write allows
+- gives up on an operation after its timeout
+- names the error the device answered with
+- asks for pairing when the characteristic needs it
+- publishes each operation for diagnostics
+
 ## diagnostics
 
 - records nothing while diagnostics are off
@@ -83,6 +95,7 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - restores the events saved before a relaunch
 - deletes the stored events when cleared or turned off
 - delivers every event recorded after a listener is added
+- records GATT operations only when asked to
 
 ## architecture
 

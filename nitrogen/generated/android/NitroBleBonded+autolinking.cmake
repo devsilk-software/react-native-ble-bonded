@@ -31,6 +31,7 @@ target_sources(NitroBleBonded PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridBluetoothStateSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridConnectionSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridDiagnosticsSpec.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridGattSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridPermissionsSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JHybridScannerSpec.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/../android/c++/JManufacturerData.cpp"

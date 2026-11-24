@@ -6,7 +6,7 @@ public struct ConfigureDiagnostics: Sendable {
     self.recorder = recorder
   }
 
-  public func callAsFunction(enabled: Bool?, capacity: Int?) async {
-    await recorder.configure(enabled: enabled, capacity: capacity)
+  public func callAsFunction(enabled: Bool?, capacity: Int?, gatt: Bool? = nil) async {
+    await recorder.configure(enabled: enabled, capacity: capacity, gatt: gatt)
   }
 }

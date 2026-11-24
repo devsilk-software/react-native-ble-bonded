@@ -112,6 +112,19 @@ class DiagnosticsTest : BehaviorSpec({
     }
   }
 
+  given("diagnostics turned on without GATT operations") {
+    then("records GATT operations only when asked to") {
+      val (recorder, bus) = recorder()
+      recorder.configure(enabled = true, capacity = null)
+      val operation = DomainEvent(DomainEvent.Kind.GATT_OPERATION, detail = "read 2a37: 3 bytes in 8 ms")
+      publish(listOf(operation, state("poweredOn")), bus, recorder, count = 1)
+      recorder.events(null).map { it.kind } shouldBe listOf(DiagnosticEvent.Kind.STATE_CHANGED)
+      recorder.configure(enabled = null, capacity = null, gatt = true)
+      publish(listOf(operation), bus, recorder, count = 2)
+      recorder.events(null).map { it.kind } shouldBe listOf(DiagnosticEvent.Kind.STATE_CHANGED, DiagnosticEvent.Kind.GATT_OPERATION)
+    }
+  }
+
   given("events saved before a relaunch") {
     val earlier = DiagnosticEvent(DiagnosticEvent.Kind.PERMISSION_CHANGED, 500, DiagnosticEvent.AppActivity.FOREGROUND, detail = "denied")
 

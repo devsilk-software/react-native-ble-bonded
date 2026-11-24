@@ -16,6 +16,9 @@ import com.margelo.nitro.blebonded.features.connection.application.useCases.forg
 import com.margelo.nitro.blebonded.features.connection.application.useCases.getServices.GetServices
 import com.margelo.nitro.blebonded.features.connection.application.useCases.observeConnections.ObserveConnections
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.fileDiagnosticsStore.FileDiagnosticsStore
+import com.margelo.nitro.blebonded.features.gatt.adapters.androidCharacteristicSource.AndroidCharacteristicSource
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.readCharacteristic.ReadCharacteristic
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.writeCharacteristic.WriteCharacteristic
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.systemDiagnosticsEnvironment.SystemDiagnosticsEnvironment
 import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
 import com.margelo.nitro.blebonded.features.diagnostics.application.useCases.clearDiagnostics.ClearDiagnostics
@@ -34,6 +37,7 @@ import com.margelo.nitro.blebonded.features.scanning.application.useCases.startS
 import com.margelo.nitro.blebonded.features.scanning.application.useCases.stopScan.StopScan
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothEnablePrompt
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothRadio
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattClients
 import com.margelo.nitro.blebonded.infrastructure.lifecycle.AppForeground
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionPrompt
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionStore
@@ -78,9 +82,10 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   val startScan = StartScan(scanner)
   val stopScan = StopScan(scanner)
 
+  private val gattClients = GattClients()
   private val connections =
     ConnectionCoordinator(
-      AndroidConnectionSource(context.applicationContext, radio),
+      AndroidConnectionSource(context.applicationContext, radio, gattClients),
       bus,
       scope,
       SharedPreferencesRememberedDeviceStore(context),
@@ -92,6 +97,10 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   val configureConnections = ConfigureConnections(connections)
   val forgetDevice = ForgetDevice(connections)
 
+  private val characteristics = AndroidCharacteristicSource(gattClients)
+  val readCharacteristic = ReadCharacteristic(characteristics, bus)
+  val writeCharacteristic = WriteCharacteristic(characteristics, bus)
+
   private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
   private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)
   private val transitions = Mutex()
@@ -102,9 +111,9 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
    * listener, so the record is complete; while off, nothing observes for diagnostics. Calls are applied one
    * after another, so the recorder and the publishers always end in the same state.
    */
-  suspend fun configureDiagnostics(enabled: Boolean?, capacity: Int?) =
+  suspend fun configureDiagnostics(enabled: Boolean?, capacity: Int?, gatt: Boolean? = null) =
     transitions.withLock {
-      configure(enabled, capacity)
+      configure(enabled, capacity, gatt)
       if (enabled == null) return@withLock
       if (enabled && publishers.isEmpty()) {
         publishers = listOf(scope.launch { publishAdapterStateEvents() }, scope.launch { publishPermissionEvents() })

@@ -4,7 +4,7 @@ import com.margelo.nitro.blebonded.features.connection.adapters.androidConnectio
 import com.margelo.nitro.blebonded.features.connection.application.services.ConnectionCoordinator
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOverrides
-import com.margelo.nitro.blebonded.features.connection.domain.CharacteristicProperty
+import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectMode
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectOptions
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionReadiness

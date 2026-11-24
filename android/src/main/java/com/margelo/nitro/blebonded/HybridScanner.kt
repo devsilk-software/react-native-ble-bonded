@@ -117,4 +117,11 @@ class HybridScanner : HybridScannerSpec() {
  * turns back into a `BleError`.
  */
 internal val BleError.jsMessage: String
-  get() = "[${code.publicName}${platformCode?.let { ":$it" } ?: ""}] $message"
+  get() {
+    val fields = org.json.JSONObject()
+    attError?.let { fields.put("attError", it) }
+    length?.let { fields.put("length", it) }
+    maxLength?.let { fields.put("maxLength", it) }
+    val json = if (fields.length() == 0) "" else " $fields"
+    return "[${code.publicName}${platformCode?.let { ":$it" } ?: ""}$json] $message"
+  }

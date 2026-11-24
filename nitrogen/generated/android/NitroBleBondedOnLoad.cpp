@@ -13,6 +13,7 @@
 #include <NitroBleBonded/private/JCallback_void_NativeConnectionChange.hpp>
 #include <NitroBleBonded/private/JHybridDiagnosticsSpec.hpp>
 #include <NitroBleBonded/private/JCallback_void_DiagnosticEvent.hpp>
+#include <NitroBleBonded/private/JHybridGattSpec.hpp>
 #include <NitroBleBonded/private/JHybridPermissionsSpec.hpp>
 #include <NitroBleBonded/private/JCallback_void_BluetoothPermission.hpp>
 #include <NitroBleBonded/private/JHybridScannerSpec.hpp>
@@ -27,6 +28,7 @@ namespace margelo::nitro::blebonded {
     margelo::nitro::blebonded::JCallback_void_NativeConnectionChange::registerNatives();
     margelo::nitro::blebonded::JHybridDiagnosticsSpec::CxxPart::registerNatives();
     margelo::nitro::blebonded::JCallback_void_DiagnosticEvent::registerNatives();
+    margelo::nitro::blebonded::JHybridGattSpec::CxxPart::registerNatives();
     margelo::nitro::blebonded::JHybridPermissionsSpec::CxxPart::registerNatives();
     margelo::nitro::blebonded::JCallback_void_BluetoothPermission::registerNatives();
     margelo::nitro::blebonded::JHybridScannerSpec::CxxPart::registerNatives();
@@ -36,6 +38,7 @@ namespace margelo::nitro::blebonded {
     HybridClassRegistry::registerHybridClass("blebonded.BluetoothState", JHybridBluetoothStateSpec::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Connection", JHybridConnectionSpec::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Diagnostics", JHybridDiagnosticsSpec::Class::get());
+    HybridClassRegistry::registerHybridClass("blebonded.Gatt", JHybridGattSpec::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Permissions", JHybridPermissionsSpec::Class::get());
     HybridClassRegistry::registerHybridClass("blebonded.Scanner", JHybridScannerSpec::Class::get());
   }

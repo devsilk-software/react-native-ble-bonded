@@ -29,6 +29,9 @@ class DiagnosticsRecorder(
 ) {
   private val mutex = Mutex()
 
+  /** Whether GATT operations are recorded too; off by default, since they can be many. */
+  @Volatile private var isRecordingGatt = false
+
   /**
    * Held through every storage operation, snapshot included, so saves and deletes reach the store in the order
    * they were asked for, and a save taken before a clear can't write after it.
@@ -44,7 +47,8 @@ class DiagnosticsRecorder(
     private set
 
   /** Changes the settings; null keeps the current value. Turning off deletes the stored events. */
-  suspend fun configure(enabled: Boolean?, capacity: Int?) {
+  suspend fun configure(enabled: Boolean?, capacity: Int?, gatt: Boolean? = null) {
+    if (gatt != null) isRecordingGatt = gatt
     mutex.withLock {
       if (capacity != null) {
         log.setCapacity(capacity)
@@ -113,6 +117,7 @@ class DiagnosticsRecorder(
   }
 
   private suspend fun record(domainEvent: DomainEvent) {
+    if (domainEvent.kind == DomainEvent.Kind.GATT_OPERATION && !isRecordingGatt) return
     val event =
       DiagnosticEvent(
         kind = DiagnosticEvent.Kind.valueOf(domainEvent.kind.name),

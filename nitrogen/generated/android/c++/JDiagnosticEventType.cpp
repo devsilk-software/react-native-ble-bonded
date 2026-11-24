@@ -31,6 +31,7 @@ namespace margelo::nitro {
       case hashString("scanStarted"): return 5;
       case hashString("scanStopped"): return 6;
       case hashString("connectionRetried"): return 7;
+      case hashString("gattOperation"): return 8;
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert \"" + string + "\" to enum DiagnosticEventType - invalid value!");
     }
@@ -46,6 +47,7 @@ namespace margelo::nitro {
       case 5: return createJSIString<"scanStarted">(runtime);
       case 6: return createJSIString<"scanStopped">(runtime);
       case 7: return createJSIString<"connectionRetried">(runtime);
+      case 8: return createJSIString<"gattOperation">(runtime);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert DiagnosticEventType to JS - invalid value: " + std::to_string(value->value()) + "!");
     }
@@ -63,6 +65,7 @@ namespace margelo::nitro {
       case hashString("scanStarted"): return true;
       case hashString("scanStopped"): return true;
       case hashString("connectionRetried"): return true;
+      case hashString("gattOperation"): return true;
       default: return false;
     }
   }

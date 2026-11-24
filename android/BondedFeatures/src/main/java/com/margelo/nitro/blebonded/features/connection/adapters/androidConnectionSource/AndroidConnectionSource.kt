@@ -8,7 +8,7 @@ import android.content.Context
 import com.margelo.nitro.blebonded.features.connection.application.interfaces.ConnectionSource
 import com.margelo.nitro.blebonded.features.connection.application.interfaces.PlatformDisconnect
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
-import com.margelo.nitro.blebonded.features.connection.domain.CharacteristicProperty
+import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectMode
 import com.margelo.nitro.blebonded.features.connection.domain.ConnectionReadiness
 import com.margelo.nitro.blebonded.features.connection.domain.Disconnect
@@ -20,6 +20,7 @@ import com.margelo.nitro.blebonded.features.connection.domain.disconnectReason
 import com.margelo.nitro.blebonded.features.connection.domain.isTransientStatus
 import com.margelo.nitro.blebonded.features.connection.domain.setupSteps
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.BluetoothRadio
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattClients
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattConnection
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattStatusException
 import com.margelo.nitro.blebonded.shared.domain.BleError
@@ -33,15 +34,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Answers [ConnectionSource] with Android's GATT client, through the shared Bluetooth client, and applies the
  * connection workarounds: closing the client on every exit, waiting for pairing, pausing before discovery on
  * bonded devices, high priority during setup, and refreshing the service cache.
  */
-class AndroidConnectionSource(private val context: Context, private val radio: BluetoothRadio) : ConnectionSource {
-  private val connections = ConcurrentHashMap<DeviceId, GattConnection>()
+class AndroidConnectionSource(
+  private val context: Context,
+  private val radio: BluetoothRadio,
+  private val connections: GattClients,
+) : ConnectionSource {
   private val drops = MutableSharedFlow<PlatformDisconnect>(extraBufferCapacity = 16)
 
   override fun readiness(): ConnectionReadiness {
@@ -59,22 +62,22 @@ class AndroidConnectionSource(private val context: Context, private val radio: B
       radio.remoteDevice(id.rawValue)
         ?: throw BleError(BleError.Code.DEVICE_NOT_FOUND, "Not a Bluetooth address: ${id.rawValue}", deviceId = id, operation = "connect")
     if (radio.radioState() != BluetoothAdapter.STATE_ON) throw bluetoothOff(id)
-    connections.remove(id)?.close()
+    connections.remove(id.rawValue)?.close()
     lateinit var connection: GattConnection
     connection = GattConnection(context, device) { status -> dropped(id, connection, status, options) }
-    connections[id] = connection
+    connections[id.rawValue] = connection
     try {
       whileBluetoothOn(id) { setUp(connection, device, mode, options) }.let { return it }
     } catch (failure: GattStatusException) {
-      connections.remove(id, connection)
+      connections.remove(id.rawValue, connection)
       connection.close()
       throw BleError(BleError.Code.CONNECTION_FAILED, "Couldn't connect (GATT status ${failure.status})", failure.status, id, "connect")
     } catch (failure: SecurityException) {
-      connections.remove(id, connection)
+      connections.remove(id.rawValue, connection)
       connection.close()
       throw BleError(BleError.Code.UNAUTHORIZED, "Bluetooth permission is not granted", deviceId = id, operation = "connect")
     } catch (failure: Throwable) {
-      connections.remove(id, connection)
+      connections.remove(id.rawValue, connection)
       connection.close()
       throw failure
     }
@@ -134,7 +137,7 @@ class AndroidConnectionSource(private val context: Context, private val radio: B
     }
 
   override suspend fun disconnect(id: DeviceId) {
-    connections.remove(id)?.disconnect()
+    connections.remove(id.rawValue)?.disconnect()
   }
 
   override fun disconnections(): Flow<PlatformDisconnect> = drops
@@ -143,13 +146,13 @@ class AndroidConnectionSource(private val context: Context, private val radio: B
     options.retryTransientErrors && error.code == BleError.Code.CONNECTION_FAILED && error.platformCode?.let(::isTransientStatus) == true
 
   override fun name(id: DeviceId): String? =
-    runCatching { connections[id]?.device?.name ?: radio.remoteDevice(id.rawValue)?.name }.getOrNull() // needs BLUETOOTH_CONNECT
+    runCatching { connections[id.rawValue]?.device?.name ?: radio.remoteDevice(id.rawValue)?.name }.getOrNull() // needs BLUETOOTH_CONNECT
 
   /** [connection] dropped; only it is closed, never a newer client registered for the same device since. */
   private fun dropped(id: DeviceId, connection: GattConnection, status: Int, options: AndroidConnectionOptions) {
     val isBluetoothOff = radio.radioState() != BluetoothAdapter.STATE_ON
     if (options.closeGattOnDisconnect) {
-      connections.remove(id, connection)
+      connections.remove(id.rawValue, connection)
       connection.close()
     }
     val error = BleError(BleError.Code.DISCONNECTED, "Disconnected (GATT status $status)", status, id)

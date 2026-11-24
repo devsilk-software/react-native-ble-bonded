@@ -43,6 +43,20 @@
         "language": "swift"
       }
     },
+    "Gatt": {
+      "android": {
+        "implementation": {
+          "className": "HybridGatt"
+        },
+        "language": "kotlin"
+      },
+      "apple": {
+        "implementation": {
+          "className": "HybridGatt"
+        },
+        "language": "swift"
+      }
+    },
     "Permissions": {
       "android": {
         "implementation": {

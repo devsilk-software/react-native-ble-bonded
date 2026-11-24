@@ -14,6 +14,10 @@ public struct BleError: Error, Equatable, Sendable {
     case cancelled
     case unsupported
     case unknown
+    /// A value longer than the operation allows; `length` and `maxLength` say by how much.
+    case valueTooLong
+    /// The device has no such service or characteristic.
+    case characteristicNotFound
   }
 
   public let code: Code
@@ -23,18 +27,29 @@ public struct BleError: Error, Equatable, Sendable {
   public let deviceId: DeviceId?
   /// The operation that failed, such as `connect` or `read`.
   public let operation: String?
+  /// The Bluetooth error the device answered with, by name, such as `invalidAttributeValueLength`.
+  public let attError: String?
+  /// For `valueTooLong`: the value's length and the most the operation allows, in bytes.
+  public let length: Int?
+  public let maxLength: Int?
 
   public init(
     code: Code,
     message: String,
     platformCode: Int? = nil,
     deviceId: DeviceId? = nil,
-    operation: String? = nil
+    operation: String? = nil,
+    attError: String? = nil,
+    length: Int? = nil,
+    maxLength: Int? = nil
   ) {
     self.code = code
     self.message = message
     self.platformCode = platformCode
     self.deviceId = deviceId
     self.operation = operation
+    self.attError = attError
+    self.length = length
+    self.maxLength = maxLength
   }
 }

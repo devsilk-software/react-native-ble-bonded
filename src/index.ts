@@ -20,6 +20,7 @@ export {
   type BleErrorCode,
   type BleErrorDetails,
   type OperationOptions,
+  type SubscribeOptions,
   type WriteOptions,
   type ManufacturerData,
   type Scan,

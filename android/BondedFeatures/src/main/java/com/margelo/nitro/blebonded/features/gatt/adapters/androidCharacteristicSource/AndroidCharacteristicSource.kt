@@ -1,6 +1,7 @@
 package com.margelo.nitro.blebonded.features.gatt.adapters.androidCharacteristicSource
 
 import android.bluetooth.BluetoothGattCharacteristic
+import com.margelo.nitro.blebonded.features.gatt.application.interfaces.CharacteristicNotification
 import com.margelo.nitro.blebonded.features.gatt.application.interfaces.CharacteristicSource
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
@@ -13,7 +14,11 @@ import com.margelo.nitro.blebonded.infrastructure.bluetooth.NOT_CONNECTED
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.NO_ANSWER
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
+import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
+import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.mapNotNull
 
 /** Answers [CharacteristicSource] with Android's GATT client, through the shared Bluetooth client. */
 class AndroidCharacteristicSource(private val clients: GattClients) : CharacteristicSource {
@@ -48,6 +53,26 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
       throw refused(MISSING_PERMISSION, operation, id)
     }
   }
+
+  override suspend fun setNotifications(isOn: Boolean, indicate: Boolean, address: CharacteristicAddress, id: DeviceId) {
+    val characteristic = find(address, id) ?: throw notConnected(id)
+    try {
+      connection(id).setNotifications(characteristic, isOn, indicate)
+    } catch (failure: GattStatusException) {
+      throw bleError(failure.status, CharacteristicOperation.SUBSCRIBE, address, id)
+    } catch (failure: GattRequestRefusedException) {
+      throw refused(failure.code, CharacteristicOperation.SUBSCRIBE, id)
+    } catch (failure: SecurityException) {
+      throw refused(MISSING_PERMISSION, CharacteristicOperation.SUBSCRIBE, id)
+    }
+  }
+
+  override fun notifications(): Flow<CharacteristicNotification> =
+    clients.notifications.mapNotNull { notification ->
+      val service = ServiceUuid.parse(notification.service) ?: return@mapNotNull null
+      val characteristic = CharacteristicUuid.parse(notification.characteristic) ?: return@mapNotNull null
+      CharacteristicNotification(DeviceId(notification.address), CharacteristicAddress(service, characteristic), notification.value)
+    }
 
   private fun connection(id: DeviceId): GattConnection =
     clients[id.rawValue]?.takeIf { it.isReady } ?: throw notConnected(id)

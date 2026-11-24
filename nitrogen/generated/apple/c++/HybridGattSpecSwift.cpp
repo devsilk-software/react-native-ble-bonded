@@ -32,6 +32,32 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
+  Promise<double> HybridGattSpecSwift::subscribe(const swift::String& id, const swift::String& service, const swift::String& characteristic, const Callback<void(const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_&)>& onValues, const Callback<void(const swift::String&)>& onError, const Callback<void()>& onEnd) {
+    auto __result = ([&](const void* onValues) {
+      return ([&](const void* onError) {
+        return ([&](const void* onEnd) {
+          return withCxxResult<Promise<double>>([&](void* __outResult) {
+            return ::NitroBleBonded::HybridGattSpec_cxx::subscribe(id, service, characteristic, onValues, onError, onEnd, __outResult);
+          });
+        })(std::addressof(onEnd));
+      })(std::addressof(onError));
+    })(std::addressof(onValues));
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
+  Promise<void> HybridGattSpecSwift::unsubscribe(double subscription) {
+    auto __result = withCxxResult<Promise<void>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridGattSpec_cxx::unsubscribe(subscription, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
   Promise<void> HybridGattSpecSwift::write(const swift::String& id, const swift::String& service, const swift::String& characteristic, const ArrayBuffer& value, bool withResponse, double timeoutMs) {
     auto __result = withCxxResult<Promise<void>>([&](void* __outResult) {
       return ::NitroBleBonded::HybridGattSpec_cxx::write(id, service, characteristic, value, withResponse, timeoutMs, __outResult);
@@ -45,6 +71,8 @@ namespace margelo::nitro::blebonded {
   const std::shared_ptr<const HybridClass>& HybridGattSpecSwift::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("read", &HybridGattSpecSwift::read);
+      clazz.registerStaticHybridMethod("subscribe", &HybridGattSpecSwift::subscribe);
+      clazz.registerStaticHybridMethod("unsubscribe", &HybridGattSpecSwift::unsubscribe);
       clazz.registerStaticHybridMethod("write", &HybridGattSpecSwift::write);
     });
     return hybridClass;

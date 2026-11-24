@@ -17,7 +17,10 @@ import com.margelo.nitro.blebonded.features.connection.application.useCases.getS
 import com.margelo.nitro.blebonded.features.connection.application.useCases.observeConnections.ObserveConnections
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.fileDiagnosticsStore.FileDiagnosticsStore
 import com.margelo.nitro.blebonded.features.gatt.adapters.androidCharacteristicSource.AndroidCharacteristicSource
+import com.margelo.nitro.blebonded.features.gatt.application.services.SubscriptionRegistry
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.readCharacteristic.ReadCharacteristic
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.subscribe.Subscribe
+import com.margelo.nitro.blebonded.features.gatt.application.useCases.unsubscribe.Unsubscribe
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.writeCharacteristic.WriteCharacteristic
 import com.margelo.nitro.blebonded.features.diagnostics.adapters.systemDiagnosticsEnvironment.SystemDiagnosticsEnvironment
 import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
@@ -100,6 +103,9 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   private val characteristics = AndroidCharacteristicSource(gattClients)
   val readCharacteristic = ReadCharacteristic(characteristics, bus)
   val writeCharacteristic = WriteCharacteristic(characteristics, bus)
+  private val subscriptions = SubscriptionRegistry(characteristics, bus, scope)
+  val subscribe = Subscribe(subscriptions)
+  val unsubscribe = Unsubscribe(subscriptions)
 
   private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
   private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)

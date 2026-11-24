@@ -89,6 +89,7 @@ class ConnectionCoordinator(
   suspend fun forget(id: DeviceId) {
     loadRemembered()
     disconnect(id)
+    bus.publish(DomainEvent(DomainEvent.Kind.FORGOTTEN, id))
     lock.withLock {
       if (remembered.remove(id) == null) return
       emit(id)

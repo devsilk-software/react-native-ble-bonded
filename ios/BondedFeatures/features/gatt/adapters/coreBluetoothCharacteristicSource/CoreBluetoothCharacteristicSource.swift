@@ -62,6 +62,41 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
     }
   }
 
+  public func setNotifications(_ isOn: Bool, indicate: Bool, on address: CharacteristicAddress, of id: DeviceId) async throws {
+    do {
+      // Core Bluetooth picks notifications or indications itself.
+      try await central.setNotify(
+        isOn,
+        try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue
+      )
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: .subscribe, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(.subscribe, id: id)
+    }
+  }
+
+  public func notifications() async -> AsyncStream<CharacteristicNotification> {
+    let platform = await central.notifications()
+    let (stream, continuation) = AsyncStream<CharacteristicNotification>.makeStream()
+    let task = Task {
+      for await notification in platform {
+        let parts = notification.key.split(separator: "|").map(String.init)
+        guard parts.count == 2, let service = ServiceUuid(parts[0]), let characteristic = CharacteristicUuid(parts[1]) else { continue }
+        continuation.yield(CharacteristicNotification(
+          id: DeviceId(notification.identifier.uuidString),
+          address: CharacteristicAddress(service: service, characteristic: characteristic),
+          value: Array(notification.value)
+        ))
+      }
+      continuation.finish()
+    }
+    continuation.onTermination = { _ in task.cancel() }
+    return stream
+  }
+
   private static func identifier(_ id: DeviceId) throws -> UUID {
     guard let identifier = UUID(uuidString: id.rawValue) else { throw notConnected(id) }
     return identifier

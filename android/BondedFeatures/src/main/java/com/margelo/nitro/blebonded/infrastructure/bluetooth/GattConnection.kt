@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.BluetoothProfile
@@ -35,7 +36,12 @@ import java.util.concurrent.atomic.AtomicReference
  * The client is single use: after [close], connect with a new one.
  */
 @Suppress("MissingPermission") // Bonded checks BLUETOOTH_CONNECT before connecting; a SecurityException is reported.
-class GattConnection(private val context: Context, val device: BluetoothDevice, private val onDisconnected: (status: Int) -> Unit) {
+class GattConnection(
+  private val context: Context,
+  val device: BluetoothDevice,
+  private val onNotification: (ClientNotification) -> Unit = {},
+  private val onDisconnected: (status: Int) -> Unit,
+) {
   private val gatt = AtomicReference<BluetoothGatt?>(null)
   private val connected = AtomicReference<CompletableDeferred<Unit>?>(null)
   private val discovered = AtomicReference<CompletableDeferred<List<BluetoothGattService>>?>(null)
@@ -43,6 +49,7 @@ class GattConnection(private val context: Context, val device: BluetoothDevice, 
   private val readValue = AtomicReference<Pending<ByteArray>?>(null)
   private val written = AtomicReference<Pending<Unit>?>(null)
   private val mtuAnswer = AtomicReference<CompletableDeferred<Int>?>(null)
+  private val descriptorWritten = AtomicReference<Pending<Unit>?>(null)
 
   /** Android allows one GATT operation at a time per device; every operation holds this (decision A4). */
   private val operations = Mutex()
@@ -83,6 +90,7 @@ class GattConnection(private val context: Context, val device: BluetoothDevice, 
         // A disconnect isn't the device refusing the operation: the operation failed because the link went.
         readValue.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
         written.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
+        descriptorWritten.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
         mtuAnswer.getAndSet(null)?.cancel()
         val requested = disconnected.getAndSet(null)
         requested?.complete(Unit)
@@ -105,6 +113,25 @@ class GattConnection(private val context: Context, val device: BluetoothDevice, 
       override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
         val pending = written.get()?.takeIf { it.isFor(characteristic) } ?: return
         if (!written.compareAndSet(pending, null)) return
+        if (status == BluetoothGatt.GATT_SUCCESS) pending.answer.complete(Unit) else pending.answer.completeExceptionally(GattStatusException(status))
+      }
+
+      override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+        onNotification(
+          ClientNotification(device.address, characteristic.service.uuid.toString().lowercase(), characteristic.uuid.toString().lowercase(), value),
+        )
+      }
+
+      @Deprecated("Before Android 13")
+      override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
+        @Suppress("DEPRECATION")
+        onCharacteristicChanged(gatt, characteristic, characteristic.value?.copyOf() ?: ByteArray(0))
+      }
+
+      override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+        val pending = descriptorWritten.get()?.takeIf { it.isFor(descriptor.characteristic) } ?: return
+        if (!descriptorWritten.compareAndSet(pending, null)) return
         if (status == BluetoothGatt.GATT_SUCCESS) pending.answer.complete(Unit) else pending.answer.completeExceptionally(GattStatusException(status))
       }
 
@@ -206,6 +233,39 @@ class GattConnection(private val context: Context, val device: BluetoothDevice, 
     }
   }
 
+  /**
+   * Switches notifications, or with [indicate] indications, on or off: tells Android to deliver them and writes the
+   * characteristic's configuration descriptor on the device. Returns once the device confirmed.
+   */
+  suspend fun setNotifications(characteristic: BluetoothGattCharacteristic, isOn: Boolean, indicate: Boolean) {
+    perform<Unit> { result ->
+      val client = gatt.get() ?: throw GattStatusException(NOT_CONNECTED)
+      if (!client.setCharacteristicNotification(characteristic, isOn)) throw GattStatusException(BluetoothGatt.GATT_FAILURE)
+      val descriptor = characteristic.getDescriptor(CLIENT_CONFIGURATION) ?: throw GattStatusException(BluetoothGatt.GATT_FAILURE)
+      val value =
+        when {
+          !isOn -> BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+          indicate -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+          else -> BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+        }
+      answer(descriptorWritten, characteristic) {
+        val code =
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            client.writeDescriptor(descriptor, value)
+          } else {
+            @Suppress("DEPRECATION")
+            descriptor.value = value
+            @Suppress("DEPRECATION")
+            if (client.writeDescriptor(descriptor)) BluetoothStatusCodes.SUCCESS else BluetoothGatt.GATT_FAILURE
+          }
+        if (code != BluetoothStatusCodes.SUCCESS) {
+          throw if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) GattRequestRefusedException(code) else GattStatusException(code)
+        }
+      }
+      result.complete(Unit)
+    }
+  }
+
   /** Asks for an MTU of [size] and returns the one agreed, or the current one when the device doesn't answer. */
   suspend fun requestMtu(size: Int): Int =
     perform { result ->
@@ -227,16 +287,20 @@ class GattConnection(private val context: Context, val device: BluetoothDevice, 
    */
   private suspend fun <T> perform(operation: suspend (CompletableDeferred<T>) -> Unit): T {
     val result = CompletableDeferred<T>()
-    scope.launch {
-      operations.withLock {
-        if (result.isCompleted) return@withLock // the caller gave up while queued: never sent
-        try {
-          operation(result)
-        } catch (failure: Throwable) {
-          result.completeExceptionally(failure)
+    val job =
+      scope.launch {
+        operations.withLock {
+          if (result.isCompleted) return@withLock // the caller gave up while queued: never sent
+          try {
+            operation(result)
+          } catch (failure: Throwable) {
+            // Closing the connection cancels its scope mid-operation: to the caller, the device disconnected.
+            result.completeExceptionally(if (failure is CancellationException) GattStatusException(NOT_CONNECTED) else failure)
+          }
         }
       }
-    }
+    // Closed before the operation got its turn: it never runs, and the caller must not wait forever.
+    job.invokeOnCompletion { result.completeExceptionally(GattStatusException(NOT_CONNECTED)) }
     return try {
       result.await()
     } catch (cancelled: CancellationException) {
@@ -311,6 +375,7 @@ class GattConnection(private val context: Context, val device: BluetoothDevice, 
     discovered.getAndSet(null)?.completeExceptionally(cancelled)
     readValue.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
     written.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
+    descriptorWritten.getAndSet(null)?.answer?.completeExceptionally(GattStatusException(NOT_CONNECTED))
     mtuAnswer.getAndSet(null)?.cancel()
     scope.cancel()
     disconnected.getAndSet(null)?.complete(Unit)
@@ -356,6 +421,9 @@ const val NO_ANSWER = -2
 class GattRequestRefusedException(val code: Int) : Exception("Android refused to send the request (code $code)")
 
 private const val ATT_TIMEOUT_MS = 30_000L
+
+/** The Client Characteristic Configuration descriptor, which switches a characteristic's notifications. */
+private val CLIENT_CONFIGURATION: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 private const val MTU_TIMEOUT_MS = 5_000L
 
 /** `BluetoothStatusCodes.ERROR_GATT_WRITE_REQUEST_BUSY`, from Android 13. */

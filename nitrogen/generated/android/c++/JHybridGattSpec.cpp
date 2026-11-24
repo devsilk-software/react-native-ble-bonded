@@ -11,10 +11,16 @@
 #include <NitroModules/JSIConverter+JArrayBuffer.hpp>
 #include <NitroModules/JNIConverter+Promise.hpp>
 #include <NitroModules/JSIConverter+JTypedPromise.hpp>
-#include <NitroModules/JNIConverter+String.hpp>
-#include <NitroModules/JSIConverter+JString.hpp>
 #include <NitroModules/JNIConverter+Primitives.hpp>
 #include <NitroModules/JSIConverter+JNIPrimitives.hpp>
+#include <NitroModules/JNIConverter+String.hpp>
+#include <NitroModules/JSIConverter+JString.hpp>
+#include <NitroBleBonded/private/JCallback_void_std__vector_ArrayBuffer_.hpp>
+#include <NitroModules/JNIConverter+Callback.hpp>
+#include <NitroModules/JNIConverter+Array.hpp>
+#include <NitroModules/JSIConverter+JArrayClass.hpp>
+#include <NitroBleBonded/private/JCallback_void_std__string.hpp>
+#include <NitroBleBonded/private/JCallback_void.hpp>
 
 namespace margelo::nitro::blebonded {
 
@@ -23,6 +29,18 @@ namespace margelo::nitro::blebonded {
   jni::local_ref<JTypedPromise<jni::local_ref<JArrayBuffer::JavaPart>>> JHybridGattSpec::read(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, jdouble timeoutMs) {
     static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<JArrayBuffer::JavaPart>>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jdouble /* timeoutMs */)>("read_cxx");
     auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, timeoutMs);
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> JHybridGattSpec::subscribe(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>>& onValues, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>>& onError, const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void::JavaPart>>& onEnd) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__vector_ArrayBuffer_::JavaPart>> /* onValues */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void_std__string::JavaPart>> /* onError */, jni::alias_ref<JCallback<margelo::nitro::blebonded::JCallback_void::JavaPart>> /* onEnd */)>("subscribe_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, onValues, onError, onEnd);
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<void>> JHybridGattSpec::unsubscribe(jdouble subscription) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<void>>(jdouble /* subscription */)>("unsubscribe_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), subscription);
     return __result;
   }
 
@@ -35,6 +53,8 @@ namespace margelo::nitro::blebonded {
   const std::shared_ptr<const HybridClass>& JHybridGattSpec::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("read", &JHybridGattSpec::read);
+      clazz.registerStaticHybridMethod("subscribe", &JHybridGattSpec::subscribe);
+      clazz.registerStaticHybridMethod("unsubscribe", &JHybridGattSpec::unsubscribe);
       clazz.registerStaticHybridMethod("write", &JHybridGattSpec::write);
     });
     return hybridClass;

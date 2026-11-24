@@ -41,6 +41,7 @@ public actor BluetoothCentral {
   /// The request each peripheral is waiting on, and for which characteristic.
   private var answerWaiters: [UUID: (request: UUID, key: String, continuation: CheckedContinuation<Result<Data?, any Error>, Never>)] = [:]
   private var readyWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
+  private var notificationObservers: [UUID: AsyncStream<CentralNotification>.Continuation] = [:]
 
   public init() {}
 
@@ -322,6 +323,57 @@ public actor BluetoothCentral {
     }
   }
 
+  /// Switches notifications (or indications; Core Bluetooth picks) on or off and returns once the peripheral
+  /// confirmed. Cancelling stops waiting at once.
+  public func setNotify(_ isOn: Bool, _ identifier: UUID, service: String, characteristic: String) async throws {
+    let token = UUID()
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Void, any Error>) in
+        writeCallers[token] = (identifier, caller)
+        enqueue(on: identifier) { await self.runNotify(token, isOn, identifier, service: service, characteristic: characteristic) }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
+  /// Every value a peripheral notifies, from the moment this returns.
+  public func notifications() -> AsyncStream<CentralNotification> {
+    let (stream, continuation) = AsyncStream<CentralNotification>.makeStream()
+    let id = UUID()
+    continuation.onTermination = { _ in
+      Task { await self.removeNotificationObserver(id) }
+    }
+    notificationObservers[id] = continuation
+    return stream
+  }
+
+  private func removeNotificationObserver(_ id: UUID) {
+    notificationObservers[id] = nil
+  }
+
+  private func runNotify(_ token: UUID, _ isOn: Bool, _ identifier: UUID, service: String, characteristic: String) async {
+    guard writeCallers[token] != nil else { return }
+    let result: Result<Void, any Error>
+    do {
+      let peripheral = try connectedPeripheral(identifier)
+      guard let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic) else {
+        throw CentralError.notConnected
+      }
+      result = await answer(on: identifier, key: Self.notifyKey(service, characteristic)) {
+        peripheral.setNotifyValue(isOn, for: target)
+      }.map { _ in () }
+    } catch {
+      result = .failure(error)
+    }
+    writeCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+  }
+
+  /// Which characteristic a notification-state answer belongs to; apart from value answers on the same one.
+  static func notifyKey(_ service: String, _ characteristic: String) -> String {
+    "notify|" + key(service, characteristic)
+  }
+
   /// One operation runs at a time per peripheral, each after the one before has its answer.
   private func enqueue(on identifier: UUID, _ operation: @escaping @Sendable () async -> Void) {
     let previous = operations[identifier]
@@ -449,10 +501,21 @@ public actor BluetoothCentral {
   private func handleOperation(_ event: CentralEvent) {
     switch event {
     case let .valueUpdated(identifier, key, value, error):
-      // Only the answer for the characteristic asked about ends the wait; notifications come here too.
-      guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
+      // Notifications and read answers both arrive here, and Core Bluetooth doesn't say which. While a read of the
+      // characteristic waits, the value is its answer; otherwise it's a notification. Android keeps them apart too.
+      guard let waiter = answerWaiters[identifier], waiter.key == key else {
+        if error == nil, let value {
+          let notification = CentralNotification(identifier: identifier, key: key, value: value)
+          notificationObservers.values.forEach { $0.yield(notification) }
+        }
+        return
+      }
       answerWaiters[identifier] = nil
       waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(value))
+    case let .notificationStateUpdated(identifier, key, error):
+      guard let waiter = answerWaiters[identifier], waiter.key == "notify|" + key else { return }
+      answerWaiters[identifier] = nil
+      waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(nil))
     case let .wrote(identifier, key, error):
       guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
       answerWaiters[identifier] = nil
@@ -496,7 +559,7 @@ public actor BluetoothCentral {
       discoveries?.yield(discovery)
     case .connected, .failedToConnect, .disconnected, .servicesDiscovered, .characteristicsDiscovered:
       handleConnection(event)
-    case .valueUpdated, .wrote, .readyToWrite:
+    case .valueUpdated, .wrote, .readyToWrite, .notificationStateUpdated:
       handleOperation(event)
     case let .stateChanged(newState):
       state = newState
@@ -592,6 +655,14 @@ enum CentralEvent: Sendable {
   case valueUpdated(UUID, String, Data?, PlatformErrorInfo?)
   case wrote(UUID, String, PlatformErrorInfo?)
   case readyToWrite(UUID)
+  case notificationStateUpdated(UUID, String, PlatformErrorInfo?)
+}
+
+/// A value a peripheral notified. `key` is `service|characteristic`, full lowercase UUIDs.
+public struct CentralNotification: Sendable {
+  public let identifier: UUID
+  public let key: String
+  public let value: Data
 }
 
 /// A Core Bluetooth error, copied into values that can cross actors.
@@ -727,6 +798,10 @@ private final class CentralDelegate: NSObject, CBCentralManagerDelegate, CBPerip
   static func key(_ characteristic: CBCharacteristic) -> String {
     let service = characteristic.service.map { BluetoothCentral.fullUuid($0.uuid) } ?? ""
     return BluetoothCentral.key(service, BluetoothCentral.fullUuid(characteristic.uuid))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: (any Error)?) {
+    events.yield(.notificationStateUpdated(peripheral.identifier, Self.key(characteristic), error.map(PlatformErrorInfo.init)))
   }
 
   func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {

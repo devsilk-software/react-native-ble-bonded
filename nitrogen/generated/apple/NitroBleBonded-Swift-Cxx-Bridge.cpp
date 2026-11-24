@@ -31,10 +31,11 @@
 #include <NitroBleBonded/private/DiagnosticEvent-Swift.hpp>
 #include <NitroBleBonded/private/SwiftContainer_swift__Array___NitroBleBonded__DiagnosticEvent_-Swift.hpp>
 #include <NitroBleBonded/private/HybridGattSpecSwift.hpp>
+#include <NitroModules/ArrayBuffer.hpp>
+#include <NitroBleBonded/private/SwiftContainer_swift__Array_ArrayBuffer_-Swift.hpp>
 #include <NitroBleBonded/private/HybridPermissionsSpecSwift.hpp>
 #include <NitroBleBonded/private/BluetoothPermission-Swift.hpp>
 #include <NitroBleBonded/private/HybridScannerSpecSwift.hpp>
-#include <NitroModules/ArrayBuffer.hpp>
 #include <NitroBleBonded/private/ManufacturerData-Swift.hpp>
 #include <NitroBleBonded/private/NativeServiceData-Swift.hpp>
 #include <NitroBleBonded/private/NativeScannedDevice-Swift.hpp>
@@ -236,6 +237,80 @@ namespace margelo::nitro::blebonded::swift_bridge {
     auto wrapper = std::dynamic_pointer_cast<margelo::nitro::blebonded::HybridGattSpecSwift>(value);
     if (!wrapper) throw std::runtime_error("HybridGattSpec is not implemented in Swift");
     return wrapper->getSwiftPart().toUnsafe();
+  }
+
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(const Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_& callback, const void* NON_NULL param0) noexcept {
+    try {
+      callback.callSync(NitroModules::copySwiftValue<::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_>(param0));
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withValue();
+    } catch (...) {
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withError(std::current_exception());
+    }
+  }
+
+  Promise<void> callAsync_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(const Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_& callback, const void* NON_NULL param0) {
+    return callback.callAsync(NitroModules::copySwiftValue<::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_>(param0));
+  }
+
+  void callAndForget_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(const Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_& callback, const void* NON_NULL param0) {
+    callback.callAndForget(NitroModules::copySwiftValue<::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_>(param0));
+  }
+
+  Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_ create_Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure) {
+    return Callback_void___NitroBleBonded__SwiftContainer_swift__Array_ArrayBuffer_::make([closure = std::move(closure)](const ::NitroBleBonded::SwiftContainer_swift__Array_ArrayBuffer_& param0) -> void {
+      auto __result = borrowSwiftValue(param0, [&](const void* param0) {
+        return closure(param0);
+      });
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    });
+  }
+
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0) noexcept {
+    try {
+      callback.callSync(NitroModules::copySwiftValue<swift::String>(param0));
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withValue();
+    } catch (...) {
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withError(std::current_exception());
+    }
+  }
+
+  Promise<void> callAsync_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0) {
+    return callback.callAsync(NitroModules::copySwiftValue<swift::String>(param0));
+  }
+
+  void callAndForget_Callback_void_swift__String(const Callback_void_swift__String& callback, const void* NON_NULL param0) {
+    callback.callAndForget(NitroModules::copySwiftValue<swift::String>(param0));
+  }
+
+  Callback_void_swift__String create_Callback_void_swift__String(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure) {
+    return Callback_void_swift__String::make([closure = std::move(closure)](const swift::String& param0) -> void {
+      auto __result = borrowSwiftValue(param0, [&](const void* param0) {
+        return closure(param0);
+      });
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    });
+  }
+
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void(const Callback_void& callback) noexcept {
+    try {
+      callback.callSync();
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withValue();
+    } catch (...) {
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withError(std::current_exception());
+    }
+  }
+
+  Callback_void create_Callback_void(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>()> closure) {
+    return Callback_void::make([closure = std::move(closure)]() -> void {
+      auto __result = closure();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    });
   }
 
   std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridPermissionsSpec_(void* NON_NULL pointer) {

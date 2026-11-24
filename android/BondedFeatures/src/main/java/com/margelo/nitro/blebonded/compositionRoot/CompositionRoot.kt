@@ -44,7 +44,7 @@ import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattClients
 import com.margelo.nitro.blebonded.infrastructure.lifecycle.AppForeground
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionPrompt
 import com.margelo.nitro.blebonded.infrastructure.permissions.PermissionStore
-import com.margelo.nitro.blebonded.shared.domain.EventBus
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

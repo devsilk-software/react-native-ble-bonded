@@ -6,11 +6,11 @@ import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
 import com.margelo.nitro.blebonded.features.gatt.domain.OperationCheck
 import com.margelo.nitro.blebonded.features.gatt.domain.SubscriptionEvent
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.TimeoutCancellationException

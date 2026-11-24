@@ -1,4 +1,4 @@
-package com.margelo.nitro.blebonded.shared.domain
+package com.margelo.nitro.blebonded.shared.application
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged

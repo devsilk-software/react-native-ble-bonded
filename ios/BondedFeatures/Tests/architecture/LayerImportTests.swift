@@ -8,6 +8,7 @@ struct LayerImportTests {
   /// What each layer may import. `nil` means anything.
   private static let allowedImports: [(layer: String, allowed: Set<String>?)] = [
     ("shared/domain", ["Foundation"]),
+    ("shared/application", ["Foundation"]),
     ("/domain/", ["Foundation"]),
     ("/application/", ["Foundation"]),
     ("/adapters/", ["Foundation", "CoreBluetooth"]),

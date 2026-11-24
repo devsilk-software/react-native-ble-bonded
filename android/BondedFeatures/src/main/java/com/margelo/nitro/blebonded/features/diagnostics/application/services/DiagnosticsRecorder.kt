@@ -4,8 +4,8 @@ import com.margelo.nitro.blebonded.features.diagnostics.application.interfaces.D
 import com.margelo.nitro.blebonded.features.diagnostics.application.interfaces.DiagnosticsStore
 import com.margelo.nitro.blebonded.features.diagnostics.domain.DiagnosticEvent
 import com.margelo.nitro.blebonded.features.diagnostics.domain.EventLog
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job

@@ -8,10 +8,10 @@ import com.margelo.nitro.blebonded.features.scanning.domain.ScanRequest
 import com.margelo.nitro.blebonded.features.scanning.domain.ScanStartLimiter
 import com.margelo.nitro.blebonded.features.scanning.domain.ScanStopReason
 import com.margelo.nitro.blebonded.features.scanning.domain.ScannedDevice
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job

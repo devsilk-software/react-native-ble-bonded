@@ -4,8 +4,8 @@ import com.margelo.nitro.blebonded.features.diagnostics.application.interfaces.D
 import com.margelo.nitro.blebonded.features.diagnostics.application.interfaces.DiagnosticsStore
 import com.margelo.nitro.blebonded.features.diagnostics.application.services.DiagnosticsRecorder
 import com.margelo.nitro.blebonded.features.diagnostics.domain.DiagnosticEvent
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicLong
 

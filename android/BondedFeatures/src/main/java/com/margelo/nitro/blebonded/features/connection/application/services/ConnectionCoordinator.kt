@@ -15,10 +15,10 @@ import com.margelo.nitro.blebonded.features.connection.domain.Disconnect
 import com.margelo.nitro.blebonded.features.connection.domain.DisconnectReason
 import com.margelo.nitro.blebonded.features.connection.domain.GattService
 import com.margelo.nitro.blebonded.features.connection.domain.RetryPolicy
+import com.margelo.nitro.blebonded.shared.application.EventBus
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.DomainEvent
-import com.margelo.nitro.blebonded.shared.domain.EventBus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart

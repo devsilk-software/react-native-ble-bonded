@@ -20,11 +20,14 @@ react-native-ble-plx.
 
 ## Requirements
 
-- React Native 0.88 or newer, New Architecture
-- iOS 16 or newer; Android 7 (API 24) or newer
-- Nitro Modules v1; on iOS, React Native's Swift Package Manager support (Nitro v1 doesn't build through CocoaPods
-  yet)
-- A bare React Native app; Expo isn't supported yet
+| | Minimum |
+|---|---|
+| React Native | 0.88, New Architecture (the old architecture isn't supported) |
+| Nitro Modules | `react-native-nitro-modules` and `nitro-core` `1.0.0-alpha.nightly.136.gdb81de61bd32`, exactly |
+| iOS | 16.0, built with Xcode 26 (Swift 6.2) or newer, through Swift Package Manager (not CocoaPods) |
+| Android | 7.0 (API 24); compileSdk 36; JDK 17 |
+| Node | 22.13, React Native 0.88's own minimum |
+| Expo | not supported yet: Expo can't build Nitro v1 modules |
 
 ## Install
 

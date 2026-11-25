@@ -26,9 +26,15 @@ Releases are published from the maintainer's machine, with npm's two-factor conf
 5. **Try the package in an app.** `npm pack`, install the `.tgz` into a fresh bare React Native app, set it up as
    the README's Install section says, and build it for iOS and Android. A device check of scan and connect is
    enough.
-6. **Publish:**
-   - a preview: `npm publish --tag next`, so `npm install react-native-ble-bonded` keeps installing the last
-     release;
-   - a release: `npm publish`.
-7. **Tag and announce:** `git tag v<version> && git push origin v<version>`, then a GitHub release with what's in it
-   and what's known not to work.
+6. **Publish**, from your own terminal: npm asks for two-factor confirmation there, and gives up at once in a
+   terminal that isn't interactive.
+   - While there's no full release yet, a preview goes out as `latest` (`npm publish --tag latest`): npm's page shows
+     the README of the version tagged `latest`, and a pre-release version needs the tag named.
+   - Once there's a full release, a preview goes out as `next` (`npm publish --tag next`), so
+     `npm install react-native-ble-bonded` keeps installing the release.
+   - A release: `npm publish`.
+
+   If npm's page still shows the previous version as latest after a few minutes, set the tag again, which refreshes
+   it: `npm dist-tag add react-native-ble-bonded@<version> latest`.
+7. **Release on GitHub:** `gh release create v<version> --target <full commit hash> --title "<version>: …"
+   --notes-file <notes>`, adding `--prerelease` for a beta. The notes say what's in it and what isn't yet.

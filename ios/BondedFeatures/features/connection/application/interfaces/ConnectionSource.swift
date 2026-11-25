@@ -15,6 +15,10 @@ public protocol ConnectionSource: Sendable {
   /// Whether an attempt failed for a reason that may pass on its own, so retrying is worth it.
   func isTransient(_ error: BleError) -> Bool
 
+  /// `services` with each characteristic's descriptors, discovering them where the platform hasn't yet. Throws a
+  /// `BleError`.
+  func withDescriptors(_ services: [GattService], of id: DeviceId) async throws -> [GattService]
+
   /// The device's name, as the platform last saw it.
   func name(of id: DeviceId) async -> String?
 }

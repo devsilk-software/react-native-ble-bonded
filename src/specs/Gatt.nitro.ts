@@ -67,4 +67,22 @@ export declare class Gatt extends HybridObject {
 
   /** The connected device's signal strength in dBm. Rejects with a `BleError` message. */
   static readRssi(id: string, timeoutMs: number): Promise<number>
+
+  /**
+   * Reads a descriptor's value. Rejects with a `BleError` message, also `descriptorNotFound`.
+   */
+  static readDescriptor(id: string, service: string, characteristic: string, descriptor: string, timeoutMs: number): Promise<ArrayBuffer>
+
+  /**
+   * Writes a descriptor's value and resolves once the device confirmed. Rejects with a `BleError` message, also
+   * `descriptorNotFound`, and `unsupported` for the notification descriptor (2902).
+   */
+  static writeDescriptor(
+    id: string,
+    service: string,
+    characteristic: string,
+    descriptor: string,
+    value: ArrayBuffer,
+    timeoutMs: number
+  ): Promise<void>
 }

@@ -24,6 +24,18 @@ struct ConnectionTests {
     #expect(try await coordinator.services(of: device) == [heartRateService])
   }
 
+  @Test("lists descriptors only when asked")
+  func listsDescriptorsOnlyWhenAsked() async throws {
+    let coordinator = coordinator(FakeConnectionSource(outcomes: [.succeed([heartRateService])]))
+    try await coordinator.connect(device)
+
+    let plain = try await GetServices(coordinator: coordinator)(device)
+    let detailed = try await GetServices(coordinator: coordinator)(device, descriptors: true)
+
+    #expect(plain.flatMap(\.characteristics).allSatisfy { $0.descriptors == nil })
+    #expect(detailed.flatMap(\.characteristics).allSatisfy { $0.descriptors == [DescriptorUuid("2902")!, DescriptorUuid("2901")!] })
+  }
+
   @Test("reports connecting, then connected once services are discovered")
   func reportsConnectingThenConnectedOnceServicesAreDiscovered() async throws {
     let coordinator = coordinator(FakeConnectionSource(outcomes: [.succeed([heartRateService])]))

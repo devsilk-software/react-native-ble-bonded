@@ -84,7 +84,7 @@ namespace margelo::nitro::blebonded {
     static jni::local_ref<JTypedPromise<void>> disconnect(const jni::local_ref<jni::JString>& id);
     static jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeConnectionChange>>>> getConnections();
     static jni::local_ref<JTypedPromise<void>> forget(const jni::local_ref<jni::JString>& id);
-    static jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeService>>>> getServices(const jni::local_ref<jni::JString>& id);
+    static jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeService>>>> getServices(const jni::local_ref<jni::JString>& id, jboolean descriptors);
     static jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> addListener(const jni::local_ref<JCallback<margelo::nitro::blebonded::JCallback_void_NativeConnectionChange::JavaPart>>& onChange);
     static void removeListener(jdouble id);
     static void configureAndroid(const jni::local_ref<JNativeAndroidConnectionOptions>& options);

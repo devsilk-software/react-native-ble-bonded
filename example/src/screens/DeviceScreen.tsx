@@ -163,6 +163,24 @@ export function DeviceScreen({ id }: { id: string }) {
             </Button>
           </ButtonRow>
           <Text variant='bodySmall' style={styles.subtitle}>
+            Descriptors
+          </Text>
+          <ButtonRow>
+            <Button
+              mode='contained-tonal'
+              onPress={run(
+                'readDescriptor',
+                'gatt',
+                async () =>
+                  `Read the counter's description: "${String.fromCharCode(...new Uint8Array(await device.readDescriptor(testService, testNotify, '2901')))}"`
+              )}
+              loading={busy === 'readDescriptor'}
+              testID='read-descriptor'
+            >
+              Read the counter's description
+            </Button>
+          </ButtonRow>
+          <Text variant='bodySmall' style={styles.subtitle}>
             Errors on purpose
           </Text>
           <ButtonRow>
@@ -184,6 +202,28 @@ export function DeviceScreen({ id }: { id: string }) {
             >
               Read a write-only characteristic
             </Button>
+            <Button
+              mode='outlined'
+              onPress={run(
+                'writeCccd',
+                'gatt',
+                async () => (await device.writeDescriptor(testService, testNotify, '2902', new Uint8Array([1, 0])), undefined)
+              )}
+              testID='write-notification-descriptor'
+            >
+              Write the notification descriptor
+            </Button>
+            <Button
+              mode='outlined'
+              onPress={run(
+                'writeReadOnly',
+                'gatt',
+                async () => (await device.writeDescriptor(testService, testNotify, '2901', ascii('Count')), undefined)
+              )}
+              testID='write-read-only-descriptor'
+            >
+              Write a read-only descriptor
+            </Button>
           </ButtonRow>
           {outcome?.section === 'gatt' && <OutcomeCard outcome={outcome.outcome} testID='operation-result' />}
         </Section>
@@ -197,7 +237,7 @@ export function DeviceScreen({ id }: { id: string }) {
           isConnected && (
             <Button
               compact
-              onPress={run('services', 'services', async () => (setServices(await device.getServices()), undefined))}
+              onPress={run('services', 'services', async () => (setServices(await device.getServices({ descriptors: true })), undefined))}
               testID='services'
             >
               Load
@@ -216,7 +256,11 @@ export function DeviceScreen({ id }: { id: string }) {
                 title={characteristic.uuid}
                 titleNumberOfLines={2}
                 titleStyle={styles.mono}
-                description={characteristic.properties.join(', ')}
+                description={[
+                  characteristic.properties.join(', '),
+                  ...(characteristic.descriptors ?? []).map((uuid) => `descriptor ${uuid}`),
+                ].join('\n')}
+                descriptionNumberOfLines={6}
                 style={styles.characteristic}
               />
             ))}

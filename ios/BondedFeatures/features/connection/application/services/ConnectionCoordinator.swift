@@ -165,6 +165,14 @@ public actor ConnectionCoordinator {
     return entry.services
   }
 
+  /// The services discovered when the device connected, with each characteristic's descriptors when asked; those
+  /// are discovered then, the first time. Throws `notConnected` while the device isn't connected.
+  public func services(of id: DeviceId, descriptors: Bool) async throws -> [GattService] {
+    let services = try services(of: id)
+    guard descriptors else { return services }
+    return try await source.withDescriptors(services, of: id)
+  }
+
   /// Every known device's current connection, remembered devices included, then every change, from the moment
   /// this returns.
   public func changes() async -> AsyncStream<ConnectionChange> {

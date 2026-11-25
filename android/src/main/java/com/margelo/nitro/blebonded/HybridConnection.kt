@@ -44,10 +44,10 @@ class HybridConnection : HybridConnectionSpec() {
 
     override fun forget(id: String): Promise<Unit> = Promise.async { root().forgetDevice(DeviceId(id)) }
 
-    override fun getServices(id: String): Promise<Array<NativeService>> =
+    override fun getServices(id: String, descriptors: Boolean): Promise<Array<NativeService>> =
       Promise.async {
         try {
-          root().getServices(DeviceId(id)).map { it.toSpec() }.toTypedArray()
+          root().getServices(DeviceId(id), descriptors).map { it.toSpec() }.toTypedArray()
         } catch (error: BleError) {
           throw Exception(error.jsMessage)
         }
@@ -104,6 +104,7 @@ class HybridConnection : HybridConnectionSpec() {
             NativeCharacteristic(
               uuid = characteristic.uuid.rawValue,
               properties = characteristic.properties.map { CharacteristicProperty.valueOf(specName(it.name)) }.toTypedArray(),
+              descriptors = characteristic.descriptors?.map { it.rawValue }?.toTypedArray(),
             )
           }.toTypedArray(),
       )

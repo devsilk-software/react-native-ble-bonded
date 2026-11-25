@@ -171,9 +171,9 @@ public final class HybridConnectionSpec_cxx {
     }
   }
 
-  public class func getServices(id: String, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+  public class func getServices(id: String, descriptors: Bool, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
     do {
-      let value = try HybridConnection.getServices(id: id)
+      let value = try HybridConnection.getServices(id: id, descriptors: descriptors)
       __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_.self, repeating: value.toCpp(), count: 1)
       return bridge.Result_void.withValue()
     } catch {

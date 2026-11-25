@@ -15,6 +15,8 @@ jest.mock('../../specs/Gatt.nitro', () => ({
     writeChunked: jest.fn(),
     getMaxWriteLength: jest.fn(),
     readRssi: jest.fn(),
+    readDescriptor: jest.fn(),
+    writeDescriptor: jest.fn(),
     subscribe: jest.fn(),
     unsubscribe: jest.fn(),
   },
@@ -232,5 +234,42 @@ describe('Chunked writes, maximum write length and signal strength', () => {
     expect(native.writeChunked).not.toHaveBeenCalled()
     expect(native.getMaxWriteLength).not.toHaveBeenCalled()
     expect(native.readRssi).not.toHaveBeenCalled()
+  })
+})
+
+describe('Descriptors', () => {
+  it('reads and writes a descriptor of the connected device, waiting 10 s by default', async () => {
+    const value = new Uint8Array([67]).buffer
+    native.readDescriptor.mockResolvedValue(value)
+    native.writeDescriptor.mockResolvedValue(undefined)
+
+    await expect(ble.device('A').readDescriptor(service, '2a37', '2901')).resolves.toBe(value)
+    await ble.device('A').writeDescriptor(service, '2a37', 'b0ed0005', new Uint8Array([9, 1, 2]).subarray(1), { timeout: 2_000 })
+
+    expect(native.readDescriptor).toHaveBeenCalledWith('A', service, '2a37', '2901', 10_000)
+    const [write] = native.writeDescriptor.mock.calls
+    expect(Array.from(new Uint8Array(write![4]))).toEqual([1, 2])
+    expect(write![5]).toBe(2_000)
+  })
+
+  it('names a missing descriptor with descriptorNotFound', async () => {
+    native.readDescriptor.mockRejectedValue(new Error('[descriptorNotFound] Characteristic 2a37 has no descriptor 2904; it has 2901.'))
+
+    await expect(ble.device('A').readDescriptor(service, '2a37', '2904')).rejects.toMatchObject({
+      code: 'descriptorNotFound',
+      operation: 'readDescriptor',
+      deviceId: 'A',
+    })
+  })
+
+  it('rejects at once with notConnected when the device is not connected', async () => {
+    report({ id: 'A', state: 'disconnected' })
+
+    await expect(ble.device('A').readDescriptor(service, '2a37', '2901')).rejects.toMatchObject({ code: 'notConnected' })
+    await expect(ble.device('A').writeDescriptor(service, '2a37', '2901', new Uint8Array([1]))).rejects.toMatchObject({
+      code: 'notConnected',
+    })
+    expect(native.readDescriptor).not.toHaveBeenCalled()
+    expect(native.writeDescriptor).not.toHaveBeenCalled()
   })
 })

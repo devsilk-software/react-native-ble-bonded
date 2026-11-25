@@ -25,6 +25,7 @@ import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattConnection
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattStatusException
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import kotlinx.coroutines.async
@@ -145,6 +146,22 @@ class AndroidConnectionSource(
 
   override fun isTransient(error: BleError, options: AndroidConnectionOptions): Boolean =
     options.retryTransientErrors && error.code == BleError.Code.CONNECTION_FAILED && error.platformCode?.let(::isTransientStatus) == true
+
+  /** Android discovers descriptors with the services, so they're read from the connection, with no request. */
+  override suspend fun withDescriptors(services: List<GattService>, id: DeviceId): List<GattService> {
+    val connection =
+      connections[id.rawValue]?.takeIf { it.isReady }
+        ?: throw BleError(BleError.Code.NOT_CONNECTED, "The device isn't connected", deviceId = id, operation = "getServices")
+    return services.map { service ->
+      service.copy(
+        characteristics =
+          service.characteristics.map { characteristic ->
+            val found = connection.characteristic(service.uuid.rawValue, characteristic.uuid.rawValue)?.descriptors.orEmpty()
+            characteristic.copy(descriptors = found.mapNotNull { DescriptorUuid.parse(it.uuid.toString()) })
+          },
+      )
+    }
+  }
 
   override fun name(id: DeviceId): String? =
     runCatching { connections[id.rawValue]?.device?.name ?: radio.remoteDevice(id.rawValue)?.name }.getOrNull() // needs BLUETOOTH_CONNECT

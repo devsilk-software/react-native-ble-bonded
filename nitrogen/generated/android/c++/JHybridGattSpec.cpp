@@ -68,6 +68,18 @@ namespace margelo::nitro::blebonded {
     return __result;
   }
 
+  jni::local_ref<JTypedPromise<jni::local_ref<JArrayBuffer::JavaPart>>> JHybridGattSpec::readDescriptor(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<jni::JString>& descriptor, jdouble timeoutMs) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<JArrayBuffer::JavaPart>>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jni::alias_ref<jni::JString> /* descriptor */, jdouble /* timeoutMs */)>("readDescriptor_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, descriptor, timeoutMs);
+    return __result;
+  }
+
+  jni::local_ref<JTypedPromise<void>> JHybridGattSpec::writeDescriptor(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<jni::JString>& descriptor, const jni::local_ref<JArrayBuffer::JavaPart>& value, jdouble timeoutMs) {
+    static const auto __method = JHybridGattSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<void>>(jni::alias_ref<jni::JString> /* id */, jni::alias_ref<jni::JString> /* service */, jni::alias_ref<jni::JString> /* characteristic */, jni::alias_ref<jni::JString> /* descriptor */, jni::alias_ref<JArrayBuffer::JavaPart> /* value */, jdouble /* timeoutMs */)>("writeDescriptor_cxx");
+    auto __result = __method(JHybridGattSpec::JavaPart::javaClassStatic(), id, service, characteristic, descriptor, value, timeoutMs);
+    return __result;
+  }
+
   const std::shared_ptr<const HybridClass>& JHybridGattSpec::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("read", &JHybridGattSpec::read);
@@ -77,6 +89,8 @@ namespace margelo::nitro::blebonded {
       clazz.registerStaticHybridMethod("writeChunked", &JHybridGattSpec::writeChunked);
       clazz.registerStaticHybridMethod("getMaxWriteLength", &JHybridGattSpec::getMaxWriteLength);
       clazz.registerStaticHybridMethod("readRssi", &JHybridGattSpec::readRssi);
+      clazz.registerStaticHybridMethod("readDescriptor", &JHybridGattSpec::readDescriptor);
+      clazz.registerStaticHybridMethod("writeDescriptor", &JHybridGattSpec::writeDescriptor);
     });
     return hybridClass;
   }

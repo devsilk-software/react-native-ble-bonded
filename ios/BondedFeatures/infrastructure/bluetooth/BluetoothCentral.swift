@@ -44,6 +44,8 @@ public actor BluetoothCentral {
   /// Callers waiting for a signal strength reading, by token, and the tokens waiting on each peripheral.
   private var rssiCallers: [UUID: (identifier: UUID, continuation: CheckedContinuation<Int, any Error>)] = [:]
   private var rssiRequests: [UUID: [UUID]] = [:]
+  /// Callers waiting for a characteristic's descriptors, by token.
+  private var descriptorCallers: [UUID: (identifier: UUID, continuation: CheckedContinuation<[String]?, any Error>)] = [:]
   /// The piece each chunked write is on, by its caller's token.
   private var pieceProgress: [UUID: Int] = [:]
   private var notificationObservers: [UUID: AsyncStream<CentralNotification>.Continuation] = [:]
@@ -382,6 +384,51 @@ public actor BluetoothCentral {
     }
   }
 
+  /// The characteristic's descriptor UUIDs, full and lowercase, discovered the first time and then kept by Core
+  /// Bluetooth for the connection; `nil` when the peripheral has no such characteristic. Cancelling stops waiting.
+  public func descriptorUuids(_ identifier: UUID, service: String, characteristic: String) async throws -> [String]? {
+    let token = UUID()
+    return try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<[String]?, any Error>) in
+        descriptorCallers[token] = (identifier, caller)
+        enqueue(on: identifier) { await self.runDiscoverDescriptors(token, identifier, service: service, characteristic: characteristic) }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
+  /// Reads a descriptor's value, as bytes: Core Bluetooth's numbers become two little-endian bytes and its text
+  /// UTF-8, as they are on the device. Cancelling stops waiting at once.
+  public func readDescriptor(_ identifier: UUID, service: String, characteristic: String, descriptor: String) async throws -> Data {
+    let token = UUID()
+    return try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Data, any Error>) in
+        readCallers[token] = (identifier, caller)
+        enqueue(on: identifier) {
+          await self.runReadDescriptor(token, identifier, service: service, characteristic: characteristic, descriptor: descriptor)
+        }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
+  /// Writes a descriptor's value and returns once the peripheral confirmed. Cancelling stops waiting at once.
+  public func writeDescriptor(_ data: Data, to identifier: UUID, service: String, characteristic: String, descriptor: String) async throws {
+    let token = UUID()
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Void, any Error>) in
+        writeCallers[token] = (identifier, caller)
+        enqueue(on: identifier) {
+          await self.runWriteDescriptor(token, data, identifier, service: service, characteristic: characteristic, descriptor: descriptor)
+        }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
   /// Switches notifications (or indications; Core Bluetooth picks) on or off and returns once the peripheral
   /// confirmed. Cancelling stops waiting at once.
   public func setNotify(_ isOn: Bool, _ identifier: UUID, service: String, characteristic: String) async throws {
@@ -488,6 +535,76 @@ public actor BluetoothCentral {
     writeCallers.removeValue(forKey: token)?.continuation.resume(with: result)
   }
 
+  private func runDiscoverDescriptors(_ token: UUID, _ identifier: UUID, service: String, characteristic: String) async {
+    guard descriptorCallers[token] != nil else { return }
+    let result: Result<[String]?, any Error>
+    do {
+      let peripheral = try connectedPeripheral(identifier)
+      if let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic) {
+        if target.descriptors == nil {
+          _ = try await answer(on: identifier, key: Self.descriptorsKey(service, characteristic)) {
+            peripheral.discoverDescriptors(for: target)
+          }.get()
+        }
+        result = .success((target.descriptors ?? []).map { Self.fullUuid($0.uuid) })
+      } else {
+        result = .success(nil)
+      }
+    } catch {
+      result = .failure(error)
+    }
+    descriptorCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+  }
+
+  private func runReadDescriptor(_ token: UUID, _ identifier: UUID, service: String, characteristic: String, descriptor: String) async {
+    guard readCallers[token] != nil else { return }
+    let result: Result<Data, any Error>
+    do {
+      let peripheral = try connectedPeripheral(identifier)
+      let target = try self.descriptor(on: identifier, service: service, characteristic: characteristic, descriptor: descriptor)
+      result = await answer(on: identifier, key: Self.descriptorKey(service, characteristic, descriptor)) {
+        peripheral.readValue(for: target)
+      }.map { $0 ?? Data() }
+    } catch {
+      result = .failure(error)
+    }
+    readCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+  }
+
+  private func runWriteDescriptor(_ token: UUID, _ data: Data, _ identifier: UUID, service: String, characteristic: String, descriptor: String) async {
+    guard writeCallers[token] != nil else { return }
+    let result: Result<Void, any Error>
+    do {
+      let peripheral = try connectedPeripheral(identifier)
+      let target = try self.descriptor(on: identifier, service: service, characteristic: characteristic, descriptor: descriptor)
+      result = await answer(on: identifier, key: Self.descriptorKey(service, characteristic, descriptor)) {
+        peripheral.writeValue(data, for: target)
+      }.map { _ in () }
+    } catch {
+      result = .failure(error)
+    }
+    writeCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+  }
+
+  /// The discovered descriptor; `notConnected` when it's gone, as the use cases check it exists before asking.
+  private func descriptor(on identifier: UUID, service: String, characteristic: String, descriptor: String) throws -> CBDescriptor {
+    guard let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic)?
+      .descriptors?
+      .first(where: { Self.fullUuid($0.uuid) == descriptor })
+    else { throw CentralError.notConnected }
+    return target
+  }
+
+  /// Which characteristic a descriptor discovery answer belongs to.
+  static func descriptorsKey(_ service: String, _ characteristic: String) -> String {
+    "descriptors|" + key(service, characteristic)
+  }
+
+  /// Which descriptor a descriptor read or write answer belongs to.
+  static func descriptorKey(_ service: String, _ characteristic: String, _ descriptor: String) -> String {
+    "descriptor|\(key(service, characteristic))|\(descriptor)"
+  }
+
   private func runWritePieces(
     _ token: UUID,
     _ pieces: [Data],
@@ -580,6 +697,7 @@ public actor BluetoothCentral {
   private func abandon(_ token: UUID) {
     readCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
     writeCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
+    descriptorCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
     if let caller = rssiCallers.removeValue(forKey: token) {
       rssiRequests[caller.identifier]?.removeAll { $0 == token }
       caller.continuation.resume(throwing: CancellationError())
@@ -629,6 +747,10 @@ public actor BluetoothCentral {
         caller.continuation.resume(throwing: error)
       }
     }
+    for (token, caller) in descriptorCallers where caller.identifier == identifier {
+      descriptorCallers[token] = nil
+      caller.continuation.resume(throwing: error)
+    }
     answerWaiters.removeValue(forKey: identifier)?.continuation.resume(returning: .failure(error))
     readyWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
     for token in rssiRequests.removeValue(forKey: identifier) ?? [] {
@@ -660,6 +782,14 @@ public actor BluetoothCentral {
       waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(nil))
     case let .readyToWrite(identifier):
       readyWaiters.removeValue(forKey: identifier)?.resume()
+    case let .descriptorsDiscovered(identifier, key, error), let .descriptorWrote(identifier, key, error):
+      guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
+      answerWaiters[identifier] = nil
+      waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(nil))
+    case let .descriptorUpdated(identifier, key, value, error):
+      guard let waiter = answerWaiters[identifier], waiter.key == key else { return }
+      answerWaiters[identifier] = nil
+      waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(value))
     case let .rssiRead(identifier, rssi, error):
       // A reading is the same for every caller waiting, so each answer goes to all of them; a lost answer then
       // never leaves a later caller waiting for an answer that went to someone else.
@@ -704,7 +834,8 @@ public actor BluetoothCentral {
       discoveries?.yield(discovery)
     case .connected, .failedToConnect, .disconnected, .servicesDiscovered, .characteristicsDiscovered:
       handleConnection(event)
-    case .valueUpdated, .wrote, .readyToWrite, .notificationStateUpdated, .rssiRead:
+    case .valueUpdated, .wrote, .readyToWrite, .notificationStateUpdated, .rssiRead, .descriptorsDiscovered, .descriptorUpdated,
+      .descriptorWrote:
       handleOperation(event)
     case let .stateChanged(newState):
       state = newState
@@ -802,6 +933,11 @@ enum CentralEvent: Sendable {
   case readyToWrite(UUID)
   case notificationStateUpdated(UUID, String, PlatformErrorInfo?)
   case rssiRead(UUID, Int, PlatformErrorInfo?)
+  /// The key is `BluetoothCentral.descriptorsKey`.
+  case descriptorsDiscovered(UUID, String, PlatformErrorInfo?)
+  /// The key is `BluetoothCentral.descriptorKey`.
+  case descriptorUpdated(UUID, String, Data?, PlatformErrorInfo?)
+  case descriptorWrote(UUID, String, PlatformErrorInfo?)
 }
 
 /// A value a peripheral notified. `key` is `service|characteristic`, full lowercase UUIDs.
@@ -955,6 +1091,44 @@ private final class CentralDelegate: NSObject, CBCentralManagerDelegate, CBPerip
 
   func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: (any Error)?) {
     events.yield(.notificationStateUpdated(peripheral.identifier, Self.key(characteristic), error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didDiscoverDescriptorsFor characteristic: CBCharacteristic, error: (any Error)?) {
+    let service = characteristic.service.map { BluetoothCentral.fullUuid($0.uuid) } ?? ""
+    let key = BluetoothCentral.descriptorsKey(service, BluetoothCentral.fullUuid(characteristic.uuid))
+    events.yield(.descriptorsDiscovered(peripheral.identifier, key, error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor descriptor: CBDescriptor, error: (any Error)?) {
+    events.yield(.descriptorUpdated(
+      peripheral.identifier,
+      Self.key(descriptor),
+      Self.bytes(of: descriptor.value),
+      error.map(PlatformErrorInfo.init)
+    ))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didWriteValueFor descriptor: CBDescriptor, error: (any Error)?) {
+    events.yield(.descriptorWrote(peripheral.identifier, Self.key(descriptor), error.map(PlatformErrorInfo.init)))
+  }
+
+  /// Which descriptor an answer belongs to, as `BluetoothCentral.descriptorKey` writes it.
+  static func key(_ descriptor: CBDescriptor) -> String {
+    let characteristic = descriptor.characteristic
+    let service = characteristic?.service.map { BluetoothCentral.fullUuid($0.uuid) } ?? ""
+    let uuid = characteristic.map { BluetoothCentral.fullUuid($0.uuid) } ?? ""
+    return BluetoothCentral.descriptorKey(service, uuid, BluetoothCentral.fullUuid(descriptor.uuid))
+  }
+
+  /// A descriptor's value as the device holds it. Core Bluetooth hands the standard descriptors over as numbers
+  /// (2900, 2902, 2903: two little-endian bytes) or text (2901: UTF-8), the rest as bytes.
+  static func bytes(of value: Any?) -> Data? {
+    switch value {
+    case let data as Data: data
+    case let text as String: Data(text.utf8)
+    case let number as NSNumber: withUnsafeBytes(of: number.uint16Value.littleEndian) { Data($0) }
+    default: nil
+    }
   }
 
   func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: (any Error)?) {

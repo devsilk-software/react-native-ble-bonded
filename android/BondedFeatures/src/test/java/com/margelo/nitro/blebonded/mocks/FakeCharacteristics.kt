@@ -7,6 +7,7 @@ import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import kotlinx.coroutines.CompletableDeferred
@@ -28,6 +29,10 @@ class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAd
   @Volatile var maxLength = 20
 
   @Volatile var rssi = -60
+
+  /** Each characteristic's descriptors and their values; a characteristic without an entry has none. */
+  val descriptors = HashMap<CharacteristicAddress, LinkedHashMap<DescriptorUuid, ByteArray>>()
+  val descriptorWrites = CopyOnWriteArrayList<Pair<DescriptorUuid, List<Byte>>>()
 
   /** The chunk of a chunked write that fails, counting from 0, and with what. */
   @Volatile var failingPiece: Pair<Int, BleError>? = null
@@ -89,6 +94,23 @@ class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAd
       answer()
       writes.add(piece.toList() to withResponse)
     }
+  }
+
+  override suspend fun descriptors(address: CharacteristicAddress, id: DeviceId): List<DescriptorUuid>? =
+    if (address !in characteristics) null else descriptors[address]?.keys?.toList().orEmpty()
+
+  override suspend fun readDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId): ByteArray {
+    answer()
+    return descriptors[address]?.get(descriptor) ?: ByteArray(0)
+  }
+
+  override suspend fun writeDescriptor(value: ByteArray, descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId) {
+    answer()
+    descriptorWrites.add(descriptor to value.toList())
+  }
+
+  fun setDescriptor(descriptor: DescriptorUuid, value: ByteArray, address: CharacteristicAddress) {
+    descriptors.getOrPut(address) { LinkedHashMap() }[descriptor] = value
   }
 
   override suspend fun readRssi(id: DeviceId): Int {

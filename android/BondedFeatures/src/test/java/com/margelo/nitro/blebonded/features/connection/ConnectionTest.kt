@@ -1,5 +1,7 @@
 package com.margelo.nitro.blebonded.features.connection
 
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
+import com.margelo.nitro.blebonded.features.connection.application.useCases.getServices.GetServices
 import com.margelo.nitro.blebonded.features.connection.adapters.androidConnectionSource.AndroidConnectionSource
 import com.margelo.nitro.blebonded.features.connection.application.services.ConnectionCoordinator
 import com.margelo.nitro.blebonded.features.connection.domain.AndroidConnectionOptions
@@ -59,6 +61,14 @@ class ConnectionTest : BehaviorSpec({
         val coordinator = coordinator(FakeConnectionSource(outcomes = listOf(Result.success(listOf(heartRateService)))))
         coordinator.connect(device)
         coordinator.services(device) shouldBe listOf(heartRateService)
+      }
+
+      then("lists descriptors only when asked") {
+        val coordinator = coordinator(FakeConnectionSource(outcomes = listOf(Result.success(listOf(heartRateService)))))
+        coordinator.connect(device)
+        GetServices(coordinator)(device).flatMap { it.characteristics }.all { it.descriptors == null } shouldBe true
+        GetServices(coordinator)(device, descriptors = true).flatMap { it.characteristics }.map { it.descriptors }.toSet() shouldBe
+          setOf(listOf(DescriptorUuid.parse("2902")!!, DescriptorUuid.parse("2901")!!))
       }
 
       then("reports connecting, then connected once services are discovered") {

@@ -19,6 +19,7 @@ import {
   type DeviceIdentity,
   type AndroidConnectionOptions,
   type Characteristic,
+  type GetServicesOptions,
   type CharacteristicProperty,
   type ConnectionChange,
   type ConnectionState,
@@ -51,6 +52,7 @@ export type { BleErrorCode, ManufacturerData, Scan, ScanNameFilter, ScannedDevic
 export type {
   AndroidConnectionOptions,
   Characteristic,
+  GetServicesOptions,
   CharacteristicProperty,
   ConnectionChange,
   ConnectionState,

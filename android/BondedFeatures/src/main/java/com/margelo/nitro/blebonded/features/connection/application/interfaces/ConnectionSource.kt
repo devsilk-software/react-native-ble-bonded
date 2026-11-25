@@ -28,6 +28,9 @@ interface ConnectionSource {
   /** Whether an attempt failed for a reason that may pass on its own. */
   fun isTransient(error: BleError, options: AndroidConnectionOptions): Boolean
 
+  /** [services] with each characteristic's descriptors. Throws a [BleError]. */
+  suspend fun withDescriptors(services: List<GattService>, id: DeviceId): List<GattService>
+
   /** The device's name, as the platform last saw it. */
   fun name(id: DeviceId): String?
 }

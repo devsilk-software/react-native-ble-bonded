@@ -49,9 +49,9 @@ namespace margelo::nitro::blebonded {
     return __result;
   }
 
-  jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeService>>>> JHybridConnectionSpec::getServices(const jni::local_ref<jni::JString>& id) {
-    static const auto __method = JHybridConnectionSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeService>>>>(jni::alias_ref<jni::JString> /* id */)>("getServices_cxx");
-    auto __result = __method(JHybridConnectionSpec::JavaPart::javaClassStatic(), id);
+  jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeService>>>> JHybridConnectionSpec::getServices(const jni::local_ref<jni::JString>& id, jboolean descriptors) {
+    static const auto __method = JHybridConnectionSpec::JavaPart::javaClassStatic()->getStaticMethod<jni::local_ref<JTypedPromise<jni::local_ref<jni::JArrayClass<JNativeService>>>>(jni::alias_ref<jni::JString> /* id */, jboolean /* descriptors */)>("getServices_cxx");
+    auto __result = __method(JHybridConnectionSpec::JavaPart::javaClassStatic(), id, descriptors);
     return __result;
   }
 

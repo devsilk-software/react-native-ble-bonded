@@ -14,6 +14,8 @@
 #include <NitroBleBonded/private/JCharacteristicProperty.hpp>
 #include <NitroModules/JNIConverter+Array.hpp>
 #include <NitroModules/JSIConverter+JArrayClass.hpp>
+#include <NitroModules/JNIConverter+Optional.hpp>
+#include <NitroModules/JSIConverter+JOptional.hpp>
 
 namespace margelo::nitro::blebonded {
 
@@ -23,10 +25,10 @@ namespace margelo::nitro::blebonded {
   struct JNativeCharacteristic final : public jni::JavaClass<JNativeCharacteristic> {
     static constexpr auto kJavaDescriptor = "Lcom/margelo/nitro/blebonded/NativeCharacteristic;";
 
-    static jni::local_ref<JNativeCharacteristic> create(jni::alias_ref<jni::JString> uuid, jni::alias_ref<jni::JArrayClass<JCharacteristicProperty>> properties) {
+    static jni::local_ref<JNativeCharacteristic> create(jni::alias_ref<jni::JString> uuid, jni::alias_ref<jni::JArrayClass<JCharacteristicProperty>> properties, jni::alias_ref<JOptional<jni::JArrayClass<jni::JString>>> descriptors) {
       static const auto clazz = javaClassStatic();
-      static const auto create = clazz->getStaticMethod<JNativeCharacteristic(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JCharacteristicProperty>>)>("fromCpp");
-      return create(clazz, uuid, properties);
+      static const auto create = clazz->getStaticMethod<JNativeCharacteristic(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JArrayClass<JCharacteristicProperty>>, jni::alias_ref<JOptional<jni::JArrayClass<jni::JString>>>)>("fromCpp");
+      return create(clazz, uuid, properties, descriptors);
     }
 
     jni::local_ref<jni::JString> getUuid() const {
@@ -36,6 +38,11 @@ namespace margelo::nitro::blebonded {
 
     jni::local_ref<jni::JArrayClass<JCharacteristicProperty>> getProperties() const {
       static const auto field = javaClassStatic()->getField<jni::JArrayClass<JCharacteristicProperty>>("properties");
+      return getFieldValue(field);
+    }
+
+    jni::local_ref<JOptional<jni::JArrayClass<jni::JString>>> getDescriptors() const {
+      static const auto field = javaClassStatic()->getField<JOptional<jni::JArrayClass<jni::JString>>>("descriptors");
       return getFieldValue(field);
     }
   };

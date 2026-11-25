@@ -97,6 +97,53 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
     }
   }
 
+  public func descriptors(of address: CharacteristicAddress, on id: DeviceId) async throws -> [DescriptorUuid]? {
+    do {
+      let uuids = try await central.descriptorUuids(
+        try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue
+      )
+      return uuids?.compactMap(DescriptorUuid.init)
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: .readDescriptor, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(.readDescriptor, id: id)
+    }
+  }
+
+  public func readDescriptor(_ descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws -> [UInt8] {
+    do {
+      let data = try await central.readDescriptor(
+        try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue,
+        descriptor: descriptor.rawValue
+      )
+      return Array(data)
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: .readDescriptor, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(.readDescriptor, id: id)
+    }
+  }
+
+  public func writeDescriptor(_ value: [UInt8], to descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws {
+    do {
+      try await central.writeDescriptor(
+        Data(value),
+        to: try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue,
+        descriptor: descriptor.rawValue
+      )
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: .writeDescriptor, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(.writeDescriptor, id: id)
+    }
+  }
+
   public func readRssi(on id: DeviceId) async throws -> Int {
     do {
       return try await central.readRssi(try Self.identifier(id))

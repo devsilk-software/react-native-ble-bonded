@@ -3,6 +3,7 @@ package com.margelo.nitro.blebonded.features.gatt.application.interfaces
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import kotlinx.coroutines.flow.Flow
 
@@ -31,6 +32,18 @@ interface CharacteristicSource {
    * longer than [timeoutMs] fails. Throws [PieceFailure] naming the piece that failed; the ones after it aren't sent.
    */
   suspend fun write(pieces: List<ByteArray>, address: CharacteristicAddress, id: DeviceId, withResponse: Boolean, timeoutMs: Long)
+
+  /**
+   * The characteristic's descriptors, from the services discovered at connect; null when the device has no such
+   * characteristic. Throws a `BleError`.
+   */
+  suspend fun descriptors(address: CharacteristicAddress, id: DeviceId): List<DescriptorUuid>?
+
+  /** Reads a descriptor's value. Throws a `BleError`; cancelling stops waiting. */
+  suspend fun readDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId): ByteArray
+
+  /** Writes a descriptor's value and returns once the device confirmed. Throws a `BleError`. */
+  suspend fun writeDescriptor(value: ByteArray, descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId)
 
   /** The connected device's signal strength in dBm. Throws a `BleError`; cancelling stops waiting. */
   suspend fun readRssi(id: DeviceId): Int

@@ -7,7 +7,7 @@ import Foundation
 // - read:   a counter that grows on every read, as text
 // - write:  accepts writes with and without response and prints them; checks that the counting pattern the example
 //           app's chunked write sends (0, 1, 2, …) arrives in order
-// - notify: sends a counter every second while a phone is subscribed
+// - notify: sends a counter every second while a phone is subscribed; its user description (2901) reads "Counter"
 //
 // Type `quit` and Enter to stop. macOS may keep the radio link up after quitting, so the phone doesn't always see
 // a disconnection (README.md).
@@ -75,6 +75,8 @@ final class Peripheral: NSObject, @MainActor CBPeripheralManagerDelegate {
       return
     }
     let service = CBMutableService(type: TestService.service, primary: true)
+    // Its user description, for reading a descriptor. macOS keeps it read-only, so writing it shows the device's refusal.
+    notifyCharacteristic.descriptors = [CBMutableDescriptor(type: CBUUID(string: CBUUIDCharacteristicUserDescriptionString), value: "Counter")]
     service.characteristics = [
       CBMutableCharacteristic(type: TestService.read, properties: [.read], value: nil, permissions: [.readable]),
       CBMutableCharacteristic(type: TestService.write, properties: [.write, .writeWithoutResponse], value: nil, permissions: [.writeable]),

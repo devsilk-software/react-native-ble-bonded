@@ -29,6 +29,8 @@ public protocol HybridGattSpec_protocol: HybridGattSpec_base, HybridObject {
   static func writeChunked(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Bool, timeoutMs: Double) throws -> any Promise<Void>
   static func getMaxWriteLength(id: String) throws -> any Promise<Double>
   static func readRssi(id: String, timeoutMs: Double) throws -> any Promise<Double>
+  static func readDescriptor(id: String, service: String, characteristic: String, descriptor: String, timeoutMs: Double) throws -> any Promise<ArrayBuffer>
+  static func writeDescriptor(id: String, service: String, characteristic: String, descriptor: String, value: ArrayBuffer, timeoutMs: Double) throws -> any Promise<Void>
 }
 
 public extension HybridGattSpec_protocol {

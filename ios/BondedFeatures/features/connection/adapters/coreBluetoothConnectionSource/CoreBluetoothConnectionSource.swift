@@ -58,6 +58,40 @@ public struct CoreBluetoothConnectionSource: ConnectionSource {
 
   public func isTransient(_ error: BleError) -> Bool { false }
 
+  public func withDescriptors(_ services: [GattService], of id: DeviceId) async throws -> [GattService] {
+    guard let identifier = UUID(uuidString: id.rawValue) else { throw Self.bleError(.notConnected, id: id) }
+    var found: [GattService] = []
+    for service in services {
+      var characteristics: [GattCharacteristic] = []
+      for characteristic in service.characteristics {
+        let uuids: [String]?
+        do {
+          uuids = try await central.descriptorUuids(identifier, service: service.uuid.rawValue, characteristic: characteristic.uuid.rawValue)
+        } catch let error as CentralError {
+          throw Self.descriptorsError(error, id: id)
+        }
+        characteristics.append(GattCharacteristic(
+          uuid: characteristic.uuid,
+          properties: characteristic.properties,
+          descriptors: (uuids ?? []).compactMap(DescriptorUuid.init)
+        ))
+      }
+      found.append(GattService(uuid: service.uuid, characteristics: characteristics))
+    }
+    return found
+  }
+
+  private static func descriptorsError(_ error: CentralError, id: DeviceId) -> BleError {
+    switch error {
+    case let .platform(info):
+      BleError(code: .gattError, message: "Discovering descriptors failed: \(info.message)", platformCode: info.code, deviceId: id, operation: "getServices")
+    case .noAnswer:
+      BleError(code: .timeout, message: "The device didn't list its descriptors within Bluetooth's 30 seconds", deviceId: id, operation: "getServices")
+    default:
+      BleError(code: .notConnected, message: "The device isn't connected", deviceId: id, operation: "getServices")
+    }
+  }
+
   public func name(of id: DeviceId) async -> String? {
     guard let identifier = UUID(uuidString: id.rawValue) else { return nil }
     return await central.peripheralName(identifier)

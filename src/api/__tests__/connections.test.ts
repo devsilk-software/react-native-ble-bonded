@@ -154,6 +154,18 @@ describe('Connections', () => {
     expect(native.connect).not.toHaveBeenCalled()
   })
 
+  it('lists descriptors only when asked', async () => {
+    native.getServices.mockResolvedValue([])
+
+    await ble.device('A').getServices()
+    await ble.device('A').getServices({ descriptors: true })
+
+    expect(native.getServices.mock.calls).toEqual([
+      ['A', false],
+      ['A', true],
+    ])
+  })
+
   it('rejects getServices with notConnected while the device is not connected', async () => {
     native.getServices.mockRejectedValue(new Error("[notConnected] The device isn't connected"))
 

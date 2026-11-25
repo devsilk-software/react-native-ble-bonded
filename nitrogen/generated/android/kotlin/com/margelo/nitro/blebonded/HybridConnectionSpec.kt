@@ -71,7 +71,7 @@ abstract class HybridConnectionSpec: HybridObject() {
 
     fun forget(id: String): Promise<Unit>
 
-    fun getServices(id: String): Promise<Array<NativeService>>
+    fun getServices(id: String, descriptors: Boolean): Promise<Array<NativeService>>
 
     fun addListener(onChange: Callback<(change: NativeConnectionChange) -> Unit>): Promise<Double>
 
@@ -118,8 +118,8 @@ abstract class HybridConnectionSpec: HybridObject() {
     @JvmStatic
     @DoNotStrip
     @Keep
-    private fun getServices_cxx(id: String): Promise<Array<NativeService>> {
-      return HybridConnection.getServices(id)
+    private fun getServices_cxx(id: String, descriptors: Boolean): Promise<Array<NativeService>> {
+      return HybridConnection.getServices(id, descriptors)
     }
 
     @JvmStatic

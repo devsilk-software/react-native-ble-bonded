@@ -61,6 +61,16 @@ export interface Characteristic {
   /** Full lowercase UUID. */
   uuid: string
   properties: CharacteristicProperty[]
+  /** Its descriptors' full lowercase UUIDs; only with `getServices({ descriptors: true })`. */
+  descriptors?: string[]
+}
+
+export interface GetServicesOptions {
+  /**
+   * Also list each characteristic's descriptors. On iOS this asks the device for them the first time, one request per
+   * characteristic, so it's off by default; Android has them already.
+   */
+  descriptors?: boolean
 }
 
 export interface Service {
@@ -321,10 +331,13 @@ export class Device {
     return Connection.disconnect(this.id)
   }
 
-  /** The services discovered when the device connected. Rejects with `notConnected` while it isn't. */
-  async getServices(): Promise<Service[]> {
+  /**
+   * The services discovered when the device connected. With `{ descriptors: true }`, each characteristic also lists
+   * its descriptors. Rejects with `notConnected` while the device isn't connected.
+   */
+  async getServices(options: GetServicesOptions = {}): Promise<Service[]> {
     try {
-      return await Connection.getServices(this.id)
+      return await Connection.getServices(this.id, options.descriptors === true)
     } catch (error) {
       throw toBleError(error, 'getServices')
     }
@@ -411,6 +424,43 @@ export class Device {
           if (unsubscribing.get(key) === removal) unsubscribing.delete(key)
         })
       },
+    }
+  }
+
+  /**
+   * Reads a descriptor's value, such as a characteristic's user description (2901). Bonded finds the characteristic's
+   * descriptors itself the first time. The device must be connected; otherwise it rejects at once with `notConnected`.
+   * Rejects with `characteristicNotFound`, `descriptorNotFound` (naming the descriptors the characteristic has),
+   * `timeout` after 10 s by default, `pairingRequired` or `gattError` when the device refuses.
+   */
+  async readDescriptor(service: string, characteristic: string, descriptor: string, options: OperationOptions = {}): Promise<ArrayBuffer> {
+    this.requireConnected('read a descriptor')
+    try {
+      return await Gatt.readDescriptor(this.id, service, characteristic, descriptor, operationTimeout(options))
+    } catch (error) {
+      throw toBleError(error, 'readDescriptor', this.id)
+    }
+  }
+
+  /**
+   * Writes a descriptor's value and resolves once the device confirmed. The notification descriptor (2902) is
+   * Bonded's: writing it rejects with `unsupported`; `subscribe()` switches notifications on and off. Values up to 512
+   * bytes. The device must be connected; otherwise it rejects at once with `notConnected`. Also rejects with
+   * `characteristicNotFound`, `descriptorNotFound`, `valueTooLong`, `timeout`, `pairingRequired` or `gattError`.
+   */
+  async writeDescriptor(
+    service: string,
+    characteristic: string,
+    descriptor: string,
+    value: ArrayBuffer | Uint8Array,
+    options: OperationOptions = {}
+  ): Promise<void> {
+    this.requireConnected('write a descriptor')
+    const buffer = value instanceof Uint8Array ? copyToBuffer(value) : value
+    try {
+      await Gatt.writeDescriptor(this.id, service, characteristic, descriptor, buffer, operationTimeout(options))
+    } catch (error) {
+      throw toBleError(error, 'writeDescriptor', this.id)
     }
   }
 

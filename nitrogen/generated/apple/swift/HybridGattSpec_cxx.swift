@@ -200,4 +200,24 @@ public final class HybridGattSpec_cxx {
       return bridge.Result_void.withError(error.toCpp())
     }
   }
+
+  public class func readDescriptor(id: String, service: String, characteristic: String, descriptor: String, timeoutMs: Double, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+    do {
+      let value = try HybridGatt.readDescriptor(id: id, service: service, characteristic: characteristic, descriptor: descriptor, timeoutMs: timeoutMs)
+      __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_ArrayBuffer.self, repeating: value.toCpp(), count: 1)
+      return bridge.Result_void.withValue()
+    } catch {
+      return bridge.Result_void.withError(error.toCpp())
+    }
+  }
+
+  public class func writeDescriptor(id: String, service: String, characteristic: String, descriptor: String, value: ArrayBuffer, timeoutMs: Double, __outResult: UnsafeMutableRawPointer) -> bridge.Result_void {
+    do {
+      let value = try HybridGatt.writeDescriptor(id: id, service: service, characteristic: characteristic, descriptor: descriptor, value: value, timeoutMs: timeoutMs)
+      __outResult.initializeMemory(as: margelo.nitro.blebonded.swift_bridge.Promise_void.self, repeating: value.toCpp(), count: 1)
+      return bridge.Result_void.withValue()
+    } catch {
+      return bridge.Result_void.withError(error.toCpp())
+    }
+  }
 }

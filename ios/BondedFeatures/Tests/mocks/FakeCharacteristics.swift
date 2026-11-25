@@ -8,6 +8,9 @@ actor FakeCharacteristicSource: CharacteristicSource {
   var isAnswering = true
   var maxLength = 20
   var rssi = -60
+  /// Each characteristic's descriptors and their values; a characteristic without an entry has none.
+  var descriptors: [CharacteristicAddress: [DescriptorUuid: [UInt8]]] = [:]
+  private(set) var descriptorWrites: [(descriptor: DescriptorUuid, value: [UInt8])] = []
   /// The chunk of a chunked write that fails, counting from 0, and with what.
   var failingPiece: (index: Int, error: BleError)?
   private(set) var writes: [(value: [UInt8], withResponse: Bool)] = []
@@ -47,6 +50,25 @@ actor FakeCharacteristicSource: CharacteristicSource {
       try await answer()
       writes.append((piece, withResponse))
     }
+  }
+
+  func descriptors(of address: CharacteristicAddress, on id: DeviceId) async throws -> [DescriptorUuid]? {
+    guard characteristics[address] != nil else { return nil }
+    return descriptors[address].map { $0.keys.sorted { $0.rawValue < $1.rawValue } } ?? []
+  }
+
+  func readDescriptor(_ descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws -> [UInt8] {
+    try await answer()
+    return descriptors[address]?[descriptor] ?? []
+  }
+
+  func writeDescriptor(_ value: [UInt8], to descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws {
+    try await answer()
+    descriptorWrites.append((descriptor, value))
+  }
+
+  func set(descriptor: DescriptorUuid, _ value: [UInt8], at address: CharacteristicAddress) {
+    descriptors[address, default: [:]][descriptor] = value
   }
 
   func readRssi(on id: DeviceId) async throws -> Int {

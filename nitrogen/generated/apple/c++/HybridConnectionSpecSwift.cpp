@@ -62,9 +62,9 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
-  Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_> HybridConnectionSpecSwift::getServices(const swift::String& id) {
+  Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_> HybridConnectionSpecSwift::getServices(const swift::String& id, bool descriptors) {
     auto __result = withCxxResult<Promise<::NitroBleBonded::SwiftContainer_swift__Array___NitroBleBonded__NativeService_>>([&](void* __outResult) {
-      return ::NitroBleBonded::HybridConnectionSpec_cxx::getServices(id, __outResult);
+      return ::NitroBleBonded::HybridConnectionSpec_cxx::getServices(id, descriptors, __outResult);
     });
     if (__result.hasError()) [[unlikely]] {
       std::rethrow_exception(__result.error());

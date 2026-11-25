@@ -24,6 +24,8 @@ public final class CompositionRoot: Sendable {
   public let writeChunked: WriteChunked
   public let getMaxWriteLength: GetMaxWriteLength
   public let readRssi: ReadRssi
+  public let readDescriptor: ReadDescriptor
+  public let writeDescriptor: WriteDescriptor
   public let subscribe: Subscribe
   public let unsubscribe: Unsubscribe
 
@@ -81,6 +83,8 @@ public final class CompositionRoot: Sendable {
     writeChunked = WriteChunked(source: characteristics, bus: bus)
     getMaxWriteLength = GetMaxWriteLength(source: characteristics)
     readRssi = ReadRssi(source: characteristics)
+    readDescriptor = ReadDescriptor(source: characteristics, bus: bus)
+    writeDescriptor = WriteDescriptor(source: characteristics, bus: bus)
     let subscriptions = SubscriptionRegistry(source: characteristics, bus: bus)
     subscribe = Subscribe(registry: subscriptions)
     unsubscribe = Unsubscribe(registry: subscriptions)

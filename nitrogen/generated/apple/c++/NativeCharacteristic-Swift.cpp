@@ -13,13 +13,14 @@ namespace margelo::nitro {
 
   ::NitroBleBonded::NativeCharacteristic JSIConverter<::NitroBleBonded::NativeCharacteristic>::fromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     auto object = value.asObject(runtime);
-    return ::NitroBleBonded::NativeCharacteristic::init_cxx(JSIConverter<swift::String>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))), JSIConverter<swift::Array<::NitroBleBonded::CharacteristicProperty>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties"))));
+    return ::NitroBleBonded::NativeCharacteristic::init_cxx(JSIConverter<swift::String>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))), JSIConverter<swift::Array<::NitroBleBonded::CharacteristicProperty>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties"))), JSIConverter<swift::Optional<swift::Array<swift::String>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "descriptors"))));
   }
 
   jsi::Value JSIConverter<::NitroBleBonded::NativeCharacteristic>::toJSI(jsi::Runtime& runtime, const ::NitroBleBonded::NativeCharacteristic& value) {
     jsi::Object object(runtime);
     object.setProperty(runtime, PropNameIDCache::get(runtime, "uuid"), JSIConverter<swift::String>::toJSI(runtime, value.getUuid_cxx()));
     object.setProperty(runtime, PropNameIDCache::get(runtime, "properties"), JSIConverter<swift::Array<::NitroBleBonded::CharacteristicProperty>>::toJSI(runtime, value.getProperties_cxx()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "descriptors"), JSIConverter<swift::Optional<swift::Array<swift::String>>>::toJSI(runtime, value.getDescriptors_cxx()));
     return object;
   }
 
@@ -27,7 +28,7 @@ namespace margelo::nitro {
     if (!value.isObject()) return false;
     auto object = value.getObject(runtime);
     if (!isPlainObject(runtime, object)) return false;
-    return JSIConverter<swift::String>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))) && JSIConverter<swift::Array<::NitroBleBonded::CharacteristicProperty>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties")));
+    return JSIConverter<swift::String>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))) && JSIConverter<swift::Array<::NitroBleBonded::CharacteristicProperty>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties"))) && JSIConverter<swift::Optional<swift::Array<swift::String>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "descriptors")));
   }
 
 } // namespace margelo::nitro

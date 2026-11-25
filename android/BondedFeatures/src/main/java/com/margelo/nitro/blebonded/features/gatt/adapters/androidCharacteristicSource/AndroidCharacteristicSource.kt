@@ -18,6 +18,7 @@ import com.margelo.nitro.blebonded.features.gatt.application.interfaces.PieceFai
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import kotlinx.coroutines.flow.Flow
@@ -84,6 +85,35 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
     } catch (failure: GattStatusException) {
       // The connection closed before the write got its turn, so no chunk went out.
       throw PieceFailure(0, bleError(failure.status, operation, address, id))
+    }
+  }
+
+  override suspend fun descriptors(address: CharacteristicAddress, id: DeviceId): List<DescriptorUuid>? =
+    find(address, id)?.descriptors?.mapNotNull { DescriptorUuid.parse(it.uuid.toString()) }
+
+  override suspend fun readDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId): ByteArray {
+    val target = connection(id).descriptor(address.service.rawValue, address.characteristic.rawValue, descriptor.rawValue) ?: throw notConnected(id)
+    return try {
+      connection(id).readDescriptor(target)
+    } catch (failure: GattStatusException) {
+      throw bleError(failure.status, CharacteristicOperation.READ_DESCRIPTOR, address, id)
+    } catch (failure: GattRequestRefusedException) {
+      throw refused(failure.code, CharacteristicOperation.READ_DESCRIPTOR, id)
+    } catch (failure: SecurityException) {
+      throw refused(MISSING_PERMISSION, CharacteristicOperation.READ_DESCRIPTOR, id)
+    }
+  }
+
+  override suspend fun writeDescriptor(value: ByteArray, descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId) {
+    val target = connection(id).descriptor(address.service.rawValue, address.characteristic.rawValue, descriptor.rawValue) ?: throw notConnected(id)
+    try {
+      connection(id).writeDescriptor(target, value)
+    } catch (failure: GattStatusException) {
+      throw bleError(failure.status, CharacteristicOperation.WRITE_DESCRIPTOR, address, id)
+    } catch (failure: GattRequestRefusedException) {
+      throw refused(failure.code, CharacteristicOperation.WRITE_DESCRIPTOR, id)
+    } catch (failure: SecurityException) {
+      throw refused(MISSING_PERMISSION, CharacteristicOperation.WRITE_DESCRIPTOR, id)
     }
   }
 

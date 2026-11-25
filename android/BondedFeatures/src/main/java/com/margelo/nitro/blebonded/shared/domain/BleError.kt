@@ -47,6 +47,9 @@ class BleError(
 
     /** The characteristic already has a subscription; there's one at a time. */
     ALREADY_SUBSCRIBED,
+
+    /** The characteristic has no such descriptor. */
+    DESCRIPTOR_NOT_FOUND,
     ;
 
     /** The code's public name, as JavaScript and iOS write it (`bluetoothOff`). */

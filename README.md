@@ -8,6 +8,16 @@ Bluetooth Low Energy for React Native, built for connections that stay up.
 Maintained by [Albert Liberski](https://github.com/aliberski) ([Devsilk](https://github.com/devsilk-software)), a former maintainer of
 react-native-ble-plx.
 
+## Built on
+
+- **[Nitro Modules](https://nitro.margelo.com):** calls go straight from JavaScript to Swift and Kotlin through JSI,
+  on the New Architecture. The Swift and Kotlin interfaces are generated from one TypeScript spec, so the JavaScript
+  and native sides can't drift apart.
+- **Swift Package Manager on iOS:** the library is a Swift package and builds with React Native's Swift Package
+  Manager support, without CocoaPods.
+- **Swift 6 and Kotlin coroutines:** the native code passes Swift 6's strict concurrency checks on iOS and uses
+  coroutines on Android, with the same structure and the same behaviours on both.
+
 ## Requirements
 
 - React Native 0.88 or newer, New Architecture

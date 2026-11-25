@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Share, StyleSheet, View } from 'react-native'
 import { Button, Divider, List, Switch, Text } from 'react-native-paper'
 import { ble, type DiagnosticEvent } from 'react-native-ble-bonded'
 import { useDiagnosticEvents } from 'react-native-ble-bonded/hooks'
@@ -10,6 +10,7 @@ import { Section } from '../components/Section'
 export function DiagnosticsScreen() {
   const [isEnabled, setIsEnabled] = useState(false)
   const [isGatt, setIsGatt] = useState(false)
+  const events = useDiagnosticEvents({ limit: 50 })
 
   const toggle = async (enabled: boolean) => {
     await ble.configure({ diagnostics: { enabled, gatt: isGatt } })
@@ -30,11 +31,17 @@ export function DiagnosticsScreen() {
               <Text variant='bodyMedium'>Record reads and writes too</Text>
               <Switch value={isGatt} onValueChange={toggleGatt} />
             </View>
-            <ButtonRow>
-              <Button mode='outlined' onPress={() => ble.clearDiagnostics()}>
-                Clear
-              </Button>
-            </ButtonRow>
+            {/* Only once something is recorded: there's nothing to share or clear before. */}
+            {events.length > 0 && (
+              <ButtonRow>
+                <Button mode='contained-tonal' onPress={share} testID='diagnostics-share'>
+                  Share
+                </Button>
+                <Button mode='outlined' onPress={() => ble.clearDiagnostics()} testID='diagnostics-clear'>
+                  Clear
+                </Button>
+              </ButtonRow>
+            )}
           </>
         ) : (
           <Text variant='bodySmall' style={styles.hint}>
@@ -43,14 +50,19 @@ export function DiagnosticsScreen() {
         )}
       </Section>
       <Section title='Events'>
-        <Events />
+        <Events events={events} />
       </Section>
     </View>
   )
 }
 
-function Events() {
-  const events = useDiagnosticEvents({ limit: 50 })
+// The whole record as JSON, through the system share sheet: what a bug report attaches.
+async function share() {
+  const record = await ble.getDiagnostics()
+  await Share.share({ title: 'Bonded diagnostics', message: JSON.stringify(record, null, 2) })
+}
+
+function Events({ events }: { events: DiagnosticEvent[] }) {
   if (events.length === 0)
     return (
       <Text variant='bodySmall' style={styles.hint}>

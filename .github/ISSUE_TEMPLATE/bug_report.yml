@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in Bonded doesn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. The more of this you fill in, the faster it gets fixed.
+        Diagnostics help most: turn them on with `ble.configure({ diagnostics: { enabled: true, gatt: true } })`,
+        reproduce the problem, then attach `JSON.stringify(await ble.getDiagnostics())`. They hold metadata only,
+        never characteristic values.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Include the `BleError` code, message and `platformCode` if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The smallest code that shows it, and the steps.
+      render: tsx
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Bonded version
+      placeholder: 0.1.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options: [iOS, Android]
+    validations:
+      required: true
+  - type: input
+    id: phone
+    attributes:
+      label: Phone and OS version
+      placeholder: iPhone 15, iOS 27.1 / Pixel 8, Android 16
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Bluetooth device
+      description: What the phone talks to (model or chip, and its firmware if you know it).
+      placeholder: nRF52840 with Zephyr peripheral_hr
+  - type: input
+    id: react-native
+    attributes:
+      label: React Native and Nitro versions
+      placeholder: React Native 0.88.1, react-native-nitro-modules 1.0.0-alpha…
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: The output of `ble.getDiagnostics()`, as a file or pasted.
+      render: json

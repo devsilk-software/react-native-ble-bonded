@@ -54,6 +54,10 @@
     "bluetooth",
     "bluetooth-low-energy",
     "nitro",
+    "nitro-modules",
+    "new-architecture",
+    "swift-package-manager",
+    "spm",
     "pairing",
     "ios",
     "android"

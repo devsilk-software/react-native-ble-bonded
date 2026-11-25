@@ -39,9 +39,11 @@
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Callback.hpp>
 #include <NitroModules/Result.hpp>
-#include <NitroBleBonded/private/HybridConnectionSpec_cxx-Swift.hpp>
+#include <NitroBleBonded/private/HybridBondingSpec_cxx-Swift.hpp>
+#include <NitroBleBonded/private/BondState-Swift.hpp>
 #include <NitroModules/NitroModules-Swift-Cxx-Umbrella.hpp>
 #include <NitroModules/JSIConverter+SwiftString.hpp>
+#include <NitroBleBonded/private/HybridConnectionSpec_cxx-Swift.hpp>
 #include <NitroModules/JSIConverter+SwiftOptional.hpp>
 #include <NitroBleBonded/private/ConnectionState-Swift.hpp>
 #include <NitroBleBonded/private/DisconnectReason-Swift.hpp>

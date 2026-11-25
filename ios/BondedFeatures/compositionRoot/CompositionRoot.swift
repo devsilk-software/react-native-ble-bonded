@@ -28,6 +28,7 @@ public final class CompositionRoot: Sendable {
   public let writeDescriptor: WriteDescriptor
   public let subscribe: Subscribe
   public let unsubscribe: Unsubscribe
+  public let createBond: CreateBond
 
   private let configure: ConfigureDiagnostics
   private let publishers: EventPublishers
@@ -88,6 +89,8 @@ public final class CompositionRoot: Sendable {
     let subscriptions = SubscriptionRegistry(source: characteristics, bus: bus)
     subscribe = Subscribe(registry: subscriptions)
     unsubscribe = Unsubscribe(registry: subscriptions)
+
+    createBond = CreateBond(source: CoreBluetoothBondSource(central: central), bus: bus)
 
     publishers = EventPublishers(
       adapterState: PublishAdapterStateEvents(observe: observeAdapterState, bus: bus),

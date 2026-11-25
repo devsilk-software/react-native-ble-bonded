@@ -112,6 +112,17 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - names the descriptor the device refused
 - gives up on a descriptor operation after its timeout
 
+## bonding
+
+- pairs by reading the trigger
+- reports a declined pairing as pairing required
+- refuses a trigger the device doesn't have
+- refuses a trigger that can't be read
+- bonds explicitly, then reads the trigger to confirm — Android only
+- skips bonding when already bonded — Android only
+- reports the bond state now, then each change — Android only
+- removes the bond — Android only
+
 ## diagnostics
 
 - records nothing while diagnostics are off

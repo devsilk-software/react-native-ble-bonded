@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { Button, Chip, Divider, List, Text } from 'react-native-paper'
-import type { Service } from 'react-native-ble-bonded'
+import { ble, type BondState, type Service } from 'react-native-ble-bonded'
 import { useDevice, useNotifications, useRssi } from 'react-native-ble-bonded/hooks'
 import { OutcomeCard, outcomeOf, type Outcome } from '../components/Outcome'
 import { ButtonRow } from '../components/Row'
 import { Section } from '../components/Section'
-import { testNotify, testRead, testService, testWrite } from '../testPeripheral'
+import { testNotify, testRead, testSecure, testService, testWrite } from '../testPeripheral'
 
 const ascii = (text: string) => Uint8Array.from(text, (character) => character.charCodeAt(0))
 
@@ -17,10 +17,10 @@ export function DeviceScreen({ id }: { id: string }) {
   const device = useDevice(id)
   const [services, setServices] = useState<Service[]>()
   // Where the last action's outcome shows: next to the buttons that caused it.
-  const [outcome, setOutcome] = useState<{ section: 'connection' | 'gatt' | 'services'; outcome: Outcome }>()
+  const [outcome, setOutcome] = useState<{ section: Area; outcome: Outcome }>()
   const [busy, setBusy] = useState<string>()
 
-  const run = (name: string, section: 'connection' | 'gatt' | 'services', action: () => Promise<string | undefined>) => async () => {
+  const run = (name: string, section: Area, action: () => Promise<string | undefined>) => async () => {
     setBusy(name)
     setOutcome(undefined)
     try {
@@ -34,6 +34,7 @@ export function DeviceScreen({ id }: { id: string }) {
   }
 
   const isConnected = device.connectionState === 'connected'
+  const bondState = useBondState(id)
   const last = device.lastDisconnect
 
   return (
@@ -231,6 +232,53 @@ export function DeviceScreen({ id }: { id: string }) {
 
       <Notifications id={id} isConnected={isConnected} />
 
+      {isConnected && (
+        <Section
+          title='Bonding'
+          right={
+            Platform.OS === 'android' && bondState != null ? (
+              <Chip compact testID='bond-state'>
+                {bondState}
+              </Chip>
+            ) : undefined
+          }
+        >
+          <Text variant='bodySmall' style={styles.hint}>
+            Pairs by reading the test peripheral's secure characteristic, which needs encryption.
+          </Text>
+          <ButtonRow>
+            {bondState !== 'bonded' && (
+              <Button
+                mode='contained-tonal'
+                onPress={run(
+                  'pair',
+                  'bonding',
+                  async () => (
+                    await device.createBond({ trigger: { service: testService, characteristic: testSecure } }),
+                    'Paired: encrypted reads work'
+                  )
+                )}
+                loading={busy === 'pair'}
+                testID='create-bond'
+              >
+                Pair
+              </Button>
+            )}
+            {bondState === 'bonded' && (
+              <Button
+                mode='outlined'
+                onPress={run('unpair', 'bonding', async () => (await device.android.removeBond(), 'Bond removed'))}
+                loading={busy === 'unpair'}
+                testID='remove-bond'
+              >
+                Remove bond
+              </Button>
+            )}
+          </ButtonRow>
+          {outcome?.section === 'bonding' && <OutcomeCard outcome={outcome.outcome} testID='bonding-outcome' />}
+        </Section>
+      )}
+
       <Section
         title='Services'
         right={
@@ -273,6 +321,19 @@ export function DeviceScreen({ id }: { id: string }) {
       </Section>
     </View>
   )
+}
+
+type Area = 'connection' | 'gatt' | 'services' | 'bonding'
+
+// Android's bond state, live; iOS doesn't let apps see bonds, so there it stays undefined.
+function useBondState(id: string): BondState | undefined {
+  const [state, setState] = useState<BondState>()
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+    const subscription = ble.device(id).android.onBondStateChange(setState)
+    return () => subscription.remove()
+  }, [id])
+  return state
 }
 
 // The Mac test peripheral's counter, live. The subscription outlives disconnects while this stays on, and ends

@@ -14,6 +14,7 @@ public struct DomainEvent: Sendable, Equatable {
     case gattOperation
     /// The app forgot a device; features drop what they keep for it.
     case forgotten
+    case bondStateChanged
   }
 
   public let kind: Kind

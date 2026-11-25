@@ -11,6 +11,8 @@
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Callback.hpp>
 #include <NitroModules/SwiftResult.hpp>
+#include <NitroBleBonded/private/HybridBondingSpecSwift.hpp>
+#include <NitroBleBonded/private/BondState-Swift.hpp>
 #include <NitroBleBonded/private/HybridConnectionSpecSwift.hpp>
 #include <NitroModules/NitroModules-Swift-Cxx-Umbrella.hpp>
 #include <NitroModules/JSIConverter+SwiftString.hpp>
@@ -90,6 +92,62 @@ namespace margelo::nitro::blebonded::swift_bridge {
 
   Callback_void___NitroBleBonded__BluetoothAdapterState create_Callback_void___NitroBleBonded__BluetoothAdapterState(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure) {
     return Callback_void___NitroBleBonded__BluetoothAdapterState::make([closure = std::move(closure)](::NitroBleBonded::BluetoothAdapterState param0) -> void {
+      auto __result = borrowSwiftValue(param0, [&](const void* param0) {
+        return closure(param0);
+      });
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+    });
+  }
+
+  std__shared_ptr_margelo__nitro__blebonded__HybridBondingSpec_ create_std__shared_ptr_margelo__nitro__blebonded__HybridBondingSpec_(void* NON_NULL pointer) {
+    return std::make_shared<margelo::nitro::blebonded::HybridBondingSpecSwift>(::NitroBleBonded::HybridBondingSpec_cxx::fromUnsafe(pointer));
+  }
+
+  void* NON_NULL get_std__shared_ptr_margelo__nitro__blebonded__HybridBondingSpec_(const std::shared_ptr<HybridObject>& value) {
+    auto wrapper = std::dynamic_pointer_cast<margelo::nitro::blebonded::HybridBondingSpecSwift>(value);
+    if (!wrapper) throw std::runtime_error("HybridBondingSpec is not implemented in Swift");
+    return wrapper->getSwiftPart().toUnsafe();
+  }
+
+  Promise___NitroBleBonded__BondState create_Promise___NitroBleBonded__BondState() { return Promise___NitroBleBonded__BondState::pending(); }
+
+  void reject_Promise___NitroBleBonded__BondState(const Promise___NitroBleBonded__BondState& promise, std::exception_ptr error) { promise.reject(std::move(error)); }
+
+  void listenRejected_Promise___NitroBleBonded__BondState(const Promise___NitroBleBonded__BondState& promise, std::function<void(const std::exception_ptr&)> listener) { promise.addOnRejectedListener(std::move(listener)); }
+
+  void resolve_Promise___NitroBleBonded__BondState(const Promise___NitroBleBonded__BondState& promise, const void* NON_NULL value) {
+    promise.resolve(NitroModules::copySwiftValue<::NitroBleBonded::BondState>(value));
+  }
+
+  void listen_Promise___NitroBleBonded__BondState(const Promise___NitroBleBonded__BondState& promise, std::function<void(const void* NON_NULL)> listener) {
+    promise.addOnResolvedListener([listener = std::move(listener)](const ::NitroBleBonded::BondState& value) {
+      NitroModules::withSwiftValue(value, [&](const void* pointer) {
+        listener(pointer);
+      });
+    });
+  }
+
+  Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag> callSync_Callback_void___NitroBleBonded__BondState(const Callback_void___NitroBleBonded__BondState& callback, const void* NON_NULL param0) noexcept {
+    try {
+      callback.callSync(NitroModules::copySwiftValue<::NitroBleBonded::BondState>(param0));
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withValue();
+    } catch (...) {
+      return Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>::withError(std::current_exception());
+    }
+  }
+
+  Promise<void> callAsync_Callback_void___NitroBleBonded__BondState(const Callback_void___NitroBleBonded__BondState& callback, const void* NON_NULL param0) {
+    return callback.callAsync(NitroModules::copySwiftValue<::NitroBleBonded::BondState>(param0));
+  }
+
+  void callAndForget_Callback_void___NitroBleBonded__BondState(const Callback_void___NitroBleBonded__BondState& callback, const void* NON_NULL param0) {
+    callback.callAndForget(NitroModules::copySwiftValue<::NitroBleBonded::BondState>(param0));
+  }
+
+  Callback_void___NitroBleBonded__BondState create_Callback_void___NitroBleBonded__BondState(std::function<Result<void, margelo::nitro::blebonded::swift_bridge::ResultTag>(const void* NON_NULL param0)> closure) {
+    return Callback_void___NitroBleBonded__BondState::make([closure = std::move(closure)](::NitroBleBonded::BondState param0) -> void {
       auto __result = borrowSwiftValue(param0, [&](const void* param0) {
         return closure(param0);
       });

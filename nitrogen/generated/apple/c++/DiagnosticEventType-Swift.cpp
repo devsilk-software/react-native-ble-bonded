@@ -27,6 +27,7 @@ namespace margelo::nitro {
       case hashString("connectionRetried"): return ::NitroBleBonded::DiagnosticEventType::fromRawValue(7);
       case hashString("gattOperation"): return ::NitroBleBonded::DiagnosticEventType::fromRawValue(8);
       case hashString("forgotten"): return ::NitroBleBonded::DiagnosticEventType::fromRawValue(9);
+      case hashString("bondStateChanged"): return ::NitroBleBonded::DiagnosticEventType::fromRawValue(10);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert \"" + string + "\" to enum DiagnosticEventType - invalid value!");
     }
@@ -44,6 +45,7 @@ namespace margelo::nitro {
       case 7: return createJSIString<"connectionRetried">(runtime);
       case 8: return createJSIString<"gattOperation">(runtime);
       case 9: return createJSIString<"forgotten">(runtime);
+      case 10: return createJSIString<"bondStateChanged">(runtime);
       default: [[unlikely]]
         throw std::invalid_argument("Cannot convert DiagnosticEventType to JS - invalid value: " + std::to_string(value.getRawValue()) + "!");
     }
@@ -63,6 +65,7 @@ namespace margelo::nitro {
       case hashString("connectionRetried"): return true;
       case hashString("gattOperation"): return true;
       case hashString("forgotten"): return true;
+      case hashString("bondStateChanged"): return true;
       default: return false;
     }
   }

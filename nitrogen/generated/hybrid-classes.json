@@ -15,6 +15,20 @@
         "language": "swift"
       }
     },
+    "Bonding": {
+      "android": {
+        "implementation": {
+          "className": "HybridBonding"
+        },
+        "language": "kotlin"
+      },
+      "apple": {
+        "implementation": {
+          "className": "HybridBonding"
+        },
+        "language": "swift"
+      }
+    },
     "Connection": {
       "android": {
         "implementation": {

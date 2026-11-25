@@ -11,6 +11,7 @@ public struct DiagnosticEvent: Sendable, Equatable, Codable {
     case connectionRetried
     case gattOperation
     case forgotten
+    case bondStateChanged
   }
 
   /// Whether the app was in the foreground or the background when the event happened.

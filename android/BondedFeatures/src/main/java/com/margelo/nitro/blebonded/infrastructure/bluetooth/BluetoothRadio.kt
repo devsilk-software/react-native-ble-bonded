@@ -105,6 +105,77 @@ class BluetoothRadio(private val context: Context) {
       }
       awaitClose { context.unregisterReceiver(receiver) }
     }
+
+  /** The device's `BluetoothDevice.BOND_*` state; `BOND_NONE` for an address Android doesn't know. Needs `BLUETOOTH_CONNECT`. */
+  @Suppress("MissingPermission")
+  fun bondState(address: String): Int = remoteDevice(address)?.bondState ?: android.bluetooth.BluetoothDevice.BOND_NONE
+
+  /**
+   * Calls [onState] with every `BluetoothDevice.BOND_*` the system broadcasts for the device, from the moment this
+   * returns: the receiver is registered before it does, so a change right after can't be missed. Returns the function
+   * that stops listening.
+   */
+  fun listenToBond(address: String, onState: (Int) -> Unit): () -> Unit {
+    val receiver =
+      object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+          val changed: android.bluetooth.BluetoothDevice? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+              intent.getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE, android.bluetooth.BluetoothDevice::class.java)
+            } else {
+              @Suppress("DEPRECATION")
+              intent.getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE)
+            }
+          if (changed?.address == address) {
+            onState(intent.getIntExtra(android.bluetooth.BluetoothDevice.EXTRA_BOND_STATE, android.bluetooth.BluetoothDevice.BOND_NONE))
+          }
+        }
+      }
+    val filter = IntentFilter(android.bluetooth.BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+    } else {
+      context.registerReceiver(receiver, filter)
+    }
+    return { context.unregisterReceiver(receiver) }
+  }
+
+  /** The device's bond state now, then every `BluetoothDevice.BOND_*` the system broadcasts for it. */
+  fun bondStates(address: String): Flow<Int> =
+    callbackFlow {
+      // Listening first, so no change between reading the state and listening is missed.
+      val stop = listenToBond(address) { trySend(it) }
+      try {
+        trySend(bondState(address))
+      } catch (failure: SecurityException) {
+        stop()
+        throw failure
+      }
+      awaitClose { stop() }
+    }
+
+  /** Asks Android to bond with the device, which shows the system's pairing dialog; false when Android refuses to start. */
+  @Suppress("MissingPermission")
+  fun createBond(address: String): Boolean = remoteDevice(address)?.createBond() ?: false
+
+  /**
+   * Asks Android to remove its bond with the device. A hidden API, called by reflection: throws
+   * `ReflectiveOperationException` when this Android version doesn't have it, and returns false when Android refuses.
+   */
+  fun removeBond(address: String): Boolean = hidden(address, "removeBond")
+
+  /** Asks Android to stop a pairing under way, through the hidden `cancelBondProcess`; like [removeBond]. */
+  fun cancelBond(address: String): Boolean = hidden(address, "cancelBondProcess")
+
+  private fun hidden(address: String, method: String): Boolean {
+    val device = remoteDevice(address) ?: return false
+    return try {
+      device.javaClass.getMethod(method).invoke(device) as Boolean
+    } catch (failure: java.lang.reflect.InvocationTargetException) {
+      // The method ran and threw, such as SecurityException without the permission: that's the error, not reflection's.
+      throw failure.cause ?: failure
+    }
+  }
 }
 
 /** Android refused to scan; [errorCode] is a `ScanCallback.SCAN_FAILED_*` value. */

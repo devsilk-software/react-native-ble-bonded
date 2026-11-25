@@ -51,6 +51,7 @@ extension DiagnosticEventType {
     case .connectionRetried: self = .connectionretried
     case .gattOperation: self = .gattoperation
     case .forgotten: self = .forgotten
+    case .bondStateChanged: self = .bondstatechanged
     }
   }
 }

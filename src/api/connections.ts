@@ -9,11 +9,21 @@ import {
   type NativeConnectionChange,
   type ServiceCacheRefresh,
 } from '../specs/Connection.nitro'
+import { Platform } from 'react-native'
+import { Bonding, type BondState } from '../specs/Bonding.nitro'
 import { Gatt } from '../specs/Gatt.nitro'
 import { BleError, toBleError, type BleErrorCode } from './BleError'
 import { prepare, type PrepareOptions } from './prepare'
 
-export type { CharacteristicProperty, ConnectionState, DisconnectReason, ServiceCacheRefresh }
+export type { BondState, CharacteristicProperty, ConnectionState, DisconnectReason, ServiceCacheRefresh }
+
+export interface CreateBondOptions {
+  /**
+   * A characteristic that needs an encrypted connection, so reading it starts pairing: iOS has no call to pair and
+   * shows its dialog only when the device asks for encryption. Required on both platforms, so one call works on both.
+   */
+  trigger: { service: string; characteristic: string }
+}
 
 /** The last time a device disconnected, and why. `error` is set for every reason but `requested`. */
 export interface LastDisconnect {
@@ -511,6 +521,28 @@ export class Device {
     }
   }
 
+  /**
+   * Pairs with the device and resolves once encrypted reads of the trigger work; at once when already paired. iOS
+   * reads the trigger, which shows the system's pairing dialog; Android bonds, then reads the trigger to confirm.
+   * Settles on the system's outcome, so there's no timeout to set; Android gives up on a pairing that never reports
+   * after 120 seconds with `timeout`. The device must be connected; otherwise it
+   * rejects at once with `notConnected`. Rejects with `pairingRequired` when the user declines or pairing fails,
+   * `characteristicNotFound` or `unsupported` for a trigger the device doesn't have or that can't be read.
+   */
+  async createBond(options: CreateBondOptions): Promise<void> {
+    this.requireConnected('createBond', 'pair')
+    try {
+      await Bonding.createBond(this.id, options.trigger.service, options.trigger.characteristic)
+    } catch (error) {
+      throw toBleError(error, 'createBond', this.id)
+    }
+  }
+
+  /** Calls that work on Android only. On iOS each rejects with `unsupported`, as iOS doesn't let apps see bonds. */
+  get android(): AndroidDevice {
+    return new AndroidDevice(this.id)
+  }
+
   /** `action` is how the message words `operation`, when its name doesn't read as plain words. */
   private requireConnected(operation: string, action = operation): void {
     if (this.connectionState === 'connected') return
@@ -539,4 +571,69 @@ function copyToBuffer(view: Uint8Array): ArrayBuffer {
   const copy = new Uint8Array(view.byteLength)
   copy.set(view)
   return copy.buffer
+}
+
+/**
+ * A device's Android-only calls, as `device.android`. On iOS the promises reject with `unsupported` and
+ * `onBondStateChange` throws it: iOS doesn't let apps see or remove bonds; the user removes a device in Settings ›
+ * Bluetooth.
+ */
+export class AndroidDevice {
+  constructor(readonly id: string) {}
+
+  /** Whether Android has a bond with the device: `bonded`, `bonding` or `none`. The device needn't be connected. */
+  async getBondState(): Promise<BondState> {
+    try {
+      return await Bonding.getBondState(this.id)
+    } catch (error) {
+      throw toBleError(error, 'getBondState', this.id)
+    }
+  }
+
+  /**
+   * Removes Android's bond with the device and resolves once Android reports none. Uses a hidden Android API, so it's
+   * best-effort: where Android doesn't allow it, it rejects with `unsupported`. `forget()` keeps the bond; this is the
+   * explicit way to remove it.
+   */
+  async removeBond(): Promise<void> {
+    try {
+      await Bonding.removeBond(this.id)
+    } catch (error) {
+      throw toBleError(error, 'removeBond', this.id)
+    }
+  }
+
+  /**
+   * Calls `onChange` with the bond state now, then every change. Returns `{ remove() }`. `onError` hears why
+   * listening couldn't start, such as `unauthorized` without the Bluetooth permission.
+   */
+  onBondStateChange(onChange: (state: BondState) => void, options: { onError?: (error: BleError) => void } = {}): { remove(): void } {
+    if (Platform.OS !== 'android') {
+      throw new BleError('unsupported', "device.android.onBondStateChange() works on Android only. iOS doesn't let apps see bonds.", {
+        deviceId: this.id,
+        operation: 'onBondStateChange',
+      })
+    }
+    let isRemoved = false
+    let listener: number | undefined
+    Bonding.addBondStateListener(this.id, (state) => {
+      if (!isRemoved) onChange(state)
+    }).then(
+      (id) => {
+        if (isRemoved) Bonding.removeBondStateListener(id)
+        else listener = id
+      },
+      (failure: unknown) => {
+        const error = toBleError(failure, 'onBondStateChange', this.id)
+        if (!isRemoved && error instanceof BleError) options.onError?.(error)
+      }
+    )
+    return {
+      remove() {
+        if (isRemoved) return
+        isRemoved = true
+        if (listener != null) Bonding.removeBondStateListener(listener)
+      },
+    }
+  }
 }

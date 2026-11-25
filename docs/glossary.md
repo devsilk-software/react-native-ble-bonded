@@ -35,7 +35,9 @@ Bluetooth, which headphones and speakers use for audio. Bonded supports only Blu
 ### Bonding
 
 Keeping the keys from pairing, on the phone and the device, so later connections are encrypted without pairing
-again. iOS and Android store bonds in their system settings. See [pairing](#pairing).
+again. iOS and Android store bonds in their system settings. See [pairing](#pairing). Bonded pairs with
+`device.createBond()`, which needs a [trigger characteristic](#trigger-characteristic); on Android,
+[`device.android`](#deviceandroid) reads and removes the bond. `forget()` keeps it (decision 7).
 
 ### CCCD (Client Characteristic Configuration Descriptor)
 
@@ -70,7 +72,10 @@ balanced is the default. See [Android connection workarounds](#android-connectio
 
 ### Descriptor
 
-Extra information attached to a characteristic. The one apps meet most is the CCCD.
+Extra information attached to a characteristic, such as its user description (`2901`). The one apps meet most is
+the CCCD. `device.readDescriptor()` and `device.writeDescriptor()` read and write them, and
+`device.getServices({ descriptors: true })` lists them; writing the CCCD rejects with `unsupported`, because
+subscriptions manage it (decision A14).
 
 ### Disconnect
 
@@ -155,7 +160,8 @@ How strongly the phone receives a device, in dBm. Values are negative; closer to
 guide: −30 to −50 is right next to the phone, −60 to −80 is a few metres away or behind a wall, below −90 is near
 the edge of range. It is noisy: it jumps by several dBm between reports and changes with orientation, bodies and
 walls, so average several readings and don't treat it as a distance. A scan reports it as `ScannedDevice.rssi`;
-`useScan({ sort: 'signal' })` lists the strongest first.
+`useScan({ sort: 'signal' })` lists the strongest first. While connected, `device.readRssi()` reads it, and
+`useRssi(device)` reads it every second (decision A13).
 
 ### Scanning
 
@@ -237,6 +243,14 @@ The one error type every failure uses. Its `code` means the same on both platfor
 [`src/api/BleError.ts`](../src/api/BleError.ts) and decision 5). It can also carry `platformCode`, `deviceId`,
 `operation`, `attError`, and for `valueTooLong` the `length` and `maxLength`.
 
+### Chunked write
+
+`device.writeChunked()` cuts data longer than the [maximum write length](#maximum-write-length) into chunks of that
+size and sends them in order as one operation, so no other read or write on the device gets between them. The
+first chunk that fails stops the write; its error carries `chunkIndex` (counting from 0), `chunkCount` and
+`sentLength`. Splitting is explicit by name, because only the app knows whether its firmware puts the chunks back
+together (decision A13).
+
 ### Connect target
 
 Which device `ble.connect()` connects to (`ConnectTarget`): with no argument, the remembered device; `{ id }`, that
@@ -266,6 +280,13 @@ How the platform addresses a device. On Android it is the device's Bluetooth add
 system assigns, different on every phone. Both can change: Android devices can rotate their address, and iOS
 changes identifiers after a network reset. Bonded then finds a remembered device again by its
 [identity](#identity).
+
+### `device.android`
+
+The device's calls that work on Android only: `getBondState()` (`bonded`, `bonding`, `none`), `removeBond()` and
+`onBondStateChange()`. On iOS they reject with `unsupported`, because iOS doesn't let apps see or remove bonds; the
+user removes a device in Settings › Bluetooth. Android's settings live under `android` the same way, as in
+`ble.configure({ android })` (decision 7).
 
 ### Diagnostic event
 
@@ -319,10 +340,11 @@ events.
 
 ### Maximum write length
 
-The longest value one write can carry. With response it is 512 bytes, Bluetooth's limit, sent as a long write when
-needed. Without response it is one packet, MTU − 3 bytes, so it depends on the connection. A longer value rejects
-with `valueTooLong`, giving both lengths. Bonded never splits a value into pieces, because only the app knows
-whether its firmware puts them back together; to send more, split the data yourself.
+The most one write carries without being split: MTU − 3 bytes, agreed each time the phone and the device connect,
+so it differs between devices and phones. `device.getMaxWriteLength()` reads it. A `write` with response still
+takes up to 512 bytes, Bluetooth's limit, as a long write; a `write` without response longer than this rejects with
+`valueTooLong`, giving both lengths. `write` never splits a value; [`writeChunked`](#chunked-write) does, when the
+app asks (decisions A11 and A13).
 
 ### Operation timeout
 
@@ -370,6 +392,12 @@ characteristic (a second rejects with `alreadySubscribed`), it lasts until `remo
 switches notifications back on after each reconnect) and ends when the app forgets the device, calling `onEnd`.
 `onError` reports when notifications couldn't be switched back on. Values arrive in order, in batches about every
 16 ms (decision A12).
+
+### Trigger characteristic
+
+The characteristic `device.createBond({ trigger })` reads to pair: one that needs an encrypted connection. iOS has
+no call to pair and shows its dialog only when such a read asks for encryption; Android bonds first, then reads it
+to confirm. So `createBond` resolves only once encrypted reads work, on both platforms (decision 7).
 
 ### Value
 

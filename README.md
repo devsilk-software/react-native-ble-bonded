@@ -8,13 +8,26 @@ Bluetooth Low Energy for React Native, built for connections that stay up.
 Maintained by [Albert Liberski](https://github.com/aliberski) ([Devsilk](https://github.com/devsilk-software)), a former maintainer of
 react-native-ble-plx.
 
+## Built on
+
+- **[Nitro Modules](https://nitro.margelo.com):** calls go straight from JavaScript to Swift and Kotlin through JSI,
+  on the New Architecture. The Swift and Kotlin interfaces are generated from one TypeScript spec, so the JavaScript
+  and native sides can't drift apart.
+- **Swift Package Manager on iOS:** the library is a Swift package and builds with React Native's Swift Package
+  Manager support, without CocoaPods.
+- **Swift 6 and Kotlin coroutines:** the native code passes Swift 6's strict concurrency checks on iOS and uses
+  coroutines on Android, with the same structure and the same behaviours on both.
+
 ## Requirements
 
-- React Native 0.88 or newer, New Architecture
-- iOS 16 or newer; Android 7 (API 24) or newer
-- Nitro Modules v1; on iOS, React Native's Swift Package Manager support (Nitro v1 doesn't build through CocoaPods
-  yet)
-- A bare React Native app; Expo isn't supported yet
+| | Minimum |
+|---|---|
+| React Native | 0.88, New Architecture (the old architecture isn't supported) |
+| Nitro Modules | `react-native-nitro-modules` and `nitro-core` `1.0.0-alpha.nightly.136.gdb81de61bd32`, exactly |
+| iOS | 16.0, built with Xcode 26 (Swift 6.2) or newer, through Swift Package Manager (not CocoaPods) |
+| Android | 7.0 (API 24); compileSdk 36; JDK 17 |
+| Node | 22.13, React Native 0.88's own minimum |
+| Expo | not supported yet: Expo can't build Nitro v1 modules |
 
 ## Install
 

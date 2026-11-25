@@ -268,6 +268,7 @@ export function DeviceScreen({ id }: { id: string }) {
               <Button
                 mode='outlined'
                 onPress={run('unpair', 'bonding', async () => (await device.android.removeBond(), 'Bond removed'))}
+                loading={busy === 'unpair'}
                 testID='remove-bond'
               >
                 Remove bond

@@ -524,7 +524,8 @@ export class Device {
   /**
    * Pairs with the device and resolves once encrypted reads of the trigger work; at once when already paired. iOS
    * reads the trigger, which shows the system's pairing dialog; Android bonds, then reads the trigger to confirm.
-   * Settles on the system's outcome, so there's no timeout to set. The device must be connected; otherwise it
+   * Settles on the system's outcome, so there's no timeout to set; Android gives up on a pairing that never reports
+   * after 120 seconds with `timeout`. The device must be connected; otherwise it
    * rejects at once with `notConnected`. Rejects with `pairingRequired` when the user declines or pairing fails,
    * `characteristicNotFound` or `unsupported` for a trigger the device doesn't have or that can't be read.
    */
@@ -602,8 +603,11 @@ export class AndroidDevice {
     }
   }
 
-  /** Calls `onChange` with the bond state now, then every change. Returns `{ remove() }`. */
-  onBondStateChange(onChange: (state: BondState) => void): { remove(): void } {
+  /**
+   * Calls `onChange` with the bond state now, then every change. Returns `{ remove() }`. `onError` hears why
+   * listening couldn't start, such as `unauthorized` without the Bluetooth permission.
+   */
+  onBondStateChange(onChange: (state: BondState) => void, options: { onError?: (error: BleError) => void } = {}): { remove(): void } {
     if (Platform.OS !== 'android') {
       throw new BleError('unsupported', "device.android.onBondStateChange() works on Android only. iOS doesn't let apps see bonds.", {
         deviceId: this.id,
@@ -619,7 +623,10 @@ export class AndroidDevice {
         if (isRemoved) Bonding.removeBondStateListener(id)
         else listener = id
       },
-      () => {}
+      (failure: unknown) => {
+        const error = toBleError(failure, 'onBondStateChange', this.id)
+        if (!isRemoved && error instanceof BleError) options.onError?.(error)
+      }
     )
     return {
       remove() {

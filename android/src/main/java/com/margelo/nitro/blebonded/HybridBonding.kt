@@ -50,7 +50,15 @@ class HybridBonding : HybridBondingSpec() {
       }
 
     override fun addBondStateListener(id: String, onChange: Callback<(state: BondState) -> Unit>): Promise<Double> =
-      Promise.async { listeners.add(root().observeBondState(DeviceId(id))) { state -> onChange(state.toSpec()) } }
+      Promise.async {
+        try {
+          // Reading the state first rejects without the permission, where the listener itself could only end quietly.
+          root().getBondState(DeviceId(id))
+        } catch (error: BleError) {
+          throw Exception(error.jsMessage)
+        }
+        listeners.add(root().observeBondState(DeviceId(id))) { state -> onChange(state.toSpec()) }
+      }
 
     override fun removeBondStateListener(listener: Double) = listeners.remove(listener)
 

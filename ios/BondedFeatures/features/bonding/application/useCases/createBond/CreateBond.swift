@@ -30,7 +30,7 @@ public struct CreateBond: Sendable {
     do {
       try await source.readTrigger(trigger, on: id)
     } catch let error as BleError {
-      await bus.publish(DomainEvent(kind: .bondStateChanged, deviceId: id, detail: "not bonded", errorCode: error.code, platformCode: error.platformCode))
+      await bus.publish(DomainEvent(kind: .bondStateChanged, deviceId: id, detail: "none", errorCode: error.code, platformCode: error.platformCode))
       throw error
     }
     await bus.publish(DomainEvent(kind: .bondStateChanged, deviceId: id, detail: "bonded"))

@@ -13,11 +13,9 @@ import com.margelo.nitro.blebonded.infrastructure.bluetooth.NOT_CONNECTED
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.NO_ANSWER
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
@@ -36,34 +34,27 @@ class AndroidBondSource(private val radio: BluetoothRadio, private val clients: 
       throw unauthorized(id)
     }
 
-  override suspend fun bond(id: DeviceId): BondState =
+  override suspend fun bond(id: DeviceId): BondState {
+    val ended = CompletableDeferred<Int>()
+    // Registered before asking, so the end of a quick pairing can't be missed.
+    val stop = radio.listenToBond(id.rawValue) { if (it != BluetoothDevice.BOND_BONDING) ended.complete(it) }
     try {
-      coroutineScope {
-        // Listening before asking, so the end of a quick pairing isn't missed.
-        val ended = async(start = CoroutineStart.UNDISPATCHED) { radio.bondStates(id.rawValue).drop(1).first { it != BluetoothDevice.BOND_BONDING } }
-        when (radio.bondState(id.rawValue)) {
-          BluetoothDevice.BOND_BONDED -> {
-            ended.cancel()
-            return@coroutineScope BondState.BONDED
-          }
-          BluetoothDevice.BOND_BONDING -> Unit
-          else ->
-            if (!radio.createBond(id.rawValue)) {
-              ended.cancel()
-              throw BleError(BleError.Code.GATT_ERROR, "Android refused to start pairing.", deviceId = id, operation = "createBond")
-            }
-        }
-        // Android ends pairing itself when the user doesn't answer; this only catches a pairing that never reports.
-        val state = withTimeoutOrNull(BOND_BACKSTOP_MS) { ended.await() }
-        if (state == null) {
-          ended.cancel()
-          throw BleError(BleError.Code.TIMEOUT, "Pairing didn't finish within ${BOND_BACKSTOP_MS / 1000} seconds.", deviceId = id, operation = "createBond")
-        }
-        state(state)
+      when (radio.bondState(id.rawValue)) {
+        BluetoothDevice.BOND_BONDED -> return BondState.BONDED
+        BluetoothDevice.BOND_BONDING -> Unit
+        else -> if (!radio.createBond(id.rawValue)) throw BleError(BleError.Code.GATT_ERROR, "Android refused to start pairing.", deviceId = id, operation = "createBond")
       }
+      // Android ends pairing itself when the user doesn't answer; this only catches a pairing that never reports.
+      val state =
+        withTimeoutOrNull(BOND_BACKSTOP_MS) { ended.await() }
+          ?: throw BleError(BleError.Code.TIMEOUT, "Pairing didn't finish within ${BOND_BACKSTOP_MS / 1000} seconds.", deviceId = id, operation = "createBond")
+      return state(state)
     } catch (failure: SecurityException) {
       throw unauthorized(id)
+    } finally {
+      stop()
     }
+  }
 
   override suspend fun readTrigger(trigger: BondTrigger, id: DeviceId) {
     val connection = connection(id)
@@ -89,12 +80,15 @@ class AndroidBondSource(private val radio: BluetoothRadio, private val clients: 
     }
   }
 
-  override fun bondStates(id: DeviceId): Flow<BondState> = radio.bondStates(id.rawValue).map(::state)
+  /** Without the permission it ends at once rather than failing: a listener's collection has nowhere to report to. */
+  override fun bondStates(id: DeviceId): Flow<BondState> = radio.bondStates(id.rawValue).map(::state).catch { if (it !is SecurityException) throw it }
 
   override suspend fun removeBond(id: DeviceId) {
+    // A pairing under way has no bond to remove yet: stopping it is what removing means then.
+    val isPairing = bondState(id) == BondState.BONDING
     val isRefused =
       try {
-        !radio.removeBond(id.rawValue)
+        !(if (isPairing) radio.cancelBond(id.rawValue) else radio.removeBond(id.rawValue))
       } catch (failure: SecurityException) {
         throw unauthorized(id)
       } catch (failure: ReflectiveOperationException) {
@@ -107,6 +101,7 @@ class AndroidBondSource(private val radio: BluetoothRadio, private val clients: 
       }
     if (isRefused) throw BleError(BleError.Code.GATT_ERROR, "Android refused to remove the bond.", deviceId = id, operation = "removeBond")
     withTimeoutOrNull(REMOVE_WAIT_MS) { radio.bondStates(id.rawValue).first { it == BluetoothDevice.BOND_NONE } }
+      ?: throw BleError(BleError.Code.TIMEOUT, "Android didn't confirm the bond was removed within ${REMOVE_WAIT_MS / 1000} seconds.", deviceId = id, operation = "removeBond")
   }
 
   private fun connection(id: DeviceId): GattConnection = clients[id.rawValue]?.takeIf { it.isReady } ?: throw notConnected(id)

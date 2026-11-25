@@ -102,6 +102,16 @@ describe('Bonding', () => {
     expect(native.removeBondStateListener).toHaveBeenCalledWith(7)
   })
 
+  it('tells onError why listening could not start', async () => {
+    native.addBondStateListener.mockRejectedValue(new Error('[unauthorized] Bluetooth permission is not granted, so Android refused'))
+    const errors: unknown[] = []
+
+    ble.device('A').android.onBondStateChange(() => {}, { onError: (error) => errors.push(error) })
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+    expect(errors).toEqual([expect.objectContaining({ code: 'unauthorized', operation: 'onBondStateChange' })])
+  })
+
   it('throws unsupported for the bond listener on iOS, which has no bond state', () => {
     platform.OS = 'ios'
 

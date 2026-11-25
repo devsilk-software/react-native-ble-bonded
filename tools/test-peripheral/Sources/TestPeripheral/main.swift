@@ -7,7 +7,8 @@ import Foundation
 // - read:   a counter that grows on every read, as text
 // - write:  accepts writes with and without response and prints them; checks that the counting pattern the example
 //           app's chunked write sends (0, 1, 2, …) arrives in order
-// - secure: needs an encrypted connection, so reading it pairs the phone; reads "bonded"
+// - secure: needs an encrypted connection; reads "bonded" once paired. It shows Bonded's pairing error, not pairing:
+//           this tool can't test bonding (README.md, "Not for bonding")
 // - notify: sends a counter every second while a phone is subscribed; its user description (2901) reads "Counter"
 //
 // Type `quit` and Enter to stop. macOS may keep the radio link up after quitting, so the phone doesn't always see

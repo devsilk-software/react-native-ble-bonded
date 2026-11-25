@@ -71,6 +71,12 @@ abstract class HybridGattSpec: HybridObject() {
     fun unsubscribe(subscription: Double): Promise<Unit>
 
     fun write(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Boolean, timeoutMs: Double): Promise<Unit>
+
+    fun writeChunked(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Boolean, timeoutMs: Double): Promise<Unit>
+
+    fun getMaxWriteLength(id: String): Promise<Double>
+
+    fun readRssi(id: String, timeoutMs: Double): Promise<Double>
   }
 
   protected companion object Bridge {
@@ -106,6 +112,27 @@ abstract class HybridGattSpec: HybridObject() {
     @Keep
     private fun write_cxx(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Boolean, timeoutMs: Double): Promise<Unit> {
       return HybridGatt.write(id, service, characteristic, value, withResponse, timeoutMs)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun writeChunked_cxx(id: String, service: String, characteristic: String, value: ArrayBuffer, withResponse: Boolean, timeoutMs: Double): Promise<Unit> {
+      return HybridGatt.writeChunked(id, service, characteristic, value, withResponse, timeoutMs)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun getMaxWriteLength_cxx(id: String): Promise<Double> {
+      return HybridGatt.getMaxWriteLength(id)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun readRssi_cxx(id: String, timeoutMs: Double): Promise<Double> {
+      return HybridGatt.readRssi(id, timeoutMs)
     }
   }
 }

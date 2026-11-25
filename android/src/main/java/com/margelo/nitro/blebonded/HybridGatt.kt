@@ -55,6 +55,44 @@ class HybridGatt : HybridGattSpec() {
       }
     }
 
+    override fun writeChunked(
+      id: String,
+      service: String,
+      characteristic: String,
+      value: ArrayBuffer,
+      withResponse: Boolean,
+      timeoutMs: Double,
+    ): Promise<Unit> {
+      val address = address(service, characteristic)
+      val buffer = value.getBuffer(copyIfNeeded = true)
+      val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
+      return Promise.async {
+        try {
+          root().writeChunked(bytes, address, DeviceId(id), withResponse, timeoutMs.toLong())
+        } catch (error: BleError) {
+          throw Exception(error.jsMessage)
+        }
+      }
+    }
+
+    override fun getMaxWriteLength(id: String): Promise<Double> =
+      Promise.async {
+        try {
+          root().getMaxWriteLength(DeviceId(id)).toDouble()
+        } catch (error: BleError) {
+          throw Exception(error.jsMessage)
+        }
+      }
+
+    override fun readRssi(id: String, timeoutMs: Double): Promise<Double> =
+      Promise.async {
+        try {
+          root().readRssi(DeviceId(id), timeoutMs.toLong()).toDouble()
+        } catch (error: BleError) {
+          throw Exception(error.jsMessage)
+        }
+      }
+
     override fun subscribe(
       id: String,
       service: String,

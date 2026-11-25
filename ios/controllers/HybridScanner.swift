@@ -51,6 +51,9 @@ extension BleError {
     if let attError { fields["attError"] = attError }
     if let length { fields["length"] = length }
     if let maxLength { fields["maxLength"] = maxLength }
+    if let chunkIndex { fields["chunkIndex"] = chunkIndex }
+    if let chunkCount { fields["chunkCount"] = chunkCount }
+    if let sentLength { fields["sentLength"] = sentLength }
     let json = fields.isEmpty ? "" : (try? JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys]))
       .flatMap { String(data: $0, encoding: .utf8) }
       .map { " " + $0 } ?? ""

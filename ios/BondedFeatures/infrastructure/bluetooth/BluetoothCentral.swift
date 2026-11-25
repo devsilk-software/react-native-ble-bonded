@@ -41,6 +41,11 @@ public actor BluetoothCentral {
   /// The request each peripheral is waiting on, and for which characteristic.
   private var answerWaiters: [UUID: (request: UUID, key: String, continuation: CheckedContinuation<Result<Data?, any Error>, Never>)] = [:]
   private var readyWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
+  /// Callers waiting for a signal strength reading, by token, and the tokens waiting on each peripheral.
+  private var rssiCallers: [UUID: (identifier: UUID, continuation: CheckedContinuation<Int, any Error>)] = [:]
+  private var rssiRequests: [UUID: [UUID]] = [:]
+  /// The piece each chunked write is on, by its caller's token.
+  private var pieceProgress: [UUID: Int] = [:]
   private var notificationObservers: [UUID: AsyncStream<CentralNotification>.Continuation] = [:]
 
   public init() {}
@@ -323,6 +328,60 @@ public actor BluetoothCentral {
     }
   }
 
+  /// Writes `pieces` in order as one operation, so no other operation on the peripheral runs between them. Each piece
+  /// waits as `write` does; one that takes longer than `limit` fails. Throws `PieceError` naming the piece that failed;
+  /// the pieces after it aren't sent. Cancelling stops waiting at once and sends no further piece.
+  public func write(
+    pieces: [Data],
+    to identifier: UUID,
+    service: String,
+    characteristic: String,
+    withResponse: Bool,
+    limit: Duration
+  ) async throws {
+    let token = UUID()
+    try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Void, any Error>) in
+        writeCallers[token] = (identifier, caller)
+        pieceProgress[token] = 0
+        enqueue(on: identifier) {
+          await self.runWritePieces(
+            token,
+            pieces,
+            to: identifier,
+            service: service,
+            characteristic: characteristic,
+            withResponse: withResponse,
+            limit: limit
+          )
+        }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
+  /// Reads the connected peripheral's signal strength, in dBm. Not queued behind other operations: Core Bluetooth
+  /// reads it apart from them. Callers waiting at the same time share the next reading. Cancelling stops waiting at
+  /// once.
+  public func readRssi(_ identifier: UUID) async throws -> Int {
+    let token = UUID()
+    return try await withTaskCancellationHandler {
+      try await withCheckedThrowingContinuation { (caller: CheckedContinuation<Int, any Error>) in
+        do {
+          let peripheral = try connectedPeripheral(identifier)
+          rssiCallers[token] = (identifier, caller)
+          rssiRequests[identifier, default: []].append(token)
+          peripheral.readRSSI()
+        } catch {
+          caller.resume(throwing: error)
+        }
+      }
+    } onCancel: {
+      Task { await self.abandon(token) }
+    }
+  }
+
   /// Switches notifications (or indications; Core Bluetooth picks) on or off and returns once the peripheral
   /// confirmed. Cancelling stops waiting at once.
   public func setNotify(_ isOn: Bool, _ identifier: UUID, service: String, characteristic: String) async throws {
@@ -429,6 +488,73 @@ public actor BluetoothCentral {
     writeCallers.removeValue(forKey: token)?.continuation.resume(with: result)
   }
 
+  private func runWritePieces(
+    _ token: UUID,
+    _ pieces: [Data],
+    to identifier: UUID,
+    service: String,
+    characteristic: String,
+    withResponse: Bool,
+    limit: Duration
+  ) async {
+    defer { pieceProgress[token] = nil }
+    for (index, data) in pieces.enumerated() {
+      // The caller gave up, or an earlier piece took too long: send nothing more.
+      guard writeCallers[token] != nil else { return }
+      pieceProgress[token] = index
+      let failure: CentralError?
+      // A piece that takes too long fails for the caller now; the operation still keeps its turn until the answer.
+      let timer = Task {
+        try await Task.sleep(for: limit)
+        self.expirePiece(token, index: index)
+      }
+      do {
+        let peripheral = try connectedPeripheral(identifier)
+        guard let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic) else {
+          throw CentralError.notConnected
+        }
+        if withResponse {
+          _ = try await answer(on: identifier, key: Self.key(service, characteristic)) {
+            peripheral.writeValue(data, for: target, type: .withResponse)
+          }.get()
+        } else {
+          while !peripheral.canSendWriteWithoutResponse {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+              readyWaiters[identifier] = continuation
+            }
+            guard writeCallers[token] != nil else {
+              timer.cancel()
+              return
+            }
+          }
+          peripheral.writeValue(data, for: target, type: .withoutResponse)
+        }
+        failure = nil
+      } catch let error as CentralError {
+        failure = error
+      } catch {
+        failure = .notConnected
+      }
+      timer.cancel()
+      if let failure {
+        failPiece(token, index: index, error: failure)
+        return
+      }
+    }
+    writeCallers.removeValue(forKey: token)?.continuation.resume()
+  }
+
+  private func failPiece(_ token: UUID, index: Int, error: CentralError?) {
+    writeCallers.removeValue(forKey: token)?.continuation.resume(throwing: PieceError(index: index, error: error))
+  }
+
+  /// A piece's time ran out. Cancelling its timer can't stop one already waiting for the actor, so a timer for a
+  /// piece that has finished meanwhile does nothing.
+  private func expirePiece(_ token: UUID, index: Int) {
+    guard pieceProgress[token] == index else { return }
+    failPiece(token, index: index, error: nil)
+  }
+
   /// Sends a request and waits for the answer for this characteristic, at most Bluetooth's own 30 seconds, or until
   /// the peripheral disconnects. Answers for other characteristics don't end the wait.
   private func answer(on identifier: UUID, key: String, send: () -> Void) async -> Result<Data?, any Error> {
@@ -454,6 +580,10 @@ public actor BluetoothCentral {
   private func abandon(_ token: UUID) {
     readCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
     writeCallers.removeValue(forKey: token)?.continuation.resume(throwing: CancellationError())
+    if let caller = rssiCallers.removeValue(forKey: token) {
+      rssiRequests[caller.identifier]?.removeAll { $0 == token }
+      caller.continuation.resume(throwing: CancellationError())
+    }
   }
 
   private func connectedPeripheral(_ identifier: UUID) throws -> CBPeripheral {
@@ -492,10 +622,18 @@ public actor BluetoothCentral {
     }
     for (token, caller) in writeCallers where caller.identifier == identifier {
       writeCallers[token] = nil
-      caller.continuation.resume(throwing: error)
+      // A chunked write says which piece the disconnect stopped.
+      if let index = pieceProgress[token] {
+        caller.continuation.resume(throwing: PieceError(index: index, error: error as? CentralError ?? .notConnected))
+      } else {
+        caller.continuation.resume(throwing: error)
+      }
     }
     answerWaiters.removeValue(forKey: identifier)?.continuation.resume(returning: .failure(error))
     readyWaiters.removeValue(forKey: identifier)?.resume(throwing: error)
+    for token in rssiRequests.removeValue(forKey: identifier) ?? [] {
+      rssiCallers.removeValue(forKey: token)?.continuation.resume(throwing: error)
+    }
   }
 
   private func handleOperation(_ event: CentralEvent) {
@@ -522,6 +660,13 @@ public actor BluetoothCentral {
       waiter.continuation.resume(returning: error.map { .failure(CentralError.platform($0)) } ?? .success(nil))
     case let .readyToWrite(identifier):
       readyWaiters.removeValue(forKey: identifier)?.resume()
+    case let .rssiRead(identifier, rssi, error):
+      // A reading is the same for every caller waiting, so each answer goes to all of them; a lost answer then
+      // never leaves a later caller waiting for an answer that went to someone else.
+      let result: Result<Int, any Error> = error.map { .failure(CentralError.platform($0)) } ?? .success(rssi)
+      for token in rssiRequests.removeValue(forKey: identifier) ?? [] {
+        rssiCallers.removeValue(forKey: token)?.continuation.resume(with: result)
+      }
     default:
       break
     }
@@ -559,7 +704,7 @@ public actor BluetoothCentral {
       discoveries?.yield(discovery)
     case .connected, .failedToConnect, .disconnected, .servicesDiscovered, .characteristicsDiscovered:
       handleConnection(event)
-    case .valueUpdated, .wrote, .readyToWrite, .notificationStateUpdated:
+    case .valueUpdated, .wrote, .readyToWrite, .notificationStateUpdated, .rssiRead:
       handleOperation(event)
     case let .stateChanged(newState):
       state = newState
@@ -656,6 +801,7 @@ enum CentralEvent: Sendable {
   case wrote(UUID, String, PlatformErrorInfo?)
   case readyToWrite(UUID)
   case notificationStateUpdated(UUID, String, PlatformErrorInfo?)
+  case rssiRead(UUID, Int, PlatformErrorInfo?)
 }
 
 /// A value a peripheral notified. `key` is `service|characteristic`, full lowercase UUIDs.
@@ -691,6 +837,13 @@ public enum CentralError: Error, Sendable {
   /// The peripheral didn't answer within Bluetooth's 30 seconds.
   case noAnswer
   case platform(PlatformErrorInfo)
+}
+
+/// A piece of `write(pieces:)` failed: which one, counting from 0, and why; `error` is `nil` when it took longer than
+/// the caller's limit.
+public struct PieceError: Error, Sendable {
+  public let index: Int
+  public let error: CentralError?
 }
 
 /// A connected peripheral disconnected without the app asking.
@@ -802,6 +955,10 @@ private final class CentralDelegate: NSObject, CBCentralManagerDelegate, CBPerip
 
   func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: (any Error)?) {
     events.yield(.notificationStateUpdated(peripheral.identifier, Self.key(characteristic), error.map(PlatformErrorInfo.init)))
+  }
+
+  func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: (any Error)?) {
+    events.yield(.rssiRead(peripheral.identifier, RSSI.intValue, error.map(PlatformErrorInfo.init)))
   }
 
   func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {

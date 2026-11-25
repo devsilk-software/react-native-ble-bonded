@@ -12,6 +12,9 @@ import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattRequestRefusedEx
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.GattStatusException
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.NOT_CONNECTED
 import com.margelo.nitro.blebonded.infrastructure.bluetooth.NO_ANSWER
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.PieceException
+import com.margelo.nitro.blebonded.infrastructure.bluetooth.TIMED_OUT
+import com.margelo.nitro.blebonded.features.gatt.application.interfaces.PieceFailure
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
@@ -53,6 +56,49 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
       throw refused(MISSING_PERMISSION, operation, id)
     }
   }
+
+  override suspend fun write(pieces: List<ByteArray>, address: CharacteristicAddress, id: DeviceId, withResponse: Boolean, timeoutMs: Long) {
+    val characteristic = find(address, id) ?: throw notConnected(id)
+    val operation = if (withResponse) CharacteristicOperation.WRITE else CharacteristicOperation.WRITE_WITHOUT_RESPONSE
+    try {
+      connection(id).write(characteristic, pieces, withResponse, timeoutMs)
+    } catch (failure: PieceException) {
+      val error =
+        when (val cause = failure.cause) {
+          is GattStatusException ->
+            if (cause.status == TIMED_OUT) {
+              BleError(
+                BleError.Code.TIMEOUT,
+                "The device didn't take the ${operation.publicName} of characteristic ${address.characteristic} within $timeoutMs ms",
+                deviceId = id,
+                operation = operation.publicName,
+              )
+            } else {
+              bleError(cause.status, operation, address, id)
+            }
+          is GattRequestRefusedException -> refused(cause.code, operation, id)
+          is SecurityException -> refused(MISSING_PERMISSION, operation, id)
+          else -> bleError(NOT_CONNECTED, operation, address, id)
+        }
+      throw PieceFailure(failure.index, error)
+    } catch (failure: GattStatusException) {
+      // The connection closed before the write got its turn, so no chunk went out.
+      throw PieceFailure(0, bleError(failure.status, operation, address, id))
+    }
+  }
+
+  override suspend fun readRssi(id: DeviceId): Int =
+    try {
+      connection(id).readRssi()
+    } catch (failure: GattStatusException) {
+      throw when (failure.status) {
+        NOT_CONNECTED -> notConnected(id)
+        NO_ANSWER -> BleError(BleError.Code.TIMEOUT, "The device's signal strength didn't come within Bluetooth's 30 seconds", deviceId = id, operation = "readRssi")
+        else -> BleError(BleError.Code.GATT_ERROR, "Android failed to read the signal strength (GATT status ${failure.status}).", failure.status, id, "readRssi")
+      }
+    } catch (failure: SecurityException) {
+      throw BleError(BleError.Code.UNAUTHORIZED, "Bluetooth permission is not granted, so Android refused to read the signal strength", MISSING_PERMISSION, id, "readRssi")
+    }
 
   override suspend fun setNotifications(isOn: Boolean, indicate: Boolean, address: CharacteristicAddress, id: DeviceId) {
     val characteristic = find(address, id) ?: throw notConnected(id)

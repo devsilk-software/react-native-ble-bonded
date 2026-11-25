@@ -2,6 +2,7 @@ package com.margelo.nitro.blebonded.mocks
 
 import com.margelo.nitro.blebonded.features.gatt.application.interfaces.CharacteristicNotification
 import com.margelo.nitro.blebonded.features.gatt.application.interfaces.CharacteristicSource
+import com.margelo.nitro.blebonded.features.gatt.application.interfaces.PieceFailure
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
@@ -25,6 +26,11 @@ class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAd
   @Volatile var isAnswering = true
 
   @Volatile var maxLength = 20
+
+  @Volatile var rssi = -60
+
+  /** The chunk of a chunked write that fails, counting from 0, and with what. */
+  @Volatile var failingPiece: Pair<Int, BleError>? = null
 
   @Volatile var switchFailure: BleError? = null
   val notificationSwitches = CopyOnWriteArrayList<Pair<Boolean, Boolean>>()
@@ -75,6 +81,19 @@ class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAd
   override suspend fun write(value: ByteArray, address: CharacteristicAddress, id: DeviceId, withResponse: Boolean) {
     answer()
     writes.add(value.toList() to withResponse)
+  }
+
+  override suspend fun write(pieces: List<ByteArray>, address: CharacteristicAddress, id: DeviceId, withResponse: Boolean, timeoutMs: Long) {
+    pieces.forEachIndexed { index, piece ->
+      failingPiece?.takeIf { it.first == index }?.let { throw PieceFailure(index, it.second) }
+      answer()
+      writes.add(piece.toList() to withResponse)
+    }
+  }
+
+  override suspend fun readRssi(id: DeviceId): Int {
+    answer()
+    return rssi
   }
 
   private suspend fun answer() {

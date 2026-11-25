@@ -97,6 +97,13 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - reports when notifications can't be switched back on
 - stops notifications when the subscription is removed
 - removes a forgotten device's subscriptions
+- reports the most one write carries
+- cuts data to the maximum write length and sends the chunks in order
+- stops at the chunk that failed and says which one and how many bytes were sent before it
+- sends nothing for empty data
+- refuses a chunked write the characteristic doesn't allow, before sending anything
+- reads the signal strength
+- gives up reading the signal strength after its timeout
 
 ## diagnostics
 

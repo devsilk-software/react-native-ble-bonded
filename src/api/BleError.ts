@@ -45,6 +45,15 @@ export interface BleErrorDetails {
   length?: number
   /** For `valueTooLong`: the most the operation allows, in bytes. */
   maxLength?: number
+  /** For a failed `writeChunked`: the chunk that failed, counting from 0. */
+  chunkIndex?: number
+  /** For a failed `writeChunked`: how many chunks the data was cut into. */
+  chunkCount?: number
+  /**
+   * For a failed `writeChunked`: the bytes sent before the chunk that failed. With response the device confirmed them;
+   * without, they went out unconfirmed.
+   */
+  sentLength?: number
 }
 
 /** Every failure Bonded reports: a shared `code`, plus the platform's own code for whoever is debugging. */
@@ -61,6 +70,15 @@ export class BleError extends Error {
   readonly length?: number
   /** For `valueTooLong`: the most the operation allows, in bytes. */
   readonly maxLength?: number
+  /** For a failed `writeChunked`: the chunk that failed, counting from 0. */
+  readonly chunkIndex?: number
+  /** For a failed `writeChunked`: how many chunks the data was cut into. */
+  readonly chunkCount?: number
+  /**
+   * For a failed `writeChunked`: the bytes sent before the chunk that failed. With response the device confirmed them;
+   * without, they went out unconfirmed.
+   */
+  readonly sentLength?: number
 
   constructor(code: BleErrorCode, message: string, details: BleErrorDetails = {}) {
     super(message)
@@ -72,6 +90,9 @@ export class BleError extends Error {
     this.attError = details.attError
     this.length = details.length
     this.maxLength = details.maxLength
+    this.chunkIndex = details.chunkIndex
+    this.chunkCount = details.chunkCount
+    this.sentLength = details.sentLength
   }
 }
 
@@ -94,9 +115,16 @@ export function toBleError(error: unknown, operation?: string, deviceId?: string
     operation,
     deviceId,
     attError: typeof fields.attError === 'string' ? fields.attError : undefined,
-    length: typeof fields.length === 'number' ? fields.length : undefined,
-    maxLength: typeof fields.maxLength === 'number' ? fields.maxLength : undefined,
+    length: numberField(fields.length),
+    maxLength: numberField(fields.maxLength),
+    chunkIndex: numberField(fields.chunkIndex),
+    chunkCount: numberField(fields.chunkCount),
+    sentLength: numberField(fields.sentLength),
   })
+}
+
+function numberField(value: unknown): number | undefined {
+  return typeof value === 'number' ? value : undefined
 }
 
 function parseFields(json: string | undefined): Record<string, unknown> {

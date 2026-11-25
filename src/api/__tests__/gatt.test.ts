@@ -8,7 +8,17 @@ jest.mock('../../specs/BluetoothState.nitro', () => ({ BluetoothState: {} }))
 jest.mock('../../specs/Permissions.nitro', () => ({ Permissions: {} }))
 jest.mock('../../specs/Diagnostics.nitro', () => ({ Diagnostics: {} }))
 jest.mock('../../specs/Scanner.nitro', () => ({ Scanner: {} }))
-jest.mock('../../specs/Gatt.nitro', () => ({ Gatt: { read: jest.fn(), write: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() } }))
+jest.mock('../../specs/Gatt.nitro', () => ({
+  Gatt: {
+    read: jest.fn(),
+    write: jest.fn(),
+    writeChunked: jest.fn(),
+    getMaxWriteLength: jest.fn(),
+    readRssi: jest.fn(),
+    subscribe: jest.fn(),
+    unsubscribe: jest.fn(),
+  },
+}))
 
 let report: (change: Omit<NativeConnectionChange, 'isRemembered'>) => void = () => {}
 jest.mock('../../specs/Connection.nitro', () => ({
@@ -167,5 +177,60 @@ describe('Subscriptions', () => {
 
     await expect(ble.device('A').subscribe(service, '2a37', jest.fn())).rejects.toMatchObject({ code: 'notConnected' })
     expect(native.subscribe).not.toHaveBeenCalled()
+  })
+})
+
+describe('Chunked writes, maximum write length and signal strength', () => {
+  it('writes chunked with response unless told otherwise, each chunk waiting 10 s by default', async () => {
+    native.writeChunked.mockResolvedValue(undefined)
+    const larger = new Uint8Array([9, 1, 2, 3, 9])
+
+    await ble.device('A').writeChunked(service, '2a37', larger.subarray(1, 4))
+    await ble.device('A').writeChunked(service, '2a37', new Uint8Array([4]).buffer, { withoutResponse: true, timeout: 2_000 })
+
+    const [first, second] = native.writeChunked.mock.calls
+    expect(Array.from(new Uint8Array(first![3]))).toEqual([1, 2, 3])
+    expect(first![4]).toBe(true)
+    expect(first![5]).toBe(10_000)
+    expect(second![4]).toBe(false)
+    expect(second![5]).toBe(2_000)
+  })
+
+  it('names the chunk that failed, how many there were and the bytes sent before it', async () => {
+    native.writeChunked.mockRejectedValue(
+      new Error(
+        '[gattError:14 {"attError":"unlikelyError","chunkCount":12,"chunkIndex":3,"sentLength":732}] Chunk 3 of 12 (counting from 0) failed after 732 bytes were sent: refused'
+      )
+    )
+
+    await expect(ble.device('A').writeChunked(service, '2a37', new Uint8Array(2_000))).rejects.toMatchObject({
+      code: 'gattError',
+      chunkIndex: 3,
+      chunkCount: 12,
+      sentLength: 732,
+      platformCode: 14,
+      operation: 'writeChunked',
+      deviceId: 'A',
+    })
+  })
+
+  it('reports the maximum write length and the signal strength of the connected device', async () => {
+    native.getMaxWriteLength.mockResolvedValue(182)
+    native.readRssi.mockResolvedValue(-57)
+
+    await expect(ble.device('A').getMaxWriteLength()).resolves.toBe(182)
+    await expect(ble.device('A').readRssi({ timeout: 3_000 })).resolves.toBe(-57)
+    expect(native.readRssi).toHaveBeenCalledWith('A', 3_000)
+  })
+
+  it('rejects at once with notConnected when the device is not connected', async () => {
+    report({ id: 'A', state: 'disconnected' })
+
+    await expect(ble.device('A').writeChunked(service, '2a37', new Uint8Array([1]))).rejects.toMatchObject({ code: 'notConnected' })
+    await expect(ble.device('A').getMaxWriteLength()).rejects.toMatchObject({ code: 'notConnected' })
+    await expect(ble.device('A').readRssi()).rejects.toMatchObject({ code: 'notConnected' })
+    expect(native.writeChunked).not.toHaveBeenCalled()
+    expect(native.getMaxWriteLength).not.toHaveBeenCalled()
+    expect(native.readRssi).not.toHaveBeenCalled()
   })
 })

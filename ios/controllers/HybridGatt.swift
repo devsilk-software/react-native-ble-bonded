@@ -41,6 +41,51 @@ final class HybridGatt: HybridGattSpec {
       }
     }
   }
+
+  static func writeChunked(
+    id: String,
+    service: String,
+    characteristic: String,
+    value: ArrayBuffer,
+    withResponse: Bool,
+    timeoutMs: Double
+  ) throws -> any Promise<Void> {
+    let address = try CharacteristicAddress(service, characteristic)
+    let bytes = [UInt8](value.toData(copyIfNeeded: true))
+    return Promise_void.async {
+      do {
+        try await CompositionRoot.shared.writeChunked(
+          bytes,
+          to: address,
+          on: DeviceId(id),
+          withResponse: withResponse,
+          timeout: .milliseconds(Int64(timeoutMs))
+        )
+      } catch let error as BleError {
+        throw RuntimeError(error.jsMessage)
+      }
+    }
+  }
+
+  static func getMaxWriteLength(id: String) throws -> any Promise<Double> {
+    Promise_double.async {
+      do {
+        return Double(try await CompositionRoot.shared.getMaxWriteLength(on: DeviceId(id)))
+      } catch let error as BleError {
+        throw RuntimeError(error.jsMessage)
+      }
+    }
+  }
+
+  static func readRssi(id: String, timeoutMs: Double) throws -> any Promise<Double> {
+    Promise_double.async {
+      do {
+        return Double(try await CompositionRoot.shared.readRssi(on: DeviceId(id), timeout: .milliseconds(Int64(timeoutMs))))
+      } catch let error as BleError {
+        throw RuntimeError(error.jsMessage)
+      }
+    }
+  }
 }
 
 extension HybridGatt {

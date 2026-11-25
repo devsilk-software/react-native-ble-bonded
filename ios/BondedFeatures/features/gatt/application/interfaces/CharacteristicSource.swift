@@ -1,10 +1,11 @@
-/// The platform's characteristics, in Bonded's words. Implemented with Core Bluetooth, and by a fake in tests.
+/// The platform's operations on a connected device, in Bonded's words: its characteristics and its signal strength.
+/// Implemented with Core Bluetooth, and by a fake in tests.
 public protocol CharacteristicSource: Sendable {
   /// What the characteristic allows, from the services discovered at connect; `nil` when the device has no such
   /// characteristic. Throws `notConnected` while the device isn't connected.
   func properties(of address: CharacteristicAddress, on id: DeviceId) async throws -> [CharacteristicProperty]?
 
-  /// The longest value one write without response may carry.
+  /// The longest value one write may carry without being split: the connection's MTU minus 3. Throws `notConnected`.
   func maxWriteLength(on id: DeviceId) async throws -> Int
 
   /// Reads the characteristic's value. Throws a `BleError`; cancelling stops waiting.
@@ -13,6 +14,13 @@ public protocol CharacteristicSource: Sendable {
   /// Writes `value`. With response, returns once the device confirmed; without, once the platform accepted it,
   /// waiting for room when its buffer is full.
   func write(_ value: [UInt8], to address: CharacteristicAddress, on id: DeviceId, withResponse: Bool) async throws
+
+  /// Writes `pieces` in order as one operation, so nothing else on the device runs between them. Each piece that takes
+  /// longer than `timeout` fails. Throws `PieceFailure` naming the piece that failed; the ones after it aren't sent.
+  func write(pieces: [[UInt8]], to address: CharacteristicAddress, on id: DeviceId, withResponse: Bool, timeout: Duration) async throws
+
+  /// The connected device's signal strength in dBm. Throws a `BleError`; cancelling stops waiting.
+  func readRssi(on id: DeviceId) async throws -> Int
 
   /// Switches notifications (or indications) on or off and returns once the device confirmed.
   func setNotifications(_ isOn: Bool, indicate: Bool, on address: CharacteristicAddress, of id: DeviceId) async throws
@@ -31,5 +39,16 @@ public struct CharacteristicNotification: Sendable, Equatable {
     self.id = id
     self.address = address
     self.value = value
+  }
+}
+
+/// A piece of a chunked write failed: which one, counting from 0, and why.
+public struct PieceFailure: Error, Sendable {
+  public let index: Int
+  public let error: BleError
+
+  public init(index: Int, error: BleError) {
+    self.index = index
+    self.error = error
   }
 }

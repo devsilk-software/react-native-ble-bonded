@@ -68,12 +68,45 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
+  Promise<void> HybridGattSpecSwift::writeChunked(const swift::String& id, const swift::String& service, const swift::String& characteristic, const ArrayBuffer& value, bool withResponse, double timeoutMs) {
+    auto __result = withCxxResult<Promise<void>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridGattSpec_cxx::writeChunked(id, service, characteristic, value, withResponse, timeoutMs, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
+  Promise<double> HybridGattSpecSwift::getMaxWriteLength(const swift::String& id) {
+    auto __result = withCxxResult<Promise<double>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridGattSpec_cxx::getMaxWriteLength(id, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
+  Promise<double> HybridGattSpecSwift::readRssi(const swift::String& id, double timeoutMs) {
+    auto __result = withCxxResult<Promise<double>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridGattSpec_cxx::readRssi(id, timeoutMs, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
   const std::shared_ptr<const HybridClass>& HybridGattSpecSwift::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("read", &HybridGattSpecSwift::read);
       clazz.registerStaticHybridMethod("subscribe", &HybridGattSpecSwift::subscribe);
       clazz.registerStaticHybridMethod("unsubscribe", &HybridGattSpecSwift::unsubscribe);
       clazz.registerStaticHybridMethod("write", &HybridGattSpecSwift::write);
+      clazz.registerStaticHybridMethod("writeChunked", &HybridGattSpecSwift::writeChunked);
+      clazz.registerStaticHybridMethod("getMaxWriteLength", &HybridGattSpecSwift::getMaxWriteLength);
+      clazz.registerStaticHybridMethod("readRssi", &HybridGattSpecSwift::readRssi);
     });
     return hybridClass;
   }

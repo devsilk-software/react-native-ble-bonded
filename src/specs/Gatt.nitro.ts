@@ -47,4 +47,24 @@ export declare class Gatt extends HybridObject {
     withResponse: boolean,
     timeoutMs: number
   ): Promise<void>
+
+  /**
+   * Cuts `value` to the maximum write length and writes the chunks in order as one operation; each chunk gets
+   * `timeoutMs`. Rejects with a `BleError` message; when a chunk failed, its fields name the chunk (`chunkIndex`,
+   * `chunkCount`, `sentLength`).
+   */
+  static writeChunked(
+    id: string,
+    service: string,
+    characteristic: string,
+    value: ArrayBuffer,
+    withResponse: boolean,
+    timeoutMs: number
+  ): Promise<void>
+
+  /** The most one write carries without being split: the connection's MTU minus 3. Rejects with `notConnected`. */
+  static getMaxWriteLength(id: string): Promise<number>
+
+  /** The connected device's signal strength in dBm. Rejects with a `BleError` message. */
+  static readRssi(id: string, timeoutMs: number): Promise<number>
 }

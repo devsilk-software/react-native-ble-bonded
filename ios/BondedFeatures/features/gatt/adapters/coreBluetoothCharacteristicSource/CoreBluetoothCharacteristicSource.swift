@@ -62,6 +62,56 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
     }
   }
 
+  public func write(
+    pieces: [[UInt8]],
+    to address: CharacteristicAddress,
+    on id: DeviceId,
+    withResponse: Bool,
+    timeout: Duration
+  ) async throws {
+    let operation: CharacteristicOperation = withResponse ? .write : .writeWithoutResponse
+    do {
+      try await central.write(
+        pieces: pieces.map { Data($0) },
+        to: try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue,
+        withResponse: withResponse,
+        limit: timeout
+      )
+    } catch let failure as PieceError {
+      let error =
+        failure.error.map { Self.bleError($0, operation: operation, address: address, id: id) }
+          ?? BleError(
+            code: .timeout,
+            message: "The device didn't take the \(operation.name) of characteristic \(address.characteristic) within \(timeout)",
+            deviceId: id,
+            operation: operation.name
+          )
+      throw PieceFailure(index: failure.index, error: error)
+    } catch let error as CentralError {
+      // Failed before the write got its turn, so no chunk went out.
+      throw PieceFailure(index: 0, error: Self.bleError(error, operation: operation, address: address, id: id))
+    } catch is CancellationError {
+      throw Self.cancelled(operation, id: id)
+    }
+  }
+
+  public func readRssi(on id: DeviceId) async throws -> Int {
+    do {
+      return try await central.readRssi(try Self.identifier(id))
+    } catch let error as CentralError {
+      switch error {
+      case let .platform(info):
+        throw BleError(code: .gattError, message: info.message, platformCode: info.code, deviceId: id, operation: "readRssi")
+      default:
+        throw Self.notConnected(id)
+      }
+    } catch is CancellationError {
+      throw BleError(code: .cancelled, message: "Reading the signal strength was cancelled", deviceId: id, operation: "readRssi")
+    }
+  }
+
   public func setNotifications(_ isOn: Bool, indicate: Bool, on address: CharacteristicAddress, of id: DeviceId) async throws {
     do {
       // Core Bluetooth picks notifications or indications itself.

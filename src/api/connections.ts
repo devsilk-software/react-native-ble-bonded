@@ -414,6 +414,53 @@ export class Device {
     }
   }
 
+  /**
+   * Cuts `data` to the maximum write length and writes the chunks in order, as one operation: no other read or write
+   * on the device gets between them, so firmware that puts them back together can rely on that. Waits for the
+   * device to confirm each chunk unless `withoutResponse`; the timeout applies to each chunk, from when it's sent. Empty data resolves
+   * without sending anything. Stops at the first chunk that fails and rejects with its error plus `chunkIndex`
+   * (counting from 0), `chunkCount` and `sentLength`, the bytes sent before it (confirmed by the device unless `withoutResponse`). The device must be
+   * connected; otherwise it rejects at once with `notConnected`.
+   */
+  async writeChunked(service: string, characteristic: string, data: ArrayBuffer | Uint8Array, options: WriteOptions = {}): Promise<void> {
+    this.requireConnected('writeChunked')
+    const buffer = data instanceof Uint8Array ? copyToBuffer(data) : data
+    try {
+      await Gatt.writeChunked(this.id, service, characteristic, buffer, options.withoutResponse !== true, operationTimeout(options))
+    } catch (error) {
+      throw toBleError(error, 'writeChunked', this.id)
+    }
+  }
+
+  /**
+   * The most one write carries without being split, in bytes: the connection's MTU minus 3. The phone and the device
+   * agree on it each time they connect, so it differs between devices and phones; read it while connected. A write
+   * with response still takes up to 512 bytes as a long write. Rejects with `notConnected` while the device isn't
+   * connected.
+   */
+  async getMaxWriteLength(): Promise<number> {
+    this.requireConnected('getMaxWriteLength')
+    try {
+      return await Gatt.getMaxWriteLength(this.id)
+    } catch (error) {
+      throw toBleError(error, 'getMaxWriteLength', this.id)
+    }
+  }
+
+  /**
+   * The connected device's signal strength in dBm: closer to 0 is stronger, such as -50 next to the phone and -90
+   * near the edge of range. Rejects with `notConnected` while the device isn't connected and `timeout` after 10 s by
+   * default. In components, `useRssi()` reads it on an interval.
+   */
+  async readRssi(options: OperationOptions = {}): Promise<number> {
+    this.requireConnected('readRssi')
+    try {
+      return await Gatt.readRssi(this.id, operationTimeout(options))
+    } catch (error) {
+      throw toBleError(error, 'readRssi', this.id)
+    }
+  }
+
   private requireConnected(operation: string): void {
     if (this.connectionState === 'connected') return
     throw new BleError('notConnected', `The device is ${this.connectionState}; connect it before you ${operation}.`, {

@@ -7,6 +7,9 @@ actor FakeCharacteristicSource: CharacteristicSource {
   var refusal: BleError?
   var isAnswering = true
   var maxLength = 20
+  var rssi = -60
+  /// The chunk of a chunked write that fails, counting from 0, and with what.
+  var failingPiece: (index: Int, error: BleError)?
   private(set) var writes: [(value: [UInt8], withResponse: Bool)] = []
   private(set) var notificationSwitches: [(isOn: Bool, indicate: Bool)] = []
   var switchFailure: BleError?
@@ -38,6 +41,19 @@ actor FakeCharacteristicSource: CharacteristicSource {
     writes.append((value, withResponse))
   }
 
+  func write(pieces: [[UInt8]], to address: CharacteristicAddress, on id: DeviceId, withResponse: Bool, timeout: Duration) async throws {
+    for (index, piece) in pieces.enumerated() {
+      if let failingPiece, failingPiece.index == index { throw PieceFailure(index: index, error: failingPiece.error) }
+      try await answer()
+      writes.append((piece, withResponse))
+    }
+  }
+
+  func readRssi(on id: DeviceId) async throws -> Int {
+    try await answer()
+    return rssi
+  }
+
   func setNotifications(_ isOn: Bool, indicate: Bool, on address: CharacteristicAddress, of id: DeviceId) async throws {
     switchAttempts += 1
     if isOn, let switchFailure { throw switchFailure }
@@ -67,6 +83,8 @@ actor FakeCharacteristicSource: CharacteristicSource {
   }
 
   func refuse(with error: BleError) { refusal = error }
+  func failPiece(_ index: Int, with error: BleError) { failingPiece = (index, error) }
+  func set(rssi: Int) { self.rssi = rssi }
   func stopAnswering() { isAnswering = false }
   func set(_ value: [UInt8], at address: CharacteristicAddress) { values[address] = value }
 

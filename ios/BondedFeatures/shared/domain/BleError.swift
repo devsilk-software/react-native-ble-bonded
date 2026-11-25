@@ -34,6 +34,11 @@ public struct BleError: Error, Equatable, Sendable {
   /// For `valueTooLong`: the value's length and the most the operation allows, in bytes.
   public let length: Int?
   public let maxLength: Int?
+  /// For a failed `writeChunked`: the chunk that failed, counting from 0, how many there were, and the bytes sent
+  /// before it (confirmed by the device with response; handed to Bluetooth, unconfirmed, without).
+  public let chunkIndex: Int?
+  public let chunkCount: Int?
+  public let sentLength: Int?
 
   public init(
     code: Code,
@@ -43,7 +48,10 @@ public struct BleError: Error, Equatable, Sendable {
     operation: String? = nil,
     attError: String? = nil,
     length: Int? = nil,
-    maxLength: Int? = nil
+    maxLength: Int? = nil,
+    chunkIndex: Int? = nil,
+    chunkCount: Int? = nil,
+    sentLength: Int? = nil
   ) {
     self.code = code
     self.message = message
@@ -53,5 +61,8 @@ public struct BleError: Error, Equatable, Sendable {
     self.attError = attError
     self.length = length
     self.maxLength = maxLength
+    self.chunkIndex = chunkIndex
+    self.chunkCount = chunkCount
+    self.sentLength = sentLength
   }
 }

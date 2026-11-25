@@ -41,7 +41,7 @@ class ChunkedWriteTest : BehaviorSpec({
       source.writes.map { it.second }.toSet() shouldBe setOf(false)
     }
 
-    then("stops at the chunk that failed and says which one and how many bytes the device took") {
+    then("stops at the chunk that failed and says which one and how many bytes were sent before it") {
       val source = source()
       source.failingPiece = 1 to BleError(BleError.Code.GATT_ERROR, "The device refused it", 14, attError = "unlikelyError")
       val error = shouldThrow<BleError> { WriteChunked(source, EventBus())(ByteArray(45), testCharacteristic, device, withResponse = true) }

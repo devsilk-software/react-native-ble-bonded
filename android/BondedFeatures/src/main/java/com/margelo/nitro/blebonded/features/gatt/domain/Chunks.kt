@@ -19,7 +19,7 @@ object Chunks {
     val sent = index * size
     return BleError(
       error.code,
-      "Chunk $index of $count (counting from 0) failed after the device took $sent bytes: ${error.message}",
+      "Chunk $index of $count (counting from 0) failed after $sent bytes were sent: ${error.message}",
       error.platformCode,
       id,
       error.operation,

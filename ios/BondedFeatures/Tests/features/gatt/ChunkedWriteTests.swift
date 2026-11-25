@@ -29,7 +29,7 @@ struct ChunkedWriteTests {
     #expect(await source.writes.allSatisfy { !$0.withResponse })
   }
 
-  @Test("stops at the chunk that failed and says which one and how many bytes the device took")
+  @Test("stops at the chunk that failed and says which one and how many bytes were sent before it")
   func stopsAtTheChunkThatFailed() async {
     let source = source()
     await source.failPiece(1, with: BleError(code: .gattError, message: "The device refused it", platformCode: 14, attError: "unlikelyError"))

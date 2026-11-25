@@ -196,10 +196,10 @@ describe('Chunked writes, maximum write length and signal strength', () => {
     expect(second![5]).toBe(2_000)
   })
 
-  it('names the chunk that failed, how many there were and the bytes the device took', async () => {
+  it('names the chunk that failed, how many there were and the bytes sent before it', async () => {
     native.writeChunked.mockRejectedValue(
       new Error(
-        '[gattError:14 {"attError":"unlikelyError","chunkCount":12,"chunkIndex":3,"sentLength":732}] Chunk 3 of 12 (counting from 0) failed after the device took 732 bytes: refused'
+        '[gattError:14 {"attError":"unlikelyError","chunkCount":12,"chunkIndex":3,"sentLength":732}] Chunk 3 of 12 (counting from 0) failed after 732 bytes were sent: refused'
       )
     )
 

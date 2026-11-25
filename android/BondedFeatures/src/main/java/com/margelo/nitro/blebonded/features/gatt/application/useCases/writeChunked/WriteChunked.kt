@@ -14,7 +14,7 @@ import com.margelo.nitro.blebonded.shared.domain.DomainEvent
 /**
  * Writes data longer than one write carries: cuts it to the device's maximum write length and sends the chunks in
  * order as one operation, so nothing else on the device runs between them. Stops at the first chunk that fails and
- * says which one and how many bytes the device took before it. Each chunk gets the timeout. Publishes the write for
+ * says which one and how many bytes were sent before it. Each chunk gets the timeout. Publishes the write for
  * diagnostics, which records it only when asked to record GATT operations.
  */
 class WriteChunked(private val source: CharacteristicSource, private val bus: EventBus) {

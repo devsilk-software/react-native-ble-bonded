@@ -18,8 +18,8 @@ class BleError(
   val length: Int? = null,
   val maxLength: Int? = null,
   /**
-   * For a failed `writeChunked`: the chunk that failed, counting from 0, how many there were, and the bytes the device
-   * took before it.
+   * For a failed `writeChunked`: the chunk that failed, counting from 0, how many there were, and the bytes sent before
+   * it (confirmed by the device with response; handed to Bluetooth, unconfirmed, without).
    */
   val chunkIndex: Int? = null,
   val chunkCount: Int? = null,

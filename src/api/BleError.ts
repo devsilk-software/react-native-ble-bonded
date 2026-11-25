@@ -49,7 +49,10 @@ export interface BleErrorDetails {
   chunkIndex?: number
   /** For a failed `writeChunked`: how many chunks the data was cut into. */
   chunkCount?: number
-  /** For a failed `writeChunked`: the bytes the device took before the chunk that failed. */
+  /**
+   * For a failed `writeChunked`: the bytes sent before the chunk that failed. With response the device confirmed them;
+   * without, they went out unconfirmed.
+   */
   sentLength?: number
 }
 
@@ -71,7 +74,10 @@ export class BleError extends Error {
   readonly chunkIndex?: number
   /** For a failed `writeChunked`: how many chunks the data was cut into. */
   readonly chunkCount?: number
-  /** For a failed `writeChunked`: the bytes the device took before the chunk that failed. */
+  /**
+   * For a failed `writeChunked`: the bytes sent before the chunk that failed. With response the device confirmed them;
+   * without, they went out unconfirmed.
+   */
   readonly sentLength?: number
 
   constructor(code: BleErrorCode, message: string, details: BleErrorDetails = {}) {

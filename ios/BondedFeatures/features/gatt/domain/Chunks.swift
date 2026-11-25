@@ -12,7 +12,7 @@ public enum Chunks {
     let sent = index * size
     return BleError(
       code: error.code,
-      message: "Chunk \(index) of \(count) (counting from 0) failed after the device took \(sent) bytes: \(error.message)",
+      message: "Chunk \(index) of \(count) (counting from 0) failed after \(sent) bytes were sent: \(error.message)",
       platformCode: error.platformCode,
       deviceId: id,
       operation: error.operation,

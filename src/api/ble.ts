@@ -18,7 +18,10 @@ import {
   type DeviceConnection,
   type DeviceIdentity,
   type AndroidConnectionOptions,
+  type AndroidDevice,
+  type BondState,
   type Characteristic,
+  type CreateBondOptions,
   type GetServicesOptions,
   type CharacteristicProperty,
   type ConnectionChange,
@@ -51,7 +54,10 @@ export type { OperationOptions, SubscribeOptions, WriteOptions } from './connect
 export type { BleErrorCode, ManufacturerData, Scan, ScanNameFilter, ScannedDevice, ScanOptions, ScanStop, ScanStopReason }
 export type {
   AndroidConnectionOptions,
+  AndroidDevice,
+  BondState,
   Characteristic,
+  CreateBondOptions,
   GetServicesOptions,
   CharacteristicProperty,
   ConnectionChange,

@@ -12,6 +12,7 @@ jest.mock('../../specs/BluetoothState.nitro', () => ({
 jest.mock('../../specs/Permissions.nitro', () => ({
   Permissions: { getStatus: jest.fn(), request: jest.fn(), addListener: jest.fn(), removeListener: jest.fn() },
 }))
+jest.mock('../../specs/Bonding.nitro', () => ({ Bonding: {} }))
 jest.mock('../../specs/Gatt.nitro', () => ({ Gatt: { read: jest.fn(), write: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() } }))
 jest.mock('../../specs/Diagnostics.nitro', () => ({ Diagnostics: {} }))
 jest.mock('../../specs/Connection.nitro', () => ({

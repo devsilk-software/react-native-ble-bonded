@@ -14,6 +14,7 @@ export type DiagnosticEventType =
   | 'connectionRetried'
   | 'gattOperation'
   | 'forgotten'
+  | 'bondStateChanged'
 
 /** Whether the app was in the foreground or the background when the event happened. */
 export type DiagnosticAppState = 'foreground' | 'background'

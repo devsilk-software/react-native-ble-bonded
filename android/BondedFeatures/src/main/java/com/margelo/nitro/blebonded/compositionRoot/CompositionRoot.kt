@@ -1,5 +1,10 @@
 package com.margelo.nitro.blebonded.compositionRoot
 
+import com.margelo.nitro.blebonded.features.bonding.adapters.androidBondSource.AndroidBondSource
+import com.margelo.nitro.blebonded.features.bonding.application.useCases.createBond.CreateBond
+import com.margelo.nitro.blebonded.features.bonding.application.useCases.getBondState.GetBondState
+import com.margelo.nitro.blebonded.features.bonding.application.useCases.observeBondState.ObserveBondState
+import com.margelo.nitro.blebonded.features.bonding.application.useCases.removeBond.RemoveBond
 import android.content.Context
 import com.margelo.nitro.blebonded.features.bluetoothState.adapters.androidAdapterStateSource.AndroidAdapterStateSource
 import com.margelo.nitro.blebonded.features.bluetoothState.application.useCases.getAdapterState.GetAdapterState
@@ -116,6 +121,12 @@ class CompositionRoot private constructor(context: Context, prompt: PermissionPr
   private val subscriptions = SubscriptionRegistry(characteristics, bus, scope)
   val subscribe = Subscribe(subscriptions)
   val unsubscribe = Unsubscribe(subscriptions)
+
+  private val bonds = AndroidBondSource(radio, gattClients)
+  val createBond = CreateBond(bonds, bus)
+  val getBondState = GetBondState(bonds)
+  val removeBond = RemoveBond(bonds, bus)
+  val observeBondState = ObserveBondState(bonds)
 
   private val publishAdapterStateEvents = PublishAdapterStateEvents(observeAdapterState, bus)
   private val publishPermissionEvents = PublishPermissionEvents(observePermission, bus)

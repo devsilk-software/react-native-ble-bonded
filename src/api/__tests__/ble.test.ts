@@ -17,6 +17,7 @@ jest.mock('../../specs/Connection.nitro', () => ({
   Connection: { addListener: jest.fn().mockResolvedValue(1), getConnections: jest.fn().mockResolvedValue([]), configureAndroid: jest.fn() },
 }))
 jest.mock('../../specs/Scanner.nitro', () => ({ Scanner: { start: jest.fn(), stop: jest.fn() } }))
+jest.mock('../../specs/Bonding.nitro', () => ({ Bonding: {} }))
 jest.mock('../../specs/Gatt.nitro', () => ({ Gatt: { read: jest.fn(), write: jest.fn(), subscribe: jest.fn(), unsubscribe: jest.fn() } }))
 jest.mock('../../specs/Diagnostics.nitro', () => ({
   Diagnostics: { configure: jest.fn(), getEvents: jest.fn(), clear: jest.fn(), addListener: jest.fn(), removeListener: jest.fn() },

@@ -18,4 +18,5 @@ waits for the device, quit, tap Connect on the phone, then start the tool again.
 | Service | `b0ed0001-0000-4000-8000-00000000b0ed` | advertised, so a scan can filter on it |
 | Read | `b0ed0002-0000-4000-8000-00000000b0ed` | a counter that grows on every read |
 | Write | `b0ed0003-0000-4000-8000-00000000b0ed` | prints every write, with or without response; for the example app's chunked write (0, 1, 2, …) it prints how many bytes arrived in order, or `OUT OF ORDER` |
+| Secure | `b0ed0006-0000-4000-8000-00000000b0ed` | reads `bonded`, but only over an encrypted connection, so reading it pairs the phone: the trigger for `device.createBond()`. To pair again, remove the Mac in the phone's Bluetooth settings and the phone in the Mac's |
 | Notify | `b0ed0004-0000-4000-8000-00000000b0ed` | every second while subscribed, the seconds since the tool started; it never resets. Its user description descriptor (`2901`) reads `Counter` and is read-only |

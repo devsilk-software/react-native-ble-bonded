@@ -8,6 +8,7 @@ jest.mock('../../specs/BluetoothState.nitro', () => ({ BluetoothState: {} }))
 jest.mock('../../specs/Permissions.nitro', () => ({ Permissions: {} }))
 jest.mock('../../specs/Diagnostics.nitro', () => ({ Diagnostics: {} }))
 jest.mock('../../specs/Scanner.nitro', () => ({ Scanner: {} }))
+jest.mock('../../specs/Bonding.nitro', () => ({ Bonding: {} }))
 jest.mock('../../specs/Gatt.nitro', () => ({
   Gatt: {
     read: jest.fn(),

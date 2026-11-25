@@ -3,10 +3,11 @@ import Foundation
 
 // A test peripheral for Bonded's example app (README.md). Run with `swift run` from tools/test-peripheral.
 //
-// It advertises the name "Bonded Test" (or --name) and one service with three characteristics:
+// It advertises the name "Bonded Test" (or --name) and one service with four characteristics:
 // - read:   a counter that grows on every read, as text
 // - write:  accepts writes with and without response and prints them; checks that the counting pattern the example
 //           app's chunked write sends (0, 1, 2, …) arrives in order
+// - secure: needs an encrypted connection, so reading it pairs the phone; reads "bonded"
 // - notify: sends a counter every second while a phone is subscribed; its user description (2901) reads "Counter"
 //
 // Type `quit` and Enter to stop. macOS may keep the radio link up after quitting, so the phone doesn't always see
@@ -18,6 +19,7 @@ enum TestService {
   static let read = CBUUID(string: "B0ED0002-0000-4000-8000-00000000B0ED")
   static let write = CBUUID(string: "B0ED0003-0000-4000-8000-00000000B0ED")
   static let notify = CBUUID(string: "B0ED0004-0000-4000-8000-00000000B0ED")
+  static let secure = CBUUID(string: "B0ED0006-0000-4000-8000-00000000B0ED")
 }
 
 /// Core Bluetooth calls the delegate on the main queue, so the conformance and all state are on the main actor.
@@ -81,6 +83,8 @@ final class Peripheral: NSObject, @MainActor CBPeripheralManagerDelegate {
       CBMutableCharacteristic(type: TestService.read, properties: [.read], value: nil, permissions: [.readable]),
       CBMutableCharacteristic(type: TestService.write, properties: [.write, .writeWithoutResponse], value: nil, permissions: [.writeable]),
       notifyCharacteristic,
+      // Needs an encrypted connection, so reading it starts pairing: the trigger for device.createBond().
+      CBMutableCharacteristic(type: TestService.secure, properties: [.read], value: Data("bonded".utf8), permissions: [.readEncryptionRequired]),
     ]
     manager?.add(service)
   }

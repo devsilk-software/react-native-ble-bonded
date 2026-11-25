@@ -135,7 +135,7 @@ yarn ios                # or: yarn android
 ```
 
 Read [`docs/architecture.md`](docs/architecture.md) before adding a feature. The decisions behind the
-design are in [`docs/decisions.md`](docs/decisions.md); releasing is in [`docs/releasing.md`](docs/releasing.md).
+design are in [`docs/decisions.md`](docs/decisions.md).
 
 ## Licence
 

@@ -2,9 +2,8 @@
 
 Bluetooth Low Energy for React Native, built for connections that stay up.
 
-> **Status: preview (`0.1.0-beta.1`).** Everything in [This preview](#this-preview) is built and covered by tests
-> on both platforms, and checked on the devices listed there; the API may still change before 0.1. Connections in the background and after the system relaunches your app aren't in
-> it yet. Feedback and bug reports are welcome in [issues](https://github.com/devsilk-software/react-native-ble-bonded/issues).
+> **Status: preview (`0.1.0-beta.1`).** [This preview](#this-preview) lists what's in it; the API may still change
+> before 0.1. Connections in the background and after the system relaunches your app aren't in it yet. Feedback and bug reports are welcome in [issues](https://github.com/devsilk-software/react-native-ble-bonded/issues).
 
 Maintained by [Albert Liberski](https://github.com/aliberski) ([Devsilk](https://github.com/devsilk-software)), a former maintainer of
 react-native-ble-plx.
@@ -23,8 +22,14 @@ react-native-ble-plx.
 npm install react-native-ble-bonded@next react-native-nitro-modules@1.0.0-alpha.nightly.136.gdb81de61bd32 nitro-core@1.0.0-alpha.nightly.136.gdb81de61bd32
 ```
 
-**iOS:** set up Swift Package Manager once with `npx react-native spm`, and add `NSBluetoothAlwaysUsageDescription`
-to `Info.plist`, saying why your app uses Bluetooth.
+**iOS:** Nitro v1 builds only through Swift Package Manager, and needs iOS 16:
+
+1. Switch the app to Swift Package Manager once: `npx react-native spm add --deintegrate`. A new React Native app is
+   set up for CocoaPods; this removes that setup, and needs CocoaPods (`pod`) installed to do it.
+2. Set the app target's minimum deployment to iOS 16.0 (Xcode › the app target › General › Minimum Deployments). A
+   new React Native 0.88 app starts at 15.1, and the build then fails with "requires minimum platform version 16.0".
+3. Run `npx react-native spm` again, so the linked packages pick up iOS 16.
+4. Add `NSBluetoothAlwaysUsageDescription` to `Info.plist`, saying why your app uses Bluetooth.
 
 **Android:** add the permissions to `AndroidManifest.xml`:
 
@@ -94,7 +99,6 @@ Not in this preview:
 
 - Reconnecting by itself after a drop, connections in the background, and the system relaunching your app
 - Expo: Expo can't build Nitro v1 modules yet
-- Tested on an iPhone against a Mac test peripheral; Android phones and pairing with real devices are less tested
 
 ## Developing
 

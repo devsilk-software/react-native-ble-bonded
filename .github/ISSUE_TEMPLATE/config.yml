@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bluetooth terms
+    url: https://github.com/devsilk-software/react-native-ble-bonded/blob/master/docs/glossary.md
+    about: What MTU, RSSI, bonding and Bonded's own terms mean.
+  - name: Why Bonded works the way it does
+    url: https://github.com/devsilk-software/react-native-ble-bonded/blob/master/docs/decisions.md
+    about: The decisions behind each behaviour, before asking for a change.

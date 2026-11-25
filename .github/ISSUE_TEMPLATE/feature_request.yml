@@ -1,0 +1,22 @@
+name: Feature request
+description: Something Bonded doesn't do yet.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The problem in your app, not the solution. What do you have to write yourself today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you'd like Bonded to handle it, if you have an idea.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options: [iOS, Android, Both]

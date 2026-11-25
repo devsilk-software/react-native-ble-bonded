@@ -64,6 +64,8 @@ export interface NativeConnectionChange {
 export interface NativeCharacteristic {
   uuid: string
   properties: CharacteristicProperty[]
+  /** Its descriptors' UUIDs; set only when asked for. */
+  descriptors?: string[]
 }
 
 export interface NativeService {
@@ -95,8 +97,11 @@ export declare class Connection extends HybridObject {
   /** Disconnects the device and forgets it; the system's pairing stays. */
   static forget(id: string): Promise<void>
 
-  /** The services discovered when the device connected. Rejects with `notConnected` while it isn't. */
-  static getServices(id: string): Promise<NativeService[]>
+  /**
+   * The services discovered when the device connected, with each characteristic's descriptors when `descriptors`
+   * is true (discovered then, the first time). Rejects with `notConnected` while it isn't connected.
+   */
+  static getServices(id: string, descriptors: boolean): Promise<NativeService[]>
 
   /**
    * Calls `onChange` with every known device's current connection, remembered devices included, then every

@@ -1,6 +1,7 @@
 package com.margelo.nitro.blebonded.features.gatt.domain
 
 import com.margelo.nitro.blebonded.shared.domain.BleError
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 
 /**
@@ -35,9 +36,9 @@ object DeviceRefusal {
   /** Whether [code] is a Bluetooth error with a name, as opposed to a platform's own status. */
   fun isNamed(code: Int): Boolean = code in names
 
-  /** The [BleError] for an ATT error code the device answered [operation] with. */
-  fun error(code: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId): BleError {
-    val what = "the ${operation.publicName} of characteristic ${address.characteristic}"
+  /** The [BleError] for an ATT error code the device answered [operation] with; for a descriptor, [descriptor] names it. */
+  fun error(code: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId, descriptor: DescriptorUuid? = null): BleError {
+    val what = what(operation, address, descriptor)
     if (code in 0x80..0x9F) {
       return BleError(
         BleError.Code.GATT_ERROR,
@@ -48,7 +49,9 @@ object DeviceRefusal {
         attError = "applicationError",
       )
     }
-    val (name, description) = names[code] ?: ("unknown" to "the device refused it with an unknown error $code")
+    val (name, known) = names[code] ?: ("unknown" to "the device refused it with an unknown error $code")
+    // The descriptions speak of the characteristic; for a descriptor, the descriptor is what the device refused.
+    val description = if (descriptor == null) known else known.replace("the characteristic", "the descriptor")
     return BleError(
       if (code in pairing) BleError.Code.PAIRING_REQUIRED else BleError.Code.GATT_ERROR,
       "The device refused $what: $description.",
@@ -57,5 +60,15 @@ object DeviceRefusal {
       operation.publicName,
       attError = name,
     )
+  }
+
+  /**
+   * What an error message calls the operation: "the read of characteristic 2a37", or for a descriptor "the write of
+   * descriptor 2901 on characteristic 2a37".
+   */
+  fun what(operation: CharacteristicOperation, address: CharacteristicAddress, descriptor: DescriptorUuid?): String {
+    if (descriptor == null) return "the ${operation.publicName} of characteristic ${address.characteristic}"
+    val verb = if (operation == CharacteristicOperation.WRITE_DESCRIPTOR) "write" else "read"
+    return "the $verb of descriptor $descriptor on characteristic ${address.characteristic}"
   }
 }

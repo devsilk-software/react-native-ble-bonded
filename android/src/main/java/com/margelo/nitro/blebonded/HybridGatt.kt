@@ -3,6 +3,7 @@ package com.margelo.nitro.blebonded
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import com.margelo.nitro.blebonded.features.gatt.domain.SubscriptionEvent
@@ -92,6 +93,43 @@ class HybridGatt : HybridGattSpec() {
           throw Exception(error.jsMessage)
         }
       }
+
+    override fun readDescriptor(id: String, service: String, characteristic: String, descriptor: String, timeoutMs: Double): Promise<ArrayBuffer> {
+      val address = address(service, characteristic)
+      val uuid = descriptorUuid(descriptor)
+      return Promise.async {
+        try {
+          ArrayBuffer.copy(root().readDescriptor(uuid, address, DeviceId(id), timeoutMs.toLong()))
+        } catch (error: BleError) {
+          throw Exception(error.jsMessage)
+        }
+      }
+    }
+
+    override fun writeDescriptor(
+      id: String,
+      service: String,
+      characteristic: String,
+      descriptor: String,
+      value: ArrayBuffer,
+      timeoutMs: Double,
+    ): Promise<Unit> {
+      val address = address(service, characteristic)
+      val uuid = descriptorUuid(descriptor)
+      val buffer = value.getBuffer(copyIfNeeded = true)
+      val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
+      return Promise.async {
+        try {
+          root().writeDescriptor(bytes, uuid, address, DeviceId(id), timeoutMs.toLong())
+        } catch (error: BleError) {
+          throw Exception(error.jsMessage)
+        }
+      }
+    }
+
+    /** From the UUID JavaScript passed, short or full; a malformed one rejects with a message naming it. */
+    private fun descriptorUuid(text: String): DescriptorUuid =
+      DescriptorUuid.parse(text) ?: throw Exception(BleError(BleError.Code.UNKNOWN, "Not a descriptor UUID: $text").jsMessage)
 
     override fun subscribe(
       id: String,

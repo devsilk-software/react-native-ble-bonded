@@ -12,6 +12,7 @@
 
 #include <NitroBleBonded/private/CharacteristicProperty-Swift.hpp>
 #include <NitroModules/JSIConverter+SwiftArray.hpp>
+#include <NitroModules/JSIConverter+SwiftOptional.hpp>
 #include <NitroBleBonded/private/NativeCharacteristic-Swift.hpp>
 #include <NitroBleBonded/private/NativeService-Swift.hpp>
 

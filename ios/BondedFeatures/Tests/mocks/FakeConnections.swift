@@ -78,6 +78,18 @@ actor FakeConnectionSource: ConnectionSource {
 
   func name(of id: DeviceId) async -> String? { "Thermo-1" }
 
+  /// Every characteristic gets the descriptors 2902 and 2901.
+  func withDescriptors(_ services: [GattService], of id: DeviceId) async throws -> [GattService] {
+    services.map { service in
+      GattService(
+        uuid: service.uuid,
+        characteristics: service.characteristics.map {
+          GattCharacteristic(uuid: $0.uuid, properties: $0.properties, descriptors: [DescriptorUuid("2902")!, DescriptorUuid("2901")!])
+        }
+      )
+    }
+  }
+
   func setReadiness(_ readiness: ConnectionReadiness) {
     currentReadiness = readiness
   }

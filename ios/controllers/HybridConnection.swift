@@ -41,10 +41,10 @@ final class HybridConnection: HybridConnectionSpec {
     }
   }
 
-  static func getServices(id: String) throws -> any Promise<[NativeService]> {
+  static func getServices(id: String, descriptors: Bool) throws -> any Promise<[NativeService]> {
     Promise___NitroBleBonded__SwiftContainer_swift__Array___NitroBleBonded__NativeService_.async {
       do {
-        return try await CompositionRoot.shared.getServices(DeviceId(id)).map(NativeService.init)
+        return try await CompositionRoot.shared.getServices(DeviceId(id), descriptors: descriptors).map(NativeService.init)
       } catch let error as BleError {
         throw RuntimeError(error.jsMessage)
       }
@@ -111,7 +111,8 @@ extension NativeService {
       characteristics: service.characteristics.map { characteristic in
         NativeCharacteristic(
           uuid: characteristic.uuid.rawValue,
-          properties: characteristic.properties.map(NitroBleBonded.CharacteristicProperty.init)
+          properties: characteristic.properties.map(NitroBleBonded.CharacteristicProperty.init),
+          descriptors: characteristic.descriptors?.map(\.rawValue)
         )
       }
     )

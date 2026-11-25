@@ -22,18 +22,23 @@ data class NativeCharacteristic(
   val uuid: String,
   @DoNotStrip
   @Keep
-  val properties: Array<CharacteristicProperty>
+  val properties: Array<CharacteristicProperty>,
+  @DoNotStrip
+  @Keep
+  val descriptors: Array<String>?
 ) {
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is NativeCharacteristic) return false
     return this.uuid == other.uuid
       && this.properties.contentDeepEquals(other.properties)
+      && (this.descriptors == null && other.descriptors == null || this.descriptors != null && other.descriptors != null && this.descriptors.contentDeepEquals(other.descriptors))
   }
 
   override fun hashCode(): Int {
     var result = this.uuid.hashCode()
     result = 31 * result + this.properties.contentDeepHashCode()
+    result = 31 * result + (if (this.descriptors != null) this.descriptors.contentDeepHashCode() else 0)
     return result
   }
 
@@ -45,8 +50,8 @@ data class NativeCharacteristic(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(uuid: String, properties: Array<CharacteristicProperty>): NativeCharacteristic {
-      return NativeCharacteristic(uuid, properties)
+    private fun fromCpp(uuid: String, properties: Array<CharacteristicProperty>, descriptors: Array<String>?): NativeCharacteristic {
+      return NativeCharacteristic(uuid, properties, descriptors)
     }
   }
 }

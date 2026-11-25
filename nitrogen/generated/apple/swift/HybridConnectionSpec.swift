@@ -26,7 +26,7 @@ public protocol HybridConnectionSpec_protocol: HybridConnectionSpec_base, Hybrid
   static func disconnect(id: String) throws -> any Promise<Void>
   static func getConnections() throws -> any Promise<[NativeConnectionChange]>
   static func forget(id: String) throws -> any Promise<Void>
-  static func getServices(id: String) throws -> any Promise<[NativeService]>
+  static func getServices(id: String, descriptors: Bool) throws -> any Promise<[NativeService]>
   static func addListener(onChange: any Callback<(/* change */ NativeConnectionChange), Void>) throws -> any Promise<Double>
   static func removeListener(id: Double) throws -> Void
   static func configureAndroid(options: NativeAndroidConnectionOptions) throws -> Void

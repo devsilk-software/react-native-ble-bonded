@@ -88,6 +88,8 @@ namespace margelo::nitro::blebonded {
     static jni::local_ref<JTypedPromise<void>> writeChunked(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<JArrayBuffer::JavaPart>& value, jboolean withResponse, jdouble timeoutMs);
     static jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> getMaxWriteLength(const jni::local_ref<jni::JString>& id);
     static jni::local_ref<JTypedPromise<jni::local_ref<jni::JDouble>>> readRssi(const jni::local_ref<jni::JString>& id, jdouble timeoutMs);
+    static jni::local_ref<JTypedPromise<jni::local_ref<JArrayBuffer::JavaPart>>> readDescriptor(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<jni::JString>& descriptor, jdouble timeoutMs);
+    static jni::local_ref<JTypedPromise<void>> writeDescriptor(const jni::local_ref<jni::JString>& id, const jni::local_ref<jni::JString>& service, const jni::local_ref<jni::JString>& characteristic, const jni::local_ref<jni::JString>& descriptor, const jni::local_ref<JArrayBuffer::JavaPart>& value, jdouble timeoutMs);
 
   protected:
     const std::shared_ptr<const HybridClass>& getHybridClass() override {

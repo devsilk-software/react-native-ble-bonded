@@ -20,6 +20,8 @@ public struct BleError: Error, Equatable, Sendable {
     case characteristicNotFound
     /// The characteristic already has a subscription; there's one at a time.
     case alreadySubscribed
+    /// The characteristic has no such descriptor.
+    case descriptorNotFound
   }
 
   public let code: Code

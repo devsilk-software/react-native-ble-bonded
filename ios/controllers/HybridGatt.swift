@@ -89,6 +89,57 @@ final class HybridGatt: HybridGattSpec {
 }
 
 extension HybridGatt {
+  static func readDescriptor(
+    id: String,
+    service: String,
+    characteristic: String,
+    descriptor: String,
+    timeoutMs: Double
+  ) throws -> any Promise<ArrayBuffer> {
+    let address = try CharacteristicAddress(service, characteristic)
+    let uuid = try DescriptorUuid.parsing(descriptor)
+    return Promise_ArrayBuffer.async {
+      do {
+        let value = try await CompositionRoot.shared.readDescriptor(uuid, of: address, on: DeviceId(id), timeout: .milliseconds(Int64(timeoutMs)))
+        return try ArrayBuffer.copy(data: Data(value))
+      } catch let error as BleError {
+        throw RuntimeError(error.jsMessage)
+      }
+    }
+  }
+
+  static func writeDescriptor(
+    id: String,
+    service: String,
+    characteristic: String,
+    descriptor: String,
+    value: ArrayBuffer,
+    timeoutMs: Double
+  ) throws -> any Promise<Void> {
+    let address = try CharacteristicAddress(service, characteristic)
+    let uuid = try DescriptorUuid.parsing(descriptor)
+    let bytes = [UInt8](value.toData(copyIfNeeded: true))
+    return Promise_void.async {
+      do {
+        try await CompositionRoot.shared.writeDescriptor(bytes, to: uuid, of: address, on: DeviceId(id), timeout: .milliseconds(Int64(timeoutMs)))
+      } catch let error as BleError {
+        throw RuntimeError(error.jsMessage)
+      }
+    }
+  }
+}
+
+extension DescriptorUuid {
+  /// From the UUID JavaScript passed, short or full; a malformed one rejects with a message naming it.
+  static func parsing(_ text: String) throws -> DescriptorUuid {
+    guard let uuid = DescriptorUuid(text) else {
+      throw RuntimeError(BleError(code: .unknown, message: "Not a descriptor UUID: \(text)").jsMessage)
+    }
+    return uuid
+  }
+}
+
+extension HybridGatt {
   static func subscribe(
     id: String,
     service: String,

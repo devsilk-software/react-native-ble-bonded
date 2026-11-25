@@ -6,6 +6,7 @@ export {
   Device,
   type AndroidConnectionOptions,
   type Characteristic,
+  type GetServicesOptions,
   type CharacteristicProperty,
   type ConnectionChange,
   type ConnectionState,

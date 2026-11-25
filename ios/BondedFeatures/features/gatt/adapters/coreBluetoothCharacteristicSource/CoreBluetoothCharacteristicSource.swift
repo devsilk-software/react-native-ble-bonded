@@ -97,6 +97,57 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
     }
   }
 
+  public func descriptors(
+    of address: CharacteristicAddress,
+    on id: DeviceId,
+    for operation: CharacteristicOperation
+  ) async throws -> [DescriptorUuid]? {
+    do {
+      let uuids = try await central.descriptorUuids(
+        try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue
+      )
+      return uuids?.compactMap(DescriptorUuid.init)
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: operation, address: address, id: id)
+    } catch is CancellationError {
+      throw Self.cancelled(operation, id: id)
+    }
+  }
+
+  public func readDescriptor(_ descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws -> [UInt8] {
+    do {
+      let data = try await central.readDescriptor(
+        try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue,
+        descriptor: descriptor.rawValue
+      )
+      return Array(data)
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: .readDescriptor, address: address, id: id, descriptor: descriptor)
+    } catch is CancellationError {
+      throw Self.cancelled(.readDescriptor, id: id)
+    }
+  }
+
+  public func writeDescriptor(_ value: [UInt8], to descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws {
+    do {
+      try await central.writeDescriptor(
+        Data(value),
+        to: try Self.identifier(id),
+        service: address.service.rawValue,
+        characteristic: address.characteristic.rawValue,
+        descriptor: descriptor.rawValue
+      )
+    } catch let error as CentralError {
+      throw Self.bleError(error, operation: .writeDescriptor, address: address, id: id, descriptor: descriptor)
+    } catch is CancellationError {
+      throw Self.cancelled(.writeDescriptor, id: id)
+    }
+  }
+
   public func readRssi(on id: DeviceId) async throws -> Int {
     do {
       return try await central.readRssi(try Self.identifier(id))
@@ -161,18 +212,28 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
   }
 
   /// Core Bluetooth's error in Bonded's words: the device's own ATT errors by name, the rest as GATT errors.
-  static func bleError(_ error: CentralError, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId) -> BleError {
+  /// For a descriptor operation, `descriptor` is the descriptor it was for, and the message names it.
+  static func bleError(
+    _ error: CentralError,
+    operation: CharacteristicOperation,
+    address: CharacteristicAddress,
+    id: DeviceId,
+    descriptor: DescriptorUuid? = nil
+  ) -> BleError {
+    let what = DeviceRefusal.what(operation, address, descriptor)
     switch error {
     case let .platform(info) where info.domain == CBATTErrorDomain:
-      return DeviceRefusal.error(code: info.code, operation: operation, address: address, id: id)
+      return DeviceRefusal.error(code: info.code, operation: operation, address: address, id: id, descriptor: descriptor)
     case let .platform(info):
       return BleError(code: .gattError, message: info.message, platformCode: info.code, deviceId: id, operation: operation.name)
     case .notConnected, .notReady, .unknownPeripheral:
-      return BleError(code: .notConnected, message: "The device disconnected during the \(operation.name)", deviceId: id, operation: operation.name)
+      return BleError(code: .notConnected, message: "The device disconnected during \(what)", deviceId: id, operation: operation.name)
     case .noAnswer:
+      return BleError(code: .timeout, message: "The device didn't answer \(what) within Bluetooth's 30 seconds", deviceId: id, operation: operation.name)
+    case .notFound:
       return BleError(
-        code: .timeout,
-        message: "The device didn't answer the \(operation.name) of characteristic \(address.characteristic) within Bluetooth's 30 seconds",
+        code: descriptor == nil ? .characteristicNotFound : .descriptorNotFound,
+        message: "The device's services changed: \(what) has nothing to act on. device.getServices({ descriptors: true }) lists what it has now.",
         deviceId: id,
         operation: operation.name
       )

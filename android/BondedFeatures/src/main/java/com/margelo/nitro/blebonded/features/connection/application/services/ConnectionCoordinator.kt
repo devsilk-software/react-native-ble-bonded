@@ -195,7 +195,12 @@ class ConnectionCoordinator(
       entry.services
     }
 
-  /** Every known device's current connection, then every change. */
+  /** The services, with each characteristic's descriptors when [descriptors]. Throws `notConnected` while it isn't connected. */
+  suspend fun services(id: DeviceId, descriptors: Boolean): List<GattService> {
+    val services = services(id)
+    return if (descriptors) source.withDescriptors(services, id) else services
+  }
+
   /** Every known device's current connection, remembered devices included, then every change. */
   fun changes(): Flow<ConnectionChange> =
     changes.onSubscription {

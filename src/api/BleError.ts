@@ -15,6 +15,7 @@ export type BleErrorCode =
   | 'valueTooLong'
   | 'characteristicNotFound'
   | 'alreadySubscribed'
+  | 'descriptorNotFound'
 
 const codes: readonly BleErrorCode[] = [
   'bluetoothOff',
@@ -32,6 +33,7 @@ const codes: readonly BleErrorCode[] = [
   'valueTooLong',
   'characteristicNotFound',
   'alreadySubscribed',
+  'descriptorNotFound',
 ]
 
 /** The details a `BleError` can carry beyond its code and message. */

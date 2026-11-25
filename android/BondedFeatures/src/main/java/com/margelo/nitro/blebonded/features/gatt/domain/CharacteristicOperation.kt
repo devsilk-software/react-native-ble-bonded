@@ -15,6 +15,8 @@ enum class CharacteristicOperation(val publicName: String, val properties: List<
   WRITE("write", listOf(CharacteristicProperty.WRITE)),
   WRITE_WITHOUT_RESPONSE("write without response", listOf(CharacteristicProperty.WRITE_WITHOUT_RESPONSE)),
   SUBSCRIBE("subscribe", listOf(CharacteristicProperty.NOTIFY, CharacteristicProperty.INDICATE)),
+  READ_DESCRIPTOR("descriptor read", emptyList()),
+  WRITE_DESCRIPTOR("descriptor write", emptyList()),
 }
 
 /** The longest value a write with response may carry: Bluetooth's limit for a characteristic's value. */

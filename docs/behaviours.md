@@ -60,6 +60,7 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - refuses to connect while Bluetooth is off or without permission
 - keeps waiting for the device while Bluetooth is off
 - refuses to read services while not connected
+- lists descriptors only when asked
 - publishes connection attempts, retries, connections and disconnections
 - maps platform disconnect errors to reasons
 - remembers a device after it connects
@@ -104,6 +105,12 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - refuses a chunked write the characteristic doesn't allow, before sending anything
 - reads the signal strength
 - gives up reading the signal strength after its timeout
+- reads a descriptor's value
+- writes a descriptor's value
+- refuses a descriptor the characteristic doesn't have, naming the ones it has
+- refuses to write the notification descriptor, pointing to subscribe
+- names the descriptor the device refused
+- gives up on a descriptor operation after its timeout
 
 ## diagnostics
 

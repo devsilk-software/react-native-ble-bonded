@@ -11,6 +11,8 @@
 #include <NitroBleBonded/private/JCharacteristicProperty.hpp>
 #include <NitroModules/JNIConverter+Array.hpp>
 #include <NitroModules/JSIConverter+JArrayClass.hpp>
+#include <NitroModules/JNIConverter+Optional.hpp>
+#include <NitroModules/JSIConverter+JOptional.hpp>
 #include <NitroModules/PropNameIDCache.hpp>
 #include <NitroModules/JSIHelpers.hpp>
 
@@ -18,13 +20,14 @@ namespace margelo::nitro {
 
   jni::local_ref<margelo::nitro::blebonded::JNativeCharacteristic> JSIConverter<jni::local_ref<margelo::nitro::blebonded::JNativeCharacteristic>>::fromJSI(jsi::Runtime& runtime, const jsi::Value& value) {
     auto object = value.asObject(runtime);
-    return margelo::nitro::blebonded::JNativeCharacteristic::create(JSIConverter<jni::local_ref<jni::JString>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))), JSIConverter<jni::local_ref<jni::JArrayClass<margelo::nitro::blebonded::JCharacteristicProperty>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties"))));
+    return margelo::nitro::blebonded::JNativeCharacteristic::create(JSIConverter<jni::local_ref<jni::JString>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))), JSIConverter<jni::local_ref<jni::JArrayClass<margelo::nitro::blebonded::JCharacteristicProperty>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties"))), JSIConverter<jni::local_ref<JOptional<jni::JArrayClass<jni::JString>>>>::fromJSI(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "descriptors"))));
   }
 
   jsi::Value JSIConverter<jni::local_ref<margelo::nitro::blebonded::JNativeCharacteristic>>::toJSI(jsi::Runtime& runtime, jni::alias_ref<margelo::nitro::blebonded::JNativeCharacteristic> value) {
     jsi::Object object(runtime);
     object.setProperty(runtime, PropNameIDCache::get(runtime, "uuid"), JSIConverter<jni::local_ref<jni::JString>>::toJSI(runtime, value->getUuid()));
     object.setProperty(runtime, PropNameIDCache::get(runtime, "properties"), JSIConverter<jni::local_ref<jni::JArrayClass<margelo::nitro::blebonded::JCharacteristicProperty>>>::toJSI(runtime, value->getProperties()));
+    object.setProperty(runtime, PropNameIDCache::get(runtime, "descriptors"), JSIConverter<jni::local_ref<JOptional<jni::JArrayClass<jni::JString>>>>::toJSI(runtime, value->getDescriptors()));
     return object;
   }
 
@@ -32,7 +35,7 @@ namespace margelo::nitro {
     if (!value.isObject()) return false;
     auto object = value.getObject(runtime);
     if (!isPlainObject(runtime, object)) return false;
-    return JSIConverter<jni::local_ref<jni::JString>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))) && JSIConverter<jni::local_ref<jni::JArrayClass<margelo::nitro::blebonded::JCharacteristicProperty>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties")));
+    return JSIConverter<jni::local_ref<jni::JString>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "uuid"))) && JSIConverter<jni::local_ref<jni::JArrayClass<margelo::nitro::blebonded::JCharacteristicProperty>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "properties"))) && JSIConverter<jni::local_ref<JOptional<jni::JArrayClass<jni::JString>>>>::canConvert(runtime, object.getProperty(runtime, PropNameIDCache::get(runtime, "descriptors")));
   }
 
 } // namespace margelo::nitro

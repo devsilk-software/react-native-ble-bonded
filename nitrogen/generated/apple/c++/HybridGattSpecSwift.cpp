@@ -98,6 +98,26 @@ namespace margelo::nitro::blebonded {
     return std::move(__result.value());
   }
 
+  Promise<ArrayBuffer> HybridGattSpecSwift::readDescriptor(const swift::String& id, const swift::String& service, const swift::String& characteristic, const swift::String& descriptor, double timeoutMs) {
+    auto __result = withCxxResult<Promise<ArrayBuffer>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridGattSpec_cxx::readDescriptor(id, service, characteristic, descriptor, timeoutMs, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
+  Promise<void> HybridGattSpecSwift::writeDescriptor(const swift::String& id, const swift::String& service, const swift::String& characteristic, const swift::String& descriptor, const ArrayBuffer& value, double timeoutMs) {
+    auto __result = withCxxResult<Promise<void>>([&](void* __outResult) {
+      return ::NitroBleBonded::HybridGattSpec_cxx::writeDescriptor(id, service, characteristic, descriptor, value, timeoutMs, __outResult);
+    });
+    if (__result.hasError()) [[unlikely]] {
+      std::rethrow_exception(__result.error());
+    }
+    return std::move(__result.value());
+  }
+
   const std::shared_ptr<const HybridClass>& HybridGattSpecSwift::Class::get() {
     static const auto hybridClass = HybridClass::create<Class>([](HybridClass& clazz) {
       clazz.registerStaticHybridMethod("read", &HybridGattSpecSwift::read);
@@ -107,6 +127,8 @@ namespace margelo::nitro::blebonded {
       clazz.registerStaticHybridMethod("writeChunked", &HybridGattSpecSwift::writeChunked);
       clazz.registerStaticHybridMethod("getMaxWriteLength", &HybridGattSpecSwift::getMaxWriteLength);
       clazz.registerStaticHybridMethod("readRssi", &HybridGattSpecSwift::readRssi);
+      clazz.registerStaticHybridMethod("readDescriptor", &HybridGattSpecSwift::readDescriptor);
+      clazz.registerStaticHybridMethod("writeDescriptor", &HybridGattSpecSwift::writeDescriptor);
     });
     return hybridClass;
   }

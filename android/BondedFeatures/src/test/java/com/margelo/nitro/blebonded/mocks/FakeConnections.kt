@@ -15,6 +15,7 @@ import com.margelo.nitro.blebonded.features.connection.domain.GattService
 import com.margelo.nitro.blebonded.features.connection.domain.RememberedDevice
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
+import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
 import com.margelo.nitro.blebonded.shared.domain.DeviceId
 import com.margelo.nitro.blebonded.shared.domain.ServiceUuid
 import kotlinx.coroutines.CancellationException
@@ -82,6 +83,12 @@ class FakeConnectionSource(
     options.retryTransientErrors && error.platformCode in transientCodes
 
   override fun name(id: DeviceId): String = "Thermo-1"
+
+  /** Every characteristic gets the descriptors 2902 and 2901. */
+  override suspend fun withDescriptors(services: List<GattService>, id: DeviceId): List<GattService> =
+    services.map { service ->
+      service.copy(characteristics = service.characteristics.map { it.copy(descriptors = listOf(DescriptorUuid.parse("2902")!!, DescriptorUuid.parse("2901")!!)) })
+    }
 
   /** The device drops the connection by itself. */
   suspend fun drop(id: DeviceId, disconnect: Disconnect) {

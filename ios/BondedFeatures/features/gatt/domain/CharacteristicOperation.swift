@@ -15,6 +15,8 @@ public enum CharacteristicOperation: Sendable, Equatable {
   case write
   case writeWithoutResponse
   case subscribe
+  case readDescriptor
+  case writeDescriptor
 
   /// The properties of which the characteristic needs one for this operation.
   public var properties: [CharacteristicProperty] {
@@ -23,6 +25,7 @@ public enum CharacteristicOperation: Sendable, Equatable {
     case .write: [.write]
     case .writeWithoutResponse: [.writeWithoutResponse]
     case .subscribe: [.notify, .indicate]
+    case .readDescriptor, .writeDescriptor: []
     }
   }
 
@@ -32,6 +35,8 @@ public enum CharacteristicOperation: Sendable, Equatable {
     case .write: "write"
     case .writeWithoutResponse: "write without response"
     case .subscribe: "subscribe"
+    case .readDescriptor: "descriptor read"
+    case .writeDescriptor: "descriptor write"
     }
   }
 }

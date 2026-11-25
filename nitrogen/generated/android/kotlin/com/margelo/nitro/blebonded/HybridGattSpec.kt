@@ -77,6 +77,10 @@ abstract class HybridGattSpec: HybridObject() {
     fun getMaxWriteLength(id: String): Promise<Double>
 
     fun readRssi(id: String, timeoutMs: Double): Promise<Double>
+
+    fun readDescriptor(id: String, service: String, characteristic: String, descriptor: String, timeoutMs: Double): Promise<ArrayBuffer>
+
+    fun writeDescriptor(id: String, service: String, characteristic: String, descriptor: String, value: ArrayBuffer, timeoutMs: Double): Promise<Unit>
   }
 
   protected companion object Bridge {
@@ -133,6 +137,20 @@ abstract class HybridGattSpec: HybridObject() {
     @Keep
     private fun readRssi_cxx(id: String, timeoutMs: Double): Promise<Double> {
       return HybridGatt.readRssi(id, timeoutMs)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun readDescriptor_cxx(id: String, service: String, characteristic: String, descriptor: String, timeoutMs: Double): Promise<ArrayBuffer> {
+      return HybridGatt.readDescriptor(id, service, characteristic, descriptor, timeoutMs)
+    }
+
+    @JvmStatic
+    @DoNotStrip
+    @Keep
+    private fun writeDescriptor_cxx(id: String, service: String, characteristic: String, descriptor: String, value: ArrayBuffer, timeoutMs: Double): Promise<Unit> {
+      return HybridGatt.writeDescriptor(id, service, characteristic, descriptor, value, timeoutMs)
     }
   }
 }

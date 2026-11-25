@@ -12,15 +12,17 @@ internal import CxxStdlib
 public struct NativeCharacteristic: Equatable, Hashable, Sendable {
   public let uuid: String
   public let properties: [CharacteristicProperty]
+  public let descriptors: [String]?
 
-  public init(uuid: String, properties: [CharacteristicProperty]) {
+  public init(uuid: String, properties: [CharacteristicProperty], descriptors: [String]?) {
     self.uuid = uuid
     self.properties = properties
+    self.descriptors = descriptors
   }
 
   @_spi(NitroCxx)
-  public static func init_cxx(_ uuid: String, _ properties: [CharacteristicProperty]) -> Self {
-    return Self(uuid: uuid, properties: properties)
+  public static func init_cxx(_ uuid: String, _ properties: [CharacteristicProperty], _ descriptors: [String]?) -> Self {
+    return Self(uuid: uuid, properties: properties, descriptors: descriptors)
   }
 
   @_spi(NitroCxx)
@@ -31,5 +33,10 @@ public struct NativeCharacteristic: Equatable, Hashable, Sendable {
   @_spi(NitroCxx)
   public borrowing func getProperties_cxx() -> [CharacteristicProperty] {
     return self.properties
+  }
+
+  @_spi(NitroCxx)
+  public borrowing func getDescriptors_cxx() -> [String]? {
+    return self.descriptors
   }
 }

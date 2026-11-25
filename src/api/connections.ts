@@ -417,7 +417,7 @@ export class Device {
   /**
    * Cuts `data` to the maximum write length and writes the chunks in order, as one operation: no other read or write
    * on the device gets between them, so firmware that puts them back together can rely on that. Waits for the
-   * device to confirm each chunk unless `withoutResponse`; the timeout applies to each chunk. Empty data resolves
+   * device to confirm each chunk unless `withoutResponse`; the timeout applies to each chunk, from when it's sent. Empty data resolves
    * without sending anything. Stops at the first chunk that fails and rejects with its error plus `chunkIndex`
    * (counting from 0), `chunkCount` and `sentLength`, the bytes the device took before it. The device must be
    * connected; otherwise it rejects at once with `notConnected`.

@@ -89,6 +89,9 @@ public struct CoreBluetoothCharacteristicSource: CharacteristicSource {
             operation: operation.name
           )
       throw PieceFailure(index: failure.index, error: error)
+    } catch let error as CentralError {
+      // Failed before the write got its turn, so no chunk went out.
+      throw PieceFailure(index: 0, error: Self.bleError(error, operation: operation, address: address, id: id))
     } catch is CancellationError {
       throw Self.cancelled(operation, id: id)
     }

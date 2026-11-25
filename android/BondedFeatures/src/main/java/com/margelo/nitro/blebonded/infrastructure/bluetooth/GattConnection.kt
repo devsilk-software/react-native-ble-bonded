@@ -234,15 +234,21 @@ class GattConnection(
       for ((index, piece) in pieces.withIndex()) {
         // The caller gave up, or an earlier piece failed: send nothing more.
         if (result.isCompleted) return@perform
-        coroutineScope {
-          val answered = async { runCatching { answer(written, characteristic) { send(client, characteristic, piece, type) } } }
-          val outcome = withTimeoutOrNull(pieceTimeoutMs) { answered.await() }
-          if (outcome == null) {
-            result.completeExceptionally(PieceException(index, GattStatusException(TIMED_OUT)))
-            answered.await()
-          } else {
-            outcome.exceptionOrNull()?.let { result.completeExceptionally(PieceException(index, it)) }
+        try {
+          coroutineScope {
+            val answered = async { runCatching { answer(written, characteristic) { send(client, characteristic, piece, type) } } }
+            val outcome = withTimeoutOrNull(pieceTimeoutMs) { answered.await() }
+            if (outcome == null) {
+              result.completeExceptionally(PieceException(index, GattStatusException(TIMED_OUT)))
+              answered.await()
+            } else {
+              outcome.exceptionOrNull()?.let { result.completeExceptionally(PieceException(index, it)) }
+            }
           }
+        } catch (closed: CancellationException) {
+          // Closing the connection cancels this between or during pieces: say which piece it stopped.
+          result.completeExceptionally(PieceException(index, GattStatusException(NOT_CONNECTED)))
+          throw closed
         }
       }
       result.complete(Unit)

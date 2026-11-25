@@ -82,7 +82,7 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
         }
       throw PieceFailure(failure.index, error)
     } catch (failure: GattStatusException) {
-      // The connection closed before the first chunk went out.
+      // The connection closed before the write got its turn, so no chunk went out.
       throw PieceFailure(0, bleError(failure.status, operation, address, id))
     }
   }

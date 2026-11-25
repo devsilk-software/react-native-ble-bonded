@@ -5,7 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { ble } from 'react-native-ble-bonded'
 import { useBluetoothPermission, useBluetoothState } from 'react-native-ble-bonded/hooks'
 import { DeviceScreen } from './screens/DeviceScreen'
-import { DiagnosticsScreen } from './screens/DiagnosticsScreen'
+import { DiagnosticsScreen, type DiagnosticsSettings } from './screens/DiagnosticsScreen'
 import { ScanScreen } from './screens/ScanScreen'
 import { theme } from './theme'
 
@@ -28,6 +28,8 @@ function Main() {
   const theme = useTheme()
   const [tab, setTab] = useState<Tab>('scan')
   const [selected, setSelected] = useState<string>()
+  // Kept here, not in the tab: Bonded keeps recording when the tab changes, and so must its switches.
+  const [diagnostics, setDiagnostics] = useState<DiagnosticsSettings>({ isEnabled: false, isGatt: false })
 
   const select = (id: string) => {
     setSelected(id)
@@ -53,7 +55,7 @@ function Main() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps='handled'>
         {tab === 'scan' && <ScanScreen onSelect={select} />}
         {tab === 'device' && selected != null && <DeviceScreen id={selected} />}
-        {tab === 'diagnostics' && <DiagnosticsScreen />}
+        {tab === 'diagnostics' && <DiagnosticsScreen settings={diagnostics} onChange={setDiagnostics} />}
       </ScrollView>
     </SafeAreaView>
   )

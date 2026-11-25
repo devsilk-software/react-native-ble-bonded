@@ -1,35 +1,46 @@
-import { useState } from 'react'
 import { Share, StyleSheet, View } from 'react-native'
-import { Button, Divider, List, Switch, Text } from 'react-native-paper'
+import { Button, Divider, List, Text } from 'react-native-paper'
+import { Toggle } from '../components/Toggle'
 import { ble, type DiagnosticEvent } from 'react-native-ble-bonded'
 import { useDiagnosticEvents } from 'react-native-ble-bonded/hooks'
 import { ButtonRow } from '../components/Row'
 import { Section } from '../components/Section'
 
+/** What the app turned on. Bonded keeps it natively until the app quits, so the switches outlive this screen. */
+export interface DiagnosticsSettings {
+  isEnabled: boolean
+  isGatt: boolean
+}
+
 // Diagnostics are off by default; this screen turns them on for testing and shows what Bonded recorded.
-export function DiagnosticsScreen() {
-  const [isEnabled, setIsEnabled] = useState(false)
-  const [isGatt, setIsGatt] = useState(false)
+export function DiagnosticsScreen({
+  settings,
+  onChange,
+}: {
+  settings: DiagnosticsSettings
+  onChange: (settings: DiagnosticsSettings) => void
+}) {
+  const { isEnabled, isGatt } = settings
   const events = useDiagnosticEvents({ limit: 50 })
 
   const toggle = async (enabled: boolean) => {
     await ble.configure({ diagnostics: { enabled, gatt: isGatt } })
-    setIsEnabled(enabled)
+    onChange({ ...settings, isEnabled: enabled })
   }
 
   const toggleGatt = async (gatt: boolean) => {
     await ble.configure({ diagnostics: { gatt } })
-    setIsGatt(gatt)
+    onChange({ ...settings, isGatt: gatt })
   }
 
   return (
     <View>
-      <Section title='Diagnostics' right={<Switch value={isEnabled} onValueChange={toggle} testID='diagnostics-toggle' />}>
+      <Section title='Diagnostics' right={<Toggle value={isEnabled} onValueChange={toggle} testID='diagnostics-toggle' />}>
         {isEnabled ? (
           <>
             <View style={styles.setting}>
               <Text variant='bodyMedium'>Record reads and writes too</Text>
-              <Switch value={isGatt} onValueChange={toggleGatt} />
+              <Toggle value={isGatt} onValueChange={toggleGatt} />
             </View>
             {/* Only once something is recorded: there's nothing to share or clear before. */}
             {events.length > 0 && (

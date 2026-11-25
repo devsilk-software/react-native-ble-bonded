@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FlatList, StyleSheet, View } from 'react-native'
-import { Button, Divider, List, Switch, Text } from 'react-native-paper'
+import { Button, Divider, List, Text } from 'react-native-paper'
+import { Toggle } from '../components/Toggle'
 import { ble, type ScannedDevice } from 'react-native-ble-bonded'
 import { useRememberedDevices, useScan } from 'react-native-ble-bonded/hooks'
 import { OutcomeCard, outcomeOf, type Outcome } from '../components/Outcome'
@@ -17,7 +18,7 @@ export function ScanScreen({ onSelect }: { onSelect: (id: string) => void }) {
       <Section title='Scan'>
         <View style={styles.setting}>
           <Text variant='bodyMedium'>Mac test peripheral only</Text>
-          <Switch value={isTestOnly} onValueChange={setIsTestOnly} testID='scan-test-only' />
+          <Toggle value={isTestOnly} onValueChange={setIsTestOnly} testID='scan-test-only' />
         </View>
         <ButtonRow>
           <Button mode={isScanning ? 'outlined' : 'contained'} onPress={() => setIsScanning(!isScanning)} testID='scan-toggle'>

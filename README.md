@@ -23,8 +23,14 @@ react-native-ble-plx.
 npm install react-native-ble-bonded@next react-native-nitro-modules@1.0.0-alpha.nightly.136.gdb81de61bd32 nitro-core@1.0.0-alpha.nightly.136.gdb81de61bd32
 ```
 
-**iOS:** set up Swift Package Manager once with `npx react-native spm`, and add `NSBluetoothAlwaysUsageDescription`
-to `Info.plist`, saying why your app uses Bluetooth.
+**iOS:** Nitro v1 builds only through Swift Package Manager, and needs iOS 16:
+
+1. Switch the app to Swift Package Manager once: `npx react-native spm add --deintegrate`. A new React Native app is
+   set up for CocoaPods; this removes that setup, and needs CocoaPods (`pod`) installed to do it.
+2. Set the app target's minimum deployment to iOS 16.0 (Xcode › the app target › General › Minimum Deployments). A
+   new React Native 0.88 app starts at 15.1, and the build then fails with "requires minimum platform version 16.0".
+3. Run `npx react-native spm` again, so the linked packages pick up iOS 16.
+4. Add `NSBluetoothAlwaysUsageDescription` to `Info.plist`, saying why your app uses Bluetooth.
 
 **Android:** add the permissions to `AndroidManifest.xml`:
 

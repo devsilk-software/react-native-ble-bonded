@@ -25,8 +25,15 @@ public enum DeviceRefusal {
   private static let pairing: Set<Int> = [0x05, 0x0C, 0x0F]
 
   /// The `BleError` for an ATT error code the device answered `operation` with.
-  public static func error(code: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId) -> BleError {
-    let what = "the \(operation.name) of characteristic \(address.characteristic)"
+  /// For a descriptor operation, `descriptor` is the one the device refused, and the message names it.
+  public static func error(
+    code: Int,
+    operation: CharacteristicOperation,
+    address: CharacteristicAddress,
+    id: DeviceId,
+    descriptor: DescriptorUuid? = nil
+  ) -> BleError {
+    let what = what(operation, address, descriptor)
     if (0x80...0x9F).contains(code) {
       let hex = "0x" + String(code, radix: 16)
       return BleError(
@@ -39,13 +46,23 @@ public enum DeviceRefusal {
       )
     }
     let known = names[code] ?? ("unknown", "the device refused it with an unknown error \(code)")
+    // The descriptions speak of the characteristic; for a descriptor, the descriptor is what the device refused.
+    let description = descriptor == nil ? known.description : known.description.replacingOccurrences(of: "the characteristic", with: "the descriptor")
     return BleError(
       code: pairing.contains(code) ? .pairingRequired : .gattError,
-      message: "The device refused \(what): \(known.description).",
+      message: "The device refused \(what): \(description).",
       platformCode: code,
       deviceId: id,
       operation: operation.name,
       attError: known.name
     )
+  }
+
+  /// What an error message calls the operation: "the read of characteristic 2a37", or for a descriptor "the write of
+  /// descriptor 2901 on characteristic 2a37".
+  public static func what(_ operation: CharacteristicOperation, _ address: CharacteristicAddress, _ descriptor: DescriptorUuid?) -> String {
+    guard let descriptor else { return "the \(operation.name) of characteristic \(address.characteristic)" }
+    let verb = operation == .writeDescriptor ? "write" : "read"
+    return "the \(verb) of descriptor \(descriptor) on characteristic \(address.characteristic)"
   }
 }

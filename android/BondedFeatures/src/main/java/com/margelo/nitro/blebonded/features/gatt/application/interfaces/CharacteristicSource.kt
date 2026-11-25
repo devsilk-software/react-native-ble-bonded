@@ -1,6 +1,7 @@
 package com.margelo.nitro.blebonded.features.gatt.application.interfaces
 
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
+import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.DescriptorUuid
@@ -35,9 +36,9 @@ interface CharacteristicSource {
 
   /**
    * The characteristic's descriptors, from the services discovered at connect; null when the device has no such
-   * characteristic. Throws a `BleError`.
+   * characteristic. Throws a `BleError` naming [operation], the one that asked.
    */
-  suspend fun descriptors(address: CharacteristicAddress, id: DeviceId): List<DescriptorUuid>?
+  suspend fun descriptors(address: CharacteristicAddress, id: DeviceId, operation: CharacteristicOperation): List<DescriptorUuid>?
 
   /** Reads a descriptor's value. Throws a `BleError`; cancelling stops waiting. */
   suspend fun readDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId): ByteArray

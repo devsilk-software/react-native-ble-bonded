@@ -22,9 +22,12 @@ class WriteDescriptor(private val source: CharacteristicSource, private val bus:
     val operation = CharacteristicOperation.WRITE_DESCRIPTOR
     val started = System.currentTimeMillis()
     try {
-      DescriptorCheck.failure(operation, descriptor, address, id, source.descriptors(address, id), value.size)?.let { throw it }
       try {
-        withTimeout(timeoutMs) { source.writeDescriptor(value, descriptor, address, id) }
+        // Finding the descriptors waits its turn on the device too, so the timeout covers it.
+        withTimeout(timeoutMs) {
+          DescriptorCheck.failure(operation, descriptor, address, id, source.descriptors(address, id, operation), value.size)?.let { throw it }
+          source.writeDescriptor(value, descriptor, address, id)
+        }
       } catch (expired: TimeoutCancellationException) {
         throw BleError(BleError.Code.TIMEOUT, "The device didn't confirm the write of descriptor $descriptor within $timeoutMs ms", deviceId = id, operation = operation.publicName)
       }

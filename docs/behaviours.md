@@ -109,6 +109,7 @@ Name a behaviour for what the user of Bonded can rely on, in plain words, not fo
 - writes a descriptor's value
 - refuses a descriptor the characteristic doesn't have, naming the ones it has
 - refuses to write the notification descriptor, pointing to subscribe
+- names the descriptor the device refused
 - gives up on a descriptor operation after its timeout
 
 ## diagnostics

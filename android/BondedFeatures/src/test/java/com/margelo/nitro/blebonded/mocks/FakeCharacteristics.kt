@@ -4,6 +4,7 @@ import com.margelo.nitro.blebonded.features.gatt.application.interfaces.Characte
 import com.margelo.nitro.blebonded.features.gatt.application.interfaces.CharacteristicSource
 import com.margelo.nitro.blebonded.features.gatt.application.interfaces.PieceFailure
 import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicAddress
+import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
 import com.margelo.nitro.blebonded.shared.domain.BleError
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicProperty
 import com.margelo.nitro.blebonded.shared.domain.CharacteristicUuid
@@ -96,8 +97,10 @@ class FakeCharacteristicSource(private val characteristics: Map<CharacteristicAd
     }
   }
 
-  override suspend fun descriptors(address: CharacteristicAddress, id: DeviceId): List<DescriptorUuid>? =
-    if (address !in characteristics) null else descriptors[address]?.keys?.toList().orEmpty()
+  override suspend fun descriptors(address: CharacteristicAddress, id: DeviceId, operation: CharacteristicOperation): List<DescriptorUuid>? {
+    answer()
+    return if (address !in characteristics) null else descriptors[address]?.keys?.toList().orEmpty()
+  }
 
   override suspend fun readDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId): ByteArray {
     answer()

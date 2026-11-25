@@ -265,7 +265,11 @@ describe('Descriptors', () => {
   it('rejects at once with notConnected when the device is not connected', async () => {
     report({ id: 'A', state: 'disconnected' })
 
-    await expect(ble.device('A').readDescriptor(service, '2a37', '2901')).rejects.toMatchObject({ code: 'notConnected' })
+    await expect(ble.device('A').readDescriptor(service, '2a37', '2901')).rejects.toMatchObject({
+      code: 'notConnected',
+      operation: 'readDescriptor',
+      message: 'The device is disconnected; connect it before you read a descriptor.',
+    })
     await expect(ble.device('A').writeDescriptor(service, '2a37', '2901', new Uint8Array([1]))).rejects.toMatchObject({
       code: 'notConnected',
     })

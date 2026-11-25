@@ -69,6 +69,8 @@ public struct CoreBluetoothConnectionSource: ConnectionSource {
           uuids = try await central.descriptorUuids(identifier, service: service.uuid.rawValue, characteristic: characteristic.uuid.rawValue)
         } catch let error as CentralError {
           throw Self.descriptorsError(error, id: id)
+        } catch is CancellationError {
+          throw BleError(code: .cancelled, message: "Listing the descriptors was cancelled", deviceId: id, operation: "getServices")
         }
         characteristics.append(GattCharacteristic(
           uuid: characteristic.uuid,
@@ -121,7 +123,7 @@ public struct CoreBluetoothConnectionSource: ConnectionSource {
     switch error {
     case .notReady: BleError(code: .bluetoothOff, message: "Bluetooth is off", deviceId: id, operation: "connect")
     case .unknownPeripheral: notFound(id)
-    case .notConnected: BleError(code: .notConnected, message: "The device isn't connected", deviceId: id, operation: "connect")
+    case .notConnected, .notFound: BleError(code: .notConnected, message: "The device isn't connected", deviceId: id, operation: "connect")
     case .noAnswer: BleError(code: .timeout, message: "The device didn't answer within Bluetooth's 30 seconds", deviceId: id, operation: "connect")
     case let .platform(info):
       BleError(code: .connectionFailed, message: info.message, platformCode: info.code, deviceId: id, operation: "connect")

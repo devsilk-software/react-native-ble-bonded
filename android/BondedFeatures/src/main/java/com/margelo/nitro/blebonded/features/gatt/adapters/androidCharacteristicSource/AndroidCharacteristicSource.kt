@@ -88,15 +88,15 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
     }
   }
 
-  override suspend fun descriptors(address: CharacteristicAddress, id: DeviceId): List<DescriptorUuid>? =
+  override suspend fun descriptors(address: CharacteristicAddress, id: DeviceId, operation: CharacteristicOperation): List<DescriptorUuid>? =
     find(address, id)?.descriptors?.mapNotNull { DescriptorUuid.parse(it.uuid.toString()) }
 
   override suspend fun readDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId): ByteArray {
-    val target = connection(id).descriptor(address.service.rawValue, address.characteristic.rawValue, descriptor.rawValue) ?: throw notConnected(id)
+    val target = findDescriptor(descriptor, address, id, CharacteristicOperation.READ_DESCRIPTOR)
     return try {
       connection(id).readDescriptor(target)
     } catch (failure: GattStatusException) {
-      throw bleError(failure.status, CharacteristicOperation.READ_DESCRIPTOR, address, id)
+      throw bleError(failure.status, CharacteristicOperation.READ_DESCRIPTOR, address, id, descriptor)
     } catch (failure: GattRequestRefusedException) {
       throw refused(failure.code, CharacteristicOperation.READ_DESCRIPTOR, id)
     } catch (failure: SecurityException) {
@@ -105,11 +105,11 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
   }
 
   override suspend fun writeDescriptor(value: ByteArray, descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId) {
-    val target = connection(id).descriptor(address.service.rawValue, address.characteristic.rawValue, descriptor.rawValue) ?: throw notConnected(id)
+    val target = findDescriptor(descriptor, address, id, CharacteristicOperation.WRITE_DESCRIPTOR)
     try {
       connection(id).writeDescriptor(target, value)
     } catch (failure: GattStatusException) {
-      throw bleError(failure.status, CharacteristicOperation.WRITE_DESCRIPTOR, address, id)
+      throw bleError(failure.status, CharacteristicOperation.WRITE_DESCRIPTOR, address, id, descriptor)
     } catch (failure: GattRequestRefusedException) {
       throw refused(failure.code, CharacteristicOperation.WRITE_DESCRIPTOR, id)
     } catch (failure: SecurityException) {
@@ -149,6 +149,16 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
       val characteristic = CharacteristicUuid.parse(notification.characteristic) ?: return@mapNotNull null
       CharacteristicNotification(DeviceId(notification.address), CharacteristicAddress(service, characteristic), notification.value)
     }
+
+  /** The descriptor; when the device's services changed since the use case checked it, `descriptorNotFound`. */
+  private fun findDescriptor(descriptor: DescriptorUuid, address: CharacteristicAddress, id: DeviceId, operation: CharacteristicOperation) =
+    connection(id).descriptor(address.service.rawValue, address.characteristic.rawValue, descriptor.rawValue)
+      ?: throw BleError(
+        BleError.Code.DESCRIPTOR_NOT_FOUND,
+        "The device's services changed: ${DeviceRefusal.what(operation, address, descriptor)} has nothing to act on. device.getServices({ descriptors: true }) lists what it has now.",
+        deviceId = id,
+        operation = operation.publicName,
+      )
 
   private fun connection(id: DeviceId): GattConnection =
     clients[id.rawValue]?.takeIf { it.isReady } ?: throw notConnected(id)
@@ -197,14 +207,14 @@ class AndroidCharacteristicSource(private val clients: GattClients) : Characteri
      * Android's GATT status in Bonded's words: Bluetooth's named errors by name, Android's own statuses (0x80–0x8F)
      * by theirs, the firmware range 0x90–0x9F as the device's own errors, a disconnect as `notConnected`.
      */
-    fun bleError(status: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId): BleError {
-      val what = "the ${operation.publicName} of characteristic ${address.characteristic}"
+    fun bleError(status: Int, operation: CharacteristicOperation, address: CharacteristicAddress, id: DeviceId, descriptor: DescriptorUuid? = null): BleError {
+      val what = DeviceRefusal.what(operation, address, descriptor)
       return when {
         status == NOT_CONNECTED ->
           BleError(BleError.Code.NOT_CONNECTED, "The device disconnected during ${what}", deviceId = id, operation = operation.publicName)
         status == NO_ANSWER ->
           BleError(BleError.Code.TIMEOUT, "The device didn't answer ${what} within Bluetooth's 30 seconds", deviceId = id, operation = operation.publicName)
-        DeviceRefusal.isNamed(status) || status in 0x90..0x9F -> DeviceRefusal.error(status, operation, address, id)
+        DeviceRefusal.isNamed(status) || status in 0x90..0x9F -> DeviceRefusal.error(status, operation, address, id, descriptor)
         status in androidStatuses ->
           BleError(
             if (status in androidPairing) BleError.Code.PAIRING_REQUIRED else BleError.Code.GATT_ERROR,

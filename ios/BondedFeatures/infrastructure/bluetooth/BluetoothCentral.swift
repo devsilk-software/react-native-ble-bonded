@@ -586,12 +586,12 @@ public actor BluetoothCentral {
     writeCallers.removeValue(forKey: token)?.continuation.resume(with: result)
   }
 
-  /// The discovered descriptor; `notConnected` when it's gone, as the use cases check it exists before asking.
+  /// The discovered descriptor; `notFound` when the device's services changed since the use case checked it.
   private func descriptor(on identifier: UUID, service: String, characteristic: String, descriptor: String) throws -> CBDescriptor {
     guard let target = try self.characteristic(on: identifier, service: service, characteristic: characteristic)?
       .descriptors?
       .first(where: { Self.fullUuid($0.uuid) == descriptor })
-    else { throw CentralError.notConnected }
+    else { throw CentralError.notFound }
     return target
   }
 
@@ -972,6 +972,8 @@ public enum CentralError: Error, Sendable {
   case notConnected
   /// The peripheral didn't answer within Bluetooth's 30 seconds.
   case noAnswer
+  /// The descriptor isn't among the ones discovered on the connected peripheral.
+  case notFound
   case platform(PlatformErrorInfo)
 }
 

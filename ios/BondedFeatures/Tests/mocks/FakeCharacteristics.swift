@@ -52,7 +52,8 @@ actor FakeCharacteristicSource: CharacteristicSource {
     }
   }
 
-  func descriptors(of address: CharacteristicAddress, on id: DeviceId) async throws -> [DescriptorUuid]? {
+  func descriptors(of address: CharacteristicAddress, on id: DeviceId, for operation: CharacteristicOperation) async throws -> [DescriptorUuid]? {
+    try await answer()
     guard characteristics[address] != nil else { return nil }
     return descriptors[address].map { $0.keys.sorted { $0.rawValue < $1.rawValue } } ?? []
   }

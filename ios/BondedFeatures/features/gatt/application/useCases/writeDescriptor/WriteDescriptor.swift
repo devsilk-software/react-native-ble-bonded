@@ -19,24 +19,25 @@ public struct WriteDescriptor: Sendable {
   ) async throws {
     let started = ContinuousClock.now
     do {
-      let descriptors = try await source.descriptors(of: address, on: id)
-      if let failure = DescriptorCheck.failure(
-        of: .writeDescriptor,
-        descriptor,
-        of: address,
-        on: id,
-        descriptors: descriptors,
-        length: value.count
-      ) {
-        throw failure
-      }
       let expired = BleError(
         code: .timeout,
         message: "The device didn't confirm the write of descriptor \(descriptor) within \(timeout)",
         deviceId: id,
         operation: CharacteristicOperation.writeDescriptor.name
       )
+      // Finding the descriptors waits its turn on the device too, so the timeout covers it.
       try await withOperationTimeout(timeout, timeout: expired) {
+        let descriptors = try await source.descriptors(of: address, on: id, for: .writeDescriptor)
+        if let failure = DescriptorCheck.failure(
+          of: .writeDescriptor,
+          descriptor,
+          of: address,
+          on: id,
+          descriptors: descriptors,
+          length: value.count
+        ) {
+          throw failure
+        }
         try await source.writeDescriptor(value, to: descriptor, of: address, on: id)
       }
       let elapsed = (ContinuousClock.now - started).wholeMilliseconds

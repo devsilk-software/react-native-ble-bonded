@@ -21,10 +21,13 @@ class ReadDescriptor(private val source: CharacteristicSource, private val bus: 
     val operation = CharacteristicOperation.READ_DESCRIPTOR
     val started = System.currentTimeMillis()
     try {
-      DescriptorCheck.failure(operation, descriptor, address, id, source.descriptors(address, id))?.let { throw it }
       val value =
         try {
-          withTimeout(timeoutMs) { source.readDescriptor(descriptor, address, id) }
+          // Finding the descriptors waits its turn on the device too, so the timeout covers it.
+          withTimeout(timeoutMs) {
+            DescriptorCheck.failure(operation, descriptor, address, id, source.descriptors(address, id, operation))?.let { throw it }
+            source.readDescriptor(descriptor, address, id)
+          }
         } catch (expired: TimeoutCancellationException) {
           throw BleError(BleError.Code.TIMEOUT, "The device didn't answer the read of descriptor $descriptor within $timeoutMs ms", deviceId = id, operation = operation.publicName)
         }

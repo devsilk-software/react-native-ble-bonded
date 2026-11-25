@@ -20,8 +20,8 @@ public protocol CharacteristicSource: Sendable {
   func write(pieces: [[UInt8]], to address: CharacteristicAddress, on id: DeviceId, withResponse: Bool, timeout: Duration) async throws
 
   /// The characteristic's descriptors, discovered the first time they're asked for and kept for the connection;
-  /// `nil` when the device has no such characteristic. Throws a `BleError`.
-  func descriptors(of address: CharacteristicAddress, on id: DeviceId) async throws -> [DescriptorUuid]?
+  /// `nil` when the device has no such characteristic. Throws a `BleError` naming `operation`, the one that asked.
+  func descriptors(of address: CharacteristicAddress, on id: DeviceId, for operation: CharacteristicOperation) async throws -> [DescriptorUuid]?
 
   /// Reads a descriptor's value. Throws a `BleError`; cancelling stops waiting.
   func readDescriptor(_ descriptor: DescriptorUuid, of address: CharacteristicAddress, on id: DeviceId) async throws -> [UInt8]

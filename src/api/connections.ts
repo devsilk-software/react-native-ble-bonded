@@ -434,7 +434,7 @@ export class Device {
    * `timeout` after 10 s by default, `pairingRequired` or `gattError` when the device refuses.
    */
   async readDescriptor(service: string, characteristic: string, descriptor: string, options: OperationOptions = {}): Promise<ArrayBuffer> {
-    this.requireConnected('read a descriptor')
+    this.requireConnected('readDescriptor', 'read a descriptor')
     try {
       return await Gatt.readDescriptor(this.id, service, characteristic, descriptor, operationTimeout(options))
     } catch (error) {
@@ -455,7 +455,7 @@ export class Device {
     value: ArrayBuffer | Uint8Array,
     options: OperationOptions = {}
   ): Promise<void> {
-    this.requireConnected('write a descriptor')
+    this.requireConnected('writeDescriptor', 'write a descriptor')
     const buffer = value instanceof Uint8Array ? copyToBuffer(value) : value
     try {
       await Gatt.writeDescriptor(this.id, service, characteristic, descriptor, buffer, operationTimeout(options))
@@ -511,9 +511,10 @@ export class Device {
     }
   }
 
-  private requireConnected(operation: string): void {
+  /** `action` is how the message words `operation`, when its name doesn't read as plain words. */
+  private requireConnected(operation: string, action = operation): void {
     if (this.connectionState === 'connected') return
-    throw new BleError('notConnected', `The device is ${this.connectionState}; connect it before you ${operation}.`, {
+    throw new BleError('notConnected', `The device is ${this.connectionState}; connect it before you ${action}.`, {
       deviceId: this.id,
       operation,
     })

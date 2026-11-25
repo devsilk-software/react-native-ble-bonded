@@ -59,6 +59,16 @@ struct DescriptorTests {
     #expect(try await ReadDescriptor(source: source, bus: EventBus())(.clientConfiguration, of: testCharacteristic, on: device) == [0, 0])
   }
 
+  @Test("names the descriptor the device refused")
+  func namesTheDescriptorTheDeviceRefused() {
+    let error = DeviceRefusal.error(code: 0x03, operation: .writeDescriptor, address: testCharacteristic, id: device, descriptor: userDescription)
+
+    #expect(error.code == .gattError)
+    #expect(error.attError == "writeNotPermitted")
+    #expect(error.message.contains("the write of descriptor 00002901"))
+    #expect(error.message.contains("the descriptor can't be written"))
+  }
+
   @Test("gives up on a descriptor operation after its timeout")
   func givesUpOnADescriptorOperationAfterItsTimeout() async {
     let source = await source()

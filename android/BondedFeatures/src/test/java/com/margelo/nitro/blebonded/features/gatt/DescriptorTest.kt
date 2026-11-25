@@ -2,6 +2,8 @@ package com.margelo.nitro.blebonded.features.gatt
 
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.readDescriptor.ReadDescriptor
 import com.margelo.nitro.blebonded.features.gatt.application.useCases.writeDescriptor.WriteDescriptor
+import com.margelo.nitro.blebonded.features.gatt.domain.CharacteristicOperation
+import com.margelo.nitro.blebonded.features.gatt.domain.DeviceRefusal
 import com.margelo.nitro.blebonded.mocks.FakeCharacteristicSource
 import com.margelo.nitro.blebonded.mocks.readOnlyCharacteristic
 import com.margelo.nitro.blebonded.mocks.testCharacteristic
@@ -54,6 +56,14 @@ class DescriptorTest : BehaviorSpec({
       refused.message shouldContain "device.subscribe()"
       source.descriptorWrites.size shouldBe 0
       ReadDescriptor(source, EventBus())(DescriptorUuid.CLIENT_CONFIGURATION, testCharacteristic, device).toList() shouldBe listOf<Byte>(0, 0)
+    }
+
+    then("names the descriptor the device refused") {
+      val error = DeviceRefusal.error(0x03, CharacteristicOperation.WRITE_DESCRIPTOR, testCharacteristic, device, userDescription)
+      error.code shouldBe BleError.Code.GATT_ERROR
+      error.attError shouldBe "writeNotPermitted"
+      error.message shouldContain "the write of descriptor 00002901"
+      error.message shouldContain "the descriptor can't be written"
     }
 
     then("gives up on a descriptor operation after its timeout") {

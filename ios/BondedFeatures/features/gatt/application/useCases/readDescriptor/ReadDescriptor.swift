@@ -17,18 +17,19 @@ public struct ReadDescriptor: Sendable {
   ) async throws -> [UInt8] {
     let started = ContinuousClock.now
     do {
-      let descriptors = try await source.descriptors(of: address, on: id)
-      if let failure = DescriptorCheck.failure(of: .readDescriptor, descriptor, of: address, on: id, descriptors: descriptors) {
-        throw failure
-      }
       let expired = BleError(
         code: .timeout,
         message: "The device didn't answer the read of descriptor \(descriptor) within \(timeout)",
         deviceId: id,
         operation: CharacteristicOperation.readDescriptor.name
       )
+      // Finding the descriptors waits its turn on the device too, so the timeout covers it.
       let value = try await withOperationTimeout(timeout, timeout: expired) {
-        try await source.readDescriptor(descriptor, of: address, on: id)
+        let descriptors = try await source.descriptors(of: address, on: id, for: .readDescriptor)
+        if let failure = DescriptorCheck.failure(of: .readDescriptor, descriptor, of: address, on: id, descriptors: descriptors) {
+          throw failure
+        }
+        return try await source.readDescriptor(descriptor, of: address, on: id)
       }
       let elapsed = (ContinuousClock.now - started).wholeMilliseconds
       await bus.publish(DomainEvent(kind: .gattOperation, deviceId: id, detail: "descriptor read \(descriptor): \(value.count) bytes in \(elapsed) ms"))

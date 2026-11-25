@@ -16,8 +16,9 @@ export const theme: MD3Theme = {
     onPrimaryContainer: black,
     secondary: black,
     onSecondary: '#FFFFFF',
-    secondaryContainer: grey,
-    onSecondaryContainer: black,
+    // Tonal buttons and the selected tab: light blue with blue text, so they read as actions, not as disabled.
+    secondaryContainer: '#E5F2FF',
+    onSecondaryContainer: main,
     tertiary: main,
     background: '#FFFFFF',
     onBackground: black,

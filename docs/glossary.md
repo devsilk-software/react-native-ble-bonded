@@ -284,8 +284,8 @@ changes identifiers after a network reset. Bonded then finds a remembered device
 ### `device.android`
 
 The device's calls that work on Android only: `getBondState()` (`bonded`, `bonding`, `none`), `removeBond()` and
-`onBondStateChange()`. On iOS they reject with `unsupported`, because iOS doesn't let apps see or remove bonds; the
-user removes a device in Settings › Bluetooth. Android's settings live under `android` the same way, as in
+`onBondStateChange()`. On iOS the first two reject with `unsupported`, and `onBondStateChange()` throws it, because
+iOS doesn't let apps see or remove bonds; the user removes a device in Settings › Bluetooth. Android's settings live under `android` the same way, as in
 `ble.configure({ android })` (decision 7).
 
 ### Diagnostic event

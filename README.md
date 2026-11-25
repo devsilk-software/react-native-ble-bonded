@@ -2,8 +2,8 @@
 
 Bluetooth Low Energy for React Native, built for connections that stay up.
 
-> **Status: preview (`0.1.0-beta.1`).** Everything in [This preview](#this-preview) works and is tested; the API
-> may still change before 0.1. Connections in the background and after the system relaunches your app aren't in
+> **Status: preview (`0.1.0-beta.1`).** Everything in [This preview](#this-preview) is built and covered by tests
+> on both platforms, and checked on the devices listed there; the API may still change before 0.1. Connections in the background and after the system relaunches your app aren't in
 > it yet. Feedback and bug reports are welcome in [issues](https://github.com/devsilk-software/react-native-ble-bonded/issues).
 
 Maintained by [Albert Liberski](https://github.com/aliberski) ([Devsilk](https://github.com/devsilk-software)), a former maintainer of
@@ -49,7 +49,7 @@ const MEASUREMENT = '2A37'
 
 function Nearby({ onPick }: { onPick: (id: string) => void }) {
   // Each device once, strongest first; asks for permission and Bluetooth when needed.
-  const { devices, isScanning } = useScan({ services: [HEART_RATE] })
+  const { devices, isScanning } = useScan({ services: [HEART_RATE], sort: 'signal' })
   return devices.map((device) => <Row key={device.id} title={device.name} onPress={() => onPick(device.id)} />)
 }
 
@@ -68,8 +68,9 @@ await device.writeChunked(service, characteristic, firmwareBlock, { withoutRespo
 await device.createBond({ trigger: { service, characteristic: encryptedCharacteristic } }) // pairs on both platforms
 ```
 
-Every failure is a `BleError` with a `code` that means the same on iOS and Android, the platform's own code, and a
-message that says what to do. Diagnostics record connections, disconnections and bond changes natively, also in
+Every Bluetooth or platform failure is a `BleError` with a `code` that means the same on iOS and Android, the
+platform's own code, and a message that says what to do. A mistake in the call itself, such as a negative
+`timeout`, throws at once instead. Diagnostics record connections, disconnections and bond changes natively, also in
 the background, for a bug report: `ble.configure({ diagnostics: { enabled: true } })`, then
 `ble.getDiagnostics()`.
 

@@ -11,7 +11,8 @@ Releases are published from the maintainer's machine, with npm's two-factor conf
 
    ```sh
    yarn install
-   yarn specs && git diff --exit-code nitrogen   # the generated code matches the specs
+   yarn specs && git diff --exit-code -- nitrogen Package.swift   # the generated code matches the specs, as CI checks
+   git status --porcelain                                       # and nothing new was generated: prints nothing
    yarn typecheck && yarn lint && yarn test
    yarn test:ios && yarn test:android
    yarn check:behaviours

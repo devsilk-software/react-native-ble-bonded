@@ -2,9 +2,8 @@
 
 Bluetooth Low Energy for React Native, built for connections that stay up.
 
-> **Status: preview (`0.1.0-beta.1`).** Everything in [This preview](#this-preview) is built and covered by tests
-> on both platforms, and checked on the devices listed there; the API may still change before 0.1. Connections in the background and after the system relaunches your app aren't in
-> it yet. Feedback and bug reports are welcome in [issues](https://github.com/devsilk-software/react-native-ble-bonded/issues).
+> **Status: preview (`0.1.0-beta.1`).** [This preview](#this-preview) lists what's in it; the API may still change
+> before 0.1. Connections in the background and after the system relaunches your app aren't in it yet. Feedback and bug reports are welcome in [issues](https://github.com/devsilk-software/react-native-ble-bonded/issues).
 
 Maintained by [Albert Liberski](https://github.com/aliberski) ([Devsilk](https://github.com/devsilk-software)), a former maintainer of
 react-native-ble-plx.
@@ -100,7 +99,6 @@ Not in this preview:
 
 - Reconnecting by itself after a drop, connections in the background, and the system relaunching your app
 - Expo: Expo can't build Nitro v1 modules yet
-- Tested on an iPhone against a Mac test peripheral; Android phones and pairing with real devices are less tested
 
 ## Developing
 

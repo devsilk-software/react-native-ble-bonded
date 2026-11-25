@@ -1,7 +1,7 @@
 {
   "name": "react-native-ble-bonded",
-  "version": "0.0.1",
-  "description": "Bluetooth Low Energy for React Native: reliable connections and reconnection in the background.",
+  "version": "0.1.0-beta.1",
+  "description": "Bluetooth Low Energy for React Native, built for connections that stay up.",
   "main": "lib/index",
   "module": "lib/index",
   "types": "lib/index.d.ts",
@@ -20,8 +20,6 @@
     "android/fix-prefab.gradle",
     "android/CMakeLists.txt",
     "android/src",
-    "cpp",
-    "app.plugin.js",
     "nitro.json",
     "README.md",
     "Package.swift",
@@ -56,9 +54,6 @@
     "bluetooth",
     "bluetooth-low-energy",
     "nitro",
-    "expo",
-    "reconnect",
-    "background",
     "pairing",
     "ios",
     "android"
